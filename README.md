@@ -59,7 +59,8 @@ bin/dispatch.py land <id> --gate "..."   # the same, for one dispatch
 bin/dispatch.py list / close <id> --outcome failed
 bin/worktrees.py list / reclaim    # checkouts leased to workers, created on demand
 bin/handover.py          # is this session safe to clear? exit 0 means yes
-                         # handover fires by itself at 55% context; HEATER_HANDOVER_AT moves it
+                         # handover arms itself at 25% context and is forced at 45%;
+                         # HEATER_HANDOVER_AT and HEATER_HANDOVER_CEILING move them
 tools/style_lint.py      # check rule files on their own
 python3 -m unittest discover -s tests
 ```

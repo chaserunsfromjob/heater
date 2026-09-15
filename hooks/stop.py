@@ -25,23 +25,50 @@ from heater_hook import keep_going, log, now, role, run, say, stop  # noqa: E402
 
 
 def handover_decision() -> dict[str, Any] | None:
-    """Past the threshold, handing over comes before anything else.
+    """Past the arming mark, handing over outranks starting anything new.
 
-    Returns None when there is nothing to say, so the queue wake runs normally.
+    Armed is not the same as due. Cutting a session off mid-task costs the work
+    twice, which no cost model shows, so while work is in flight the handover
+    waits for a boundary — until the ceiling, where waiting stops being a choice.
     """
-    if not context.due():
+    condition = context.state()
+    if condition == context.QUIET:
         return None
 
-    used, limit = context.used() or 0.0, context.threshold()
-    outstanding = handover.problems(quick=True)
+    used, arm, cap = context.used() or 0.0, context.threshold(), context.ceiling()
+    flight = handover.in_flight()
 
+    if condition == context.ARMED and flight:
+        listed = ", ".join(flight)
+        if not context.announced():
+            context.mark_announced(now())
+            log("handover_armed", {"used_percentage": used, "in_flight": flight})
+            return say(
+                f"Context {used:.0f}%, past the {arm:.0f}% handover mark. Finish what is in "
+                f"flight ({listed}), then hand over. Do not start anything new; the hard "
+                f"ceiling is {cap:.0f}%."
+            )
+        # Already said once. Fall through rather than swallowing the turn: being
+        # armed means finish what you are doing, and the queue still has to reach
+        # the stoker while it does.
+        return None
+
+    outstanding = handover.problems(quick=True)
     if outstanding:
         listed = "\n".join(f"  - {p}" for p in outstanding)
-        log("handover_due", {"used_percentage": used, "outstanding": outstanding})
+        forced = condition == context.FORCED
+        log("handover_due", {"used_percentage": used, "forced": forced,
+                             "outstanding": outstanding})
+        preamble = (
+            f"Context is at {used:.0f}%, past the {cap:.0f}% ceiling. Discretion has run out: "
+            "park whatever is in flight — commit it, name it in the note as unfinished — and "
+            "hand over now."
+            if forced else
+            f"Context is at {used:.0f}% and the work is at a clean boundary. Hand over now, "
+            "before starting anything else."
+        )
         return keep_going(
-            f"Context is at {used:.0f}%, past the {limit:.0f}% handover threshold. "
-            "Hand over now, before starting anything else.\n\n"
-            f"Outstanding:\n{listed}\n\n"
+            f"{preamble}\n\nOutstanding:\n{listed}\n\n"
             "Follow skills/handover/SKILL.md. Rewrite HANDOVER.md with only what the next "
             "session cannot look up, stamp it with the commit it describes, commit, push, "
             "and run bin/handover.py until every line reads ok. Then tell the operator to clear."

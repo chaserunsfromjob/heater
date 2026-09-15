@@ -30,9 +30,11 @@ import stop as stop_hook  # noqa: E402
 class StateCase(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        self.previous = {k: os.environ.get(k) for k in ("HEATER_STATE_DIR", "HEATER_HANDOVER_AT")}
+        managed = ("HEATER_STATE_DIR", "HEATER_HANDOVER_AT", "HEATER_HANDOVER_CEILING")
+        self.previous = {k: os.environ.get(k) for k in managed}
         os.environ["HEATER_STATE_DIR"] = self.tmp.name
-        os.environ.pop("HEATER_HANDOVER_AT", None)
+        for key in managed[1:]:
+            os.environ.pop(key, None)
 
     def tearDown(self):
         for key, value in self.previous.items():
@@ -53,6 +55,22 @@ class TestThreshold(StateCase):
     def test_default_is_well_below_compaction(self):
         self.assertLess(context.DEFAULT_HANDOVER_AT, 70)
 
+    def test_the_ceiling_is_above_the_arming_mark(self):
+        self.assertGreater(context.DEFAULT_CEILING, context.DEFAULT_HANDOVER_AT)
+
+    def test_a_ceiling_below_the_arming_mark_is_clamped(self):
+        os.environ["HEATER_HANDOVER_AT"] = "40"
+        os.environ["HEATER_HANDOVER_CEILING"] = "10"
+        self.assertEqual(context.ceiling(), 40.0, "a ceiling under the arm would force instantly")
+
+    def test_states_in_order(self):
+        for percentage, expected in ((10, context.QUIET), (30, context.ARMED), (90, context.FORCED)):
+            self.at(percentage)
+            self.assertEqual(context.state(), expected, f"at {percentage}%")
+
+    def test_no_reading_is_quiet(self):
+        self.assertEqual(context.state(), context.QUIET, "no reading must not force a handover")
+
     def test_env_overrides_it(self):
         os.environ["HEATER_HANDOVER_AT"] = "42"
         self.assertEqual(context.threshold(), 42.0)
@@ -62,7 +80,7 @@ class TestThreshold(StateCase):
         self.assertEqual(context.threshold(), context.DEFAULT_HANDOVER_AT)
 
     def test_below_threshold_is_not_due(self):
-        self.at(30)
+        self.at(context.DEFAULT_HANDOVER_AT - 10)
         self.assertFalse(context.due())
 
     def test_at_threshold_is_due(self):
@@ -99,6 +117,11 @@ class TestStatusLine(StateCase):
     def test_it_flags_when_handover_is_due(self):
         self.assertIn("HANDOVER DUE", self.render({"context_window": {"used_percentage": 80}}))
 
+    def test_it_flags_the_armed_zone_differently_from_the_ceiling(self):
+        armed = self.render({"context_window": {"used_percentage": 30}})
+        forced = self.render({"context_window": {"used_percentage": 90}})
+        self.assertNotEqual(armed, forced)
+
     def test_it_stays_quiet_below_the_threshold(self):
         self.assertNotIn("HANDOVER", self.render({"context_window": {"used_percentage": 20}}))
 
@@ -117,49 +140,100 @@ class TestStatusLine(StateCase):
 
 
 class TestStopTrigger(StateCase):
-    def test_quiet_below_the_threshold(self):
-        self.at(30)
+    """Armed is not due. Cutting a session off mid-task costs the work twice."""
+
+    def busy(self, *reasons):
+        return mock.patch.object(stop_hook.handover, "in_flight", return_value=list(reasons))
+
+    def outstanding(self, *reasons):
+        return mock.patch.object(stop_hook.handover, "problems", return_value=list(reasons))
+
+    def test_quiet_below_the_arming_mark(self):
+        self.at(10)
         self.assertIsNone(stop_hook.handover_decision())
 
-    def test_it_forces_a_handover_when_one_is_outstanding(self):
-        self.at(80)
-        with mock.patch.object(stop_hook.handover, "problems", return_value=["working tree clean: 3 files"]):
+    def test_armed_and_mid_task_waits(self):
+        self.at(30)
+        with self.busy("uncommitted changes in 3 file(s)"), self.outstanding("x"):
+            decision = stop_hook.handover_decision()
+        self.assertNotIn("hookSpecificOutput", decision, "it must not cut the task off")
+        self.assertIn("Do not start anything new", decision["systemMessage"])
+
+    def test_armed_and_mid_task_says_what_is_in_flight(self):
+        self.at(30)
+        with self.busy("2 worker(s) still out"), self.outstanding("x"):
+            self.assertIn("2 worker(s) still out", stop_hook.handover_decision()["systemMessage"])
+
+    def test_armed_and_mid_task_only_says_it_once(self):
+        self.at(30)
+        with self.busy("uncommitted changes"), self.outstanding("x"):
+            stop_hook.handover_decision()
+            self.assertIsNone(stop_hook.handover_decision(), "nagging every turn trains it out")
+
+    def test_armed_at_a_boundary_hands_over(self):
+        self.at(30)
+        with self.busy(), self.outstanding("handover note: does not exist"):
             decision = stop_hook.handover_decision()
         self.assertEqual(decision["hookSpecificOutput"]["decision"], "continue")
-        self.assertIn("80%", decision["hookSpecificOutput"]["reason"])
-        self.assertIn("HANDOVER.md", decision["hookSpecificOutput"]["reason"])
+        self.assertIn("clean boundary", decision["hookSpecificOutput"]["reason"])
+
+    def test_the_armed_handover_is_not_described_as_forced(self):
+        self.at(30)
+        with self.busy(), self.outstanding("x"):
+            self.assertNotIn("ceiling", stop_hook.handover_decision()["hookSpecificOutput"]["reason"])
+
+    def test_the_ceiling_overrides_being_mid_task(self):
+        self.at(90)
+        with self.busy("uncommitted changes in 9 file(s)"), self.outstanding("x"):
+            decision = stop_hook.handover_decision()
+        self.assertEqual(decision["hookSpecificOutput"]["decision"], "continue")
+        self.assertIn("ceiling", decision["hookSpecificOutput"]["reason"])
+        self.assertIn("park", decision["hookSpecificOutput"]["reason"])
 
     def test_the_instruction_names_what_is_outstanding(self):
-        self.at(80)
-        with mock.patch.object(stop_hook.handover, "problems", return_value=["pushed to origin: 2 commits"]):
-            reason = stop_hook.handover_decision()["hookSpecificOutput"]["reason"]
-        self.assertIn("2 commits", reason)
+        self.at(90)
+        with self.busy(), self.outstanding("pushed to origin: 2 commits"):
+            self.assertIn("2 commits", stop_hook.handover_decision()["hookSpecificOutput"]["reason"])
 
     def test_it_lets_the_turn_end_once_the_handover_is_ready(self):
-        self.at(80)
-        with mock.patch.object(stop_hook.handover, "problems", return_value=[]):
+        self.at(30)
+        with self.busy(), self.outstanding():
             decision = stop_hook.handover_decision()
         self.assertNotIn("hookSpecificOutput", decision)
         self.assertIn("/clear", decision["systemMessage"])
 
     def test_handover_outranks_the_queue(self):
-        """Picking up new work past the threshold only makes the note harder to write."""
-        self.at(80)
+        """Picking up new work past the ceiling only makes the note harder to write."""
+        self.at(90)
         os.environ["HEATER_ROLE"] = "stoker"
         self.addCleanup(os.environ.pop, "HEATER_ROLE", None)
         with mock.patch.object(stop_hook.handover, "problems", return_value=["something"]), \
+             mock.patch.object(stop_hook.handover, "in_flight", return_value=[]), \
              mock.patch.object(stop_hook.queue, "pending", return_value=[{"id": "x"}]) as pending:
             stop_hook.handle({})
         pending.assert_not_called()
 
+    def test_being_armed_does_not_block_the_queue_while_mid_task(self):
+        """Armed means finish what you are doing, not stop working."""
+        self.at(30)
+        os.environ["HEATER_ROLE"] = "stoker"
+        self.addCleanup(os.environ.pop, "HEATER_ROLE", None)
+        with mock.patch.object(stop_hook.handover, "in_flight", return_value=["uncommitted"]), \
+             mock.patch.object(stop_hook.handover, "problems", return_value=["x"]):
+            stop_hook.handover_decision()          # burns the one announcement
+            with mock.patch.object(stop_hook.queue, "pending", return_value=[]) as pending:
+                stop_hook.handle({})
+            pending.assert_called_once()
+
     def test_it_respects_stop_hook_active(self):
-        self.at(80)
+        self.at(90)
         self.assertEqual(stop_hook.handle({"stop_hook_active": True}), {},
                          "continuing while a Stop hook is active is an infinite loop")
 
     def test_it_applies_to_any_role_not_just_the_stoker(self):
-        self.at(80)
-        with mock.patch.object(stop_hook.handover, "problems", return_value=["something"]):
+        self.at(90)
+        with mock.patch.object(stop_hook.handover, "problems", return_value=["something"]), \
+             mock.patch.object(stop_hook.handover, "in_flight", return_value=[]):
             decision = stop_hook.handle({})
         self.assertEqual(decision["hookSpecificOutput"]["decision"], "continue")
 

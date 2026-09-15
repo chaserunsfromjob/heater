@@ -21,10 +21,26 @@ Hooks are never told the context size, so the status line is the only source.
 `bin/deploy.py --check` reports a missing or foreign status line as drift,
 because without it this never fires.
 
-The threshold is 55%, well below the point where the conversation is summarised
-automatically. Set `HEATER_HANDOVER_AT` to move it. Later is worse than it
-sounds: automatic summarising keeps whatever it judges important, and nobody
-chooses what it drops.
+There are two marks, not one, because being cut off mid-task costs the work
+twice and no cost model shows that.
+
+| Context | What happens |
+| --- | --- |
+| Below 25% | Nothing. |
+| 25% to 45% — **armed** | Hand over at the next clean boundary. While work is in flight it says so once, then waits. Finish what you are doing; start nothing new. |
+| Above 45% — **ceiling** | Discretion is over. Park what is in flight, commit it, name it unfinished in the note, and hand over. |
+
+Being mid-task has an objective signature: changes not committed, commits not
+pushed, or a worker still owed a reply. At a boundary all three are clear, which
+is exactly when a fresh session can pick up from the repository alone.
+
+Move either mark with `HEATER_HANDOVER_AT` and `HEATER_HANDOVER_CEILING`. A
+ceiling set below the arming mark is clamped, because that would force a
+handover the instant one is armed.
+
+25% is where cost per turn of real work bottoms out before the curve flattens.
+Every tool call re-sends the whole conversation, not just every message, so the
+bill grows with context far faster than the message count suggests.
 
 Reaching compaction means this failed. The `PreCompact` hook leaves a mark, and
 the next session is told its memory was edited by a machine and to write a

@@ -32,7 +32,8 @@ def render(payload: dict, used: float | None) -> str:
 
     parts = [f"[{model}]"]
     if used is not None:
-        mark = " HANDOVER DUE" if used >= context.threshold() else ""
+        mark = {context.ARMED: " handover at next boundary",
+                context.FORCED: " HANDOVER DUE"}.get(context.state(), "")
         parts.append(f"{bar(used)} {used:.0f}%{mark}")
     if isinstance(cost, (int, float)):
         parts.append(f"${cost:.2f}")

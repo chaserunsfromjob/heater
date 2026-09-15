@@ -18,17 +18,36 @@ import os
 from pathlib import Path
 from typing import Any
 
-# Well before the window fills. Late enough that a fresh session is not paying
-# re-orientation cost for nothing, early enough that there is room to write a
-# good note and finish the thought in progress.
-DEFAULT_HANDOVER_AT = 55.0
+# Two marks, not one. Handing over costs a re-orientation; being cut off
+# mid-task costs the work done twice, which is worse and invisible in any cost
+# model. So the first mark arms the handover and the second one forces it.
+#
+# 25% is where cost per turn of real work bottoms out before the curve flattens:
+# measured against a real session, it is about a third cheaper per turn than 55%
+# while still leaving roughly a dozen turns, which is a whole focused task.
+DEFAULT_HANDOVER_AT = 25.0
+
+# Discretion has to end somewhere, or "still mid-task" becomes a way of never
+# handing over at all. Past this, whatever is in flight gets parked.
+DEFAULT_CEILING = 45.0
+
+QUIET, ARMED, FORCED = "quiet", "armed", "forced"
+
+
+def _number(name: str, fallback: float) -> float:
+    try:
+        return float(os.environ.get(name) or fallback)
+    except ValueError:
+        return fallback
 
 
 def threshold() -> float:
-    try:
-        return float(os.environ.get("HEATER_HANDOVER_AT") or DEFAULT_HANDOVER_AT)
-    except ValueError:
-        return DEFAULT_HANDOVER_AT
+    return _number("HEATER_HANDOVER_AT", DEFAULT_HANDOVER_AT)
+
+
+def ceiling() -> float:
+    """Never below the arming mark, whatever the environment says."""
+    return max(_number("HEATER_HANDOVER_CEILING", DEFAULT_CEILING), threshold())
 
 
 def snapshot_path() -> Path:
@@ -78,10 +97,18 @@ def used() -> float | None:
     return float(value) if isinstance(value, (int, float)) else None
 
 
-def due() -> bool:
-    """True once the window is full enough that handing over beats carrying on."""
+def state() -> str:
+    """QUIET, ARMED (hand over at the next boundary), or FORCED (hand over now)."""
     current = used()
-    return current is not None and current >= threshold()
+    if current is None:
+        return QUIET
+    if current >= ceiling():
+        return FORCED
+    return ARMED if current >= threshold() else QUIET
+
+
+def due() -> bool:
+    return state() != QUIET
 
 
 def announced() -> bool:

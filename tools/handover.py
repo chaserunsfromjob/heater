@@ -95,6 +95,34 @@ CHECKS = [
 ]
 
 
+def check_no_worker_out() -> str | None:
+    """A dispatched worker still owes a report; its brief lives in this session."""
+    try:
+        sys.path.insert(0, str(REPO / "tools"))
+        import dispatch
+        out = dispatch.live()
+    except Exception:
+        return None
+    return f"{len(out)} worker(s) still out" if out else None
+
+
+def in_flight() -> list[str]:
+    """Signs that work is mid-flow rather than at a natural stopping point.
+
+    Being mid-task has an objective signature: changes not committed, commits not
+    pushed, or a worker still owed a reply. At a real boundary all three are
+    clear, and a fresh session can pick up from the repository alone.
+    """
+    checks = (("uncommitted work", check_worktree_clean),
+              ("unpushed work", check_pushed),
+              ("workers out", check_no_worker_out))
+    return [problem for _, check in checks if (problem := check())]
+
+
+def at_boundary() -> bool:
+    return not in_flight()
+
+
 def problems(quick: bool = True) -> list[str]:
     """Every reason this session is not safe to end, named. Empty means safe."""
     checks = list(CHECKS) + ([] if quick else [("suite green", check_gate)])
