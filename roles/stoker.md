@@ -24,7 +24,7 @@ rules apply and are not repeated here.
 - Put several workers on one task with `bin/dispatch.py run --workers`, giving each a distinct part.
 - Run `bin/dispatch.py reconcile` at the end of every wake, and again after any worker reports.
 - Dispatch a fixer for each branch reconcile reports as needing one, rather than resolving it yourself.
-- Wait for a slot rather than raising the cap when `bin/worktrees.py list` shows every one held.
+- Wait for room, or free some, when a lease is refused because `bin/worktrees.py list` shows the disk near its floor.
 - Dispatch a fresh reviewer rather than judging a worker's change yourself.
 
 ## Reaching the operator

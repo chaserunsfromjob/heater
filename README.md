@@ -106,7 +106,8 @@ complete.
       `bearings`. This is the step that switched routing enforcement on.
 - [x] **7. Worktree slots**, leased on demand rather than provisioned. The first
       worker on a project uses its checkout; a second one while the first is out
-      gets its own, automatically, first one included. Capped per project.
+      gets its own, automatically, first one included. Limited by the room left
+      on the disk rather than by a headcount.
       `reconcile` sweeps finished workers into the trunk and clears up behind
       them, deriving what to do from git so it is safe to repeat. Nothing is
       deleted until its commits are provably in the trunk.
