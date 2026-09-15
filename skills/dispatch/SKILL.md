@@ -25,15 +25,25 @@ bin/dispatch.py open --task "..." --project api --done-when "..." \
 This records the dispatch and prints the brief, already wrapped in
 `roles/worker.md`. Hand that brief to the `worker` agent exactly as printed.
 
-Pass `--repo` and the checkout is decided for you. The first worker on a project
-uses the project's own directory. A second worker while the first is still out
-would trample it, so it is given its own checkout on its own branch, and the
-brief tells it where to work. Nobody provisions anything, and nobody is asked
-whether a pool is needed.
+Pass `--repo` and every worker gets its own checkout on its own branch, first
+one included. The project's own checkout is the consolidation target, never a
+workspace: sharing it with a worker means the thing being merged into is the
+thing being edited, and every clash between them becomes a decision somebody has
+to make.
 
 Slots are capped per project. When every slot is held, the dispatch is refused
-rather than queued: wait for a worker to push, and do not raise the cap to get
-past it.
+rather than queued: reconcile first, and do not raise the cap to get past it.
+
+## Several workers on one task
+
+```sh
+bin/dispatch.py run --task "..." --repo /path/to/project --workers 2 \
+  --part "the lexer" --part "the parser"
+```
+
+They share a run id and each gets its own checkout, so they cannot trample each
+other. Give each a distinct part, or two workers will write the same code twice
+and one of them will lose a merge for no reason.
 
 One worker, one task. Two tasks in one brief produce a change nobody can review,
 because the diff stops matching any single intent.
@@ -45,7 +55,37 @@ because the diff stops matching any single intent.
 Do not ask a worker for progress. It reports when it is done or when it is
 blocked, and a question mid-task costs a turn without changing the outcome.
 
-## When it reports
+## Consolidating
+
+```sh
+bin/dispatch.py reconcile --gate "<the project's gate command>"
+```
+
+Run this at the end of every wake and after any worker reports. It sweeps every
+finished worker into the trunk and clears up behind them: merge the branch,
+delete the branch, remove the checkout, free the slot, close the dispatch. When
+every worker in a run has landed, the run is reported finished and nothing of it
+is left anywhere.
+
+It works out what to do by reading git rather than by trusting a flag, so it is
+safe to run at any time and safe to run again after one is interrupted.
+
+What it does with each case, without asking:
+
+| Case | What happens |
+| --- | --- |
+| Work left uncommitted | Committed on the worker's own branch first. Loose work is the easiest to lose and the least worth refusing over. |
+| The trunk moved while the worker was out | The trunk is merged into the worker's branch, then the landing is retried. |
+| A real conflict | The branch, its checkout and its slot are all kept, and it is reported as needing a fixer. Dispatch one. |
+| Nothing was done | The slot and branch are cleared away. |
+| Not yet reviewed | Left alone and reported. Record the round; nothing lands unreviewed. |
+| The trunk is dirty | Everything is held. The operator has uncommitted work there and mixing it in is not a call to make for them. |
+
+Nothing is deleted until its commits are provably reachable from the trunk. That
+check is the invariant the whole sweep rests on, and `finish` raises rather than
+clean up a branch that has not landed.
+
+## When one worker reports on its own
 
 1. Read the report. The worker has committed on its branch; it has not merged.
 2. Run the adversarial-review loop against the change. Never judge it yourself,

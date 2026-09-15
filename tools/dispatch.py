@@ -64,23 +64,27 @@ def compose_brief(record: dict[str, Any]) -> str:
 
 
 def needs_its_own_checkout(project: str) -> bool:
-    """True once somebody else is already working this project.
+    """Always, whenever there is a repository to lease from.
 
-    Nobody decides this. The first worker uses the project's own checkout; the
-    second onwards would trample it, so each gets a slot of its own.
+    Every worker gets its own checkout, including the first. The project's own
+    checkout is the consolidation target, not a workspace: sharing it with a
+    worker means the thing being merged into is the thing being edited, and
+    every conflict between the two becomes a decision somebody has to make.
     """
-    return any(d.get("project") == project for d in live())
+    del project
+    return True
 
 
 def open_dispatch(task: str, *, project: str = "", done_when: str = "",
                   task_id: str = "", agent: str = "worker",
-                  repo: str = "") -> dict[str, Any]:
+                  repo: str = "", run_id: str = "", part: str = "") -> dict[str, Any]:
     if not task.strip():
         raise ValueError("a dispatch needs a task")
     record = {
         "id": jsonstore.new_id(), "created": jsonstore.now(), "task": task.strip(),
         "project": project, "done_when": done_when.strip(), "task_id": task_id,
         "agent": agent, "repo": repo, "workdir": repo, "lease_id": "", "branch": "",
+        "run_id": run_id, "part": part,
         "closed_at": None, "outcome": None, "note": "",
     }
 
@@ -188,6 +192,158 @@ def land(dispatch_id: str, *, gate: str = "", change: str = "",
     return close_dispatch(dispatch_id, "landed", f"merged {branch} into {trunk}")
 
 
+def start_run(task: str, *, repo: str, project: str = "", workers: int = 2,
+              done_when: str = "", task_id: str = "",
+              parts: list[str] | None = None) -> list[dict[str, Any]]:
+    """Put several workers on one task, each in its own checkout.
+
+    They share a run id so the sweep can consolidate them together and tell when
+    the task as a whole is finished.
+    """
+    if workers < 1:
+        raise ValueError("a run needs at least one worker")
+    if parts and len(parts) != workers:
+        raise ValueError(f"{len(parts)} part(s) given for {workers} worker(s)")
+
+    run_id = jsonstore.new_id()
+    return [
+        open_dispatch(task, project=project, done_when=done_when, task_id=task_id,
+                      repo=repo, run_id=run_id, part=(parts[n] if parts else f"{n + 1} of {workers}"))
+        for n in range(workers)
+    ]
+
+
+def merge_into_trunk(repo: Path, path: Path, branch: str, trunk: str,
+                     subject: str) -> tuple[bool, str]:
+    """Merge a worker's branch into the trunk, resolving what can be resolved.
+
+    A conflict is not a dead end. The usual cause is that the trunk moved while
+    the worker was out, so the trunk is merged into the worker's branch first,
+    where a conflict is the worker's own to fix, and the trunk merge is retried.
+    Both merges abort rather than leaving anything half applied.
+    """
+    code, output = worktrees.git(repo, "merge", "--no-ff", branch, "-m", subject)
+    if code == 0:
+        return True, "merged"
+    worktrees.git(repo, "merge", "--abort")
+
+    code, output = worktrees.git(path, "merge", "--no-edit", trunk)
+    if code != 0:
+        worktrees.git(path, "merge", "--abort")
+        return False, f"conflicts with {trunk} that the worker must resolve"
+
+    code, output = worktrees.git(repo, "merge", "--no-ff", branch, "-m", subject)
+    if code == 0:
+        return True, f"merged after catching up with {trunk}"
+    worktrees.git(repo, "merge", "--abort")
+    return False, f"merge failed even after catching up: {output[-400:]}"
+
+
+def reconcile(*, run_id: str = "", project: str = "", require_review: bool = True,
+              gate: str = "") -> dict[str, Any]:
+    """Consolidate every finished worker into the trunk, then clean up after it.
+
+    Safe to run at any time and safe to run again: what to do is worked out from
+    git, not from a flag, so a sweep interrupted halfway is simply repeated.
+
+    Nothing is deleted until its commits are reachable from the trunk. Work is
+    never refused for being loose; it is committed on its own branch first.
+    """
+    report: dict[str, Any] = {"at": jsonstore.now(), "landed": [], "held": [],
+                              "awaiting_review": [], "needs_fix": [], "runs_finished": []}
+    leases = {l["id"]: l for l in jsonstore.load(worktrees.leases_dir())}
+
+    candidates = [d for d in live()
+                  if (not run_id or d.get("run_id") == run_id)
+                  and (not project or d.get("project") == project)]
+
+    checked: dict[str, str] = {}
+    for record in candidates:
+        lease = leases.get(record.get("lease_id", ""))
+        if lease is None or lease.get("released_at"):
+            close_dispatch(record["id"], "landed", "no checkout to consolidate")
+            report["landed"].append(record["id"])
+            continue
+
+        repo, path = Path(lease["repo"]), Path(lease["path"])
+        trunk = lease.get("base_branch") or "main"
+        branch = lease["branch"]
+
+        # The trunk must be clean and checked out before anything merges into it.
+        if str(repo) not in checked:
+            checked[str(repo)] = trunk_state(repo, trunk)
+        if (blocked := checked[str(repo)]):
+            report["held"].append({"dispatch": record["id"], "why": blocked})
+            continue
+
+        worktrees.autosave(lease)
+
+        if worktrees.landed(lease, trunk):
+            # Either nothing was done, or a previous sweep merged it and stopped
+            # before cleaning up. Both end the same way.
+            finish(record, lease, branch, repo, trunk, "already in the trunk")
+            report["landed"].append(record["id"])
+            continue
+
+        if require_review and not reviewed(record["id"]):
+            report["awaiting_review"].append(record["id"])
+            continue
+
+        if gate:
+            done = subprocess.run(gate, shell=True, cwd=path, capture_output=True,
+                                  text=True, timeout=1800)
+            if done.returncode != 0:
+                report["needs_fix"].append({"dispatch": record["id"], "branch": branch,
+                                            "why": "the gate does not pass in this checkout"})
+                continue
+
+        ok, why = merge_into_trunk(repo, path, branch, trunk,
+                                   f"Land {branch}: {record['task'][:60]}")
+        if not ok:
+            report["needs_fix"].append({"dispatch": record["id"], "branch": branch, "why": why})
+            continue
+
+        finish(record, lease, branch, repo, trunk, why)
+        report["landed"].append(record["id"])
+
+    report["runs_finished"] = finished_runs()
+    return report
+
+
+def trunk_state(repo: Path, trunk: str) -> str:
+    """Empty when the trunk is ready to be merged into, otherwise why it is not."""
+    code, on = worktrees.git(repo, "rev-parse", "--abbrev-ref", "HEAD")
+    if code != 0:
+        return f"cannot read {repo}"
+    if on.strip() != trunk:
+        return f"{repo} is on {on.strip()}, not {trunk}"
+    code, dirty = worktrees.git(repo, "status", "--porcelain")
+    if code == 0 and dirty.strip():
+        return f"{repo} has uncommitted changes; consolidating would mix them in"
+    return ""
+
+
+def finish(record: dict[str, Any], lease: dict[str, Any], branch: str,
+           repo: Path, trunk: str, why: str) -> None:
+    """Clean up one worker, and only once its work is provably in the trunk."""
+    if not worktrees.landed(lease, trunk):
+        raise RuntimeError(f"refusing to clean up {branch}: its commits are not in {trunk}")
+    worktrees.release(lease["id"], "consolidated")
+    worktrees.git(repo, "branch", "-d", branch)
+    close_dispatch(record["id"], "landed", why)
+
+
+def finished_runs() -> list[str]:
+    """Runs whose every worker has landed, so nothing of theirs is left anywhere."""
+    everything = jsonstore.load(dispatches_dir())
+    runs: dict[str, list[dict[str, Any]]] = {}
+    for record in everything:
+        if record.get("run_id"):
+            runs.setdefault(record["run_id"], []).append(record)
+    return [run for run, members in runs.items()
+            if all(m.get("outcome") == "landed" for m in members)]
+
+
 def live() -> list[dict[str, Any]]:
     """Dispatches still out, oldest first: the oldest is the one most likely stuck."""
     return sorted((d for d in jsonstore.load(dispatches_dir()) if not d.get("closed_at")),
@@ -200,6 +356,21 @@ def age_minutes(record: dict[str, Any]) -> float | None:
     except (ValueError, KeyError):
         return None
     return (datetime.now(timezone.utc) - started).total_seconds() / 60
+
+
+def render_reconcile(result: dict[str, Any]) -> str:
+    lines = [f"reconcile as of {result['at']}",
+             f"  landed           {len(result['landed'])}",
+             f"  awaiting review  {len(result['awaiting_review'])}",
+             f"  needs a fixer    {len(result['needs_fix'])}",
+             f"  held             {len(result['held'])}"]
+    for entry in result["needs_fix"]:
+        lines.append(f"    {entry['branch']}: {entry['why']}")
+    for entry in result["held"]:
+        lines.append(f"    {entry['dispatch']}: {entry['why']}")
+    if result["runs_finished"]:
+        lines.append(f"  runs fully consolidated: {', '.join(result['runs_finished'])}")
+    return "\n".join(lines)
 
 
 def render(records: list[dict[str, Any]]) -> str:
@@ -226,6 +397,21 @@ def main(argv: list[str]) -> int:
     start.add_argument("--agent", default="worker")
     start.add_argument("--repo", default="", help="the project checkout; a slot is leased automatically if one is needed")
 
+    group = sub.add_parser("run", help="put several workers on one task, each in its own checkout")
+    group.add_argument("--task", required=True)
+    group.add_argument("--repo", required=True)
+    group.add_argument("--project", default="")
+    group.add_argument("--workers", type=int, default=2)
+    group.add_argument("--done-when", default="")
+    group.add_argument("--part", action="append", dest="parts", default=None,
+                       help="what this worker does; repeat once per worker")
+
+    sweep = sub.add_parser("reconcile", help="consolidate finished workers into the trunk and clean up")
+    sweep.add_argument("--run-id", default="")
+    sweep.add_argument("--project", default="")
+    sweep.add_argument("--gate", default="", help="command that must exit 0 in each checkout")
+    sweep.add_argument("--skip-review", action="store_true")
+
     sub.add_parser("list", help="dispatches still out")
 
     finish = sub.add_parser("land", help="merge the worker's branch back, then free its slot")
@@ -247,6 +433,19 @@ def main(argv: list[str]) -> int:
                                task_id=args.task_id, agent=args.agent, repo=args.repo)
         print(f"# dispatch {record['id']} recorded; hand the brief below to the {record['agent']} agent\n")
         print(compose_brief(record))
+    elif args.action == "run":
+        records = start_run(args.task, repo=args.repo, project=args.project,
+                            workers=args.workers, done_when=args.done_when, parts=args.parts)
+        print(f"# run {records[0]['run_id']}: {len(records)} worker(s) on one task\n")
+        for record in records:
+            print(f"# --- brief for worker {record['part']} ---\n")
+            print(compose_brief(record))
+            print()
+    elif args.action == "reconcile":
+        result = reconcile(run_id=args.run_id, project=args.project,
+                           require_review=not args.skip_review, gate=args.gate)
+        print(render_reconcile(result))
+        return 1 if (result["held"] or result["needs_fix"]) else 0
     elif args.action == "list":
         print(render(live()))
     elif args.action == "land":

@@ -211,6 +211,37 @@ def reclaim(project: str = "") -> list[dict[str, Any]]:
     return taken
 
 
+def landed(record: dict[str, Any], trunk: str = "") -> bool:
+    """True when this slot's commits are already reachable from the trunk.
+
+    Derived from git, never from a flag we wrote. A flag can be wrong after a
+    crash halfway through consolidation; git cannot.
+    """
+    path = Path(record.get("path", ""))
+    if not path.exists():
+        return True
+    return contained_by(path, trunk or record.get("base_branch") or "main")
+
+
+def autosave(record: dict[str, Any]) -> bool:
+    """Commit whatever the worker left loose, on its own branch.
+
+    Uncommitted work is the easiest work to lose and the least valuable to
+    protect by refusing. Committing it keeps it, keeps it isolated on a branch
+    nobody else uses, and lets the sweep carry on without anybody being asked.
+    """
+    path = Path(record.get("path", ""))
+    if not path.exists():
+        return False
+    code, dirty = git(path, "status", "--porcelain")
+    if code != 0 or not dirty.strip():
+        return False
+    git(path, "add", "-A")
+    code, _ = git(path, "commit", "-m",
+                  f"Autosave uncommitted work on {record.get('branch', 'this branch')}")
+    return code == 0
+
+
 def render(records: list[dict[str, Any]]) -> str:
     if not records:
         return "worktrees: no slots leased"
