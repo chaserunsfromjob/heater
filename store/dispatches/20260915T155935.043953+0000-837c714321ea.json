@@ -12,7 +12,7 @@
   "branch": "worker/837c714321ea",
   "run_id": "",
   "part": "",
-  "closed_at": null,
-  "outcome": null,
-  "note": "reopened by the stoker: the worker's close reported outcome \"pushed\" but the push never happened (no git credentials on the machine); a review pass is now recorded (32d8da728560) and the branch, plus a stoker fixup commit, is ready to land through bin/dispatch.py land"
+  "closed_at": "2026-09-15T16:19:19.489745+00:00",
+  "outcome": "landed",
+  "note": "merged worker/837c714321ea into main"
 }
