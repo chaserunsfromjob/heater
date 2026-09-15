@@ -14,6 +14,7 @@ from that.
 
 | File | What it is |
 | --- | --- |
+| `CLAUDE.md` | Project memory. Says that a session opened here is the stoker, and points at everything else. |
 | `OPINIONS.md` | The operator's positions on direction. Dated. Only the operator edits it. Every other file answers to it. |
 | `rules/global.md` | Rules deployed to every project on every machine. |
 | `rules/project.template.md` | Starting point for a per-project rules file, which wins where it conflicts with the global one. |
@@ -24,7 +25,7 @@ from that.
 | `hooks/session_end.py` | Records how a session ended and what fleet state it left unsynced. |
 | `hooks/statusline.py` | The status line. Records the exact context window size, which the transcript does not carry. |
 | `hooks/pre_compact.py` | Backstop. Marks a session whose memory was summarised before a handover. |
-| `roles/stoker.md` | The stoker's own rules. Loaded by `HEATER_ROLE=stoker`, which `bin/stoker.sh` sets. |
+| `roles/stoker.md` | The stoker's own rules. Loaded for any session opened in this repository, and by `HEATER_ROLE=stoker` anywhere else. |
 | `roles/worker.md` | Standing instructions wrapped around every dispatched brief. |
 | `queue/` | Notes waiting for the stoker, one JSON file each. |
 | `agents/reviewer.md` | The judge. No write tools, and the guard enforces it through Bash too. |

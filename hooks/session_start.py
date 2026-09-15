@@ -69,7 +69,7 @@ def waiting_note() -> str:
 
 
 def handle(payload: dict[str, Any]) -> dict[str, Any]:
-    name = role()
+    name = role(payload)
     parts = []
 
     rules = role_rules(name) if name else ""

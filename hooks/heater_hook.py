@@ -31,12 +31,49 @@ def now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def role() -> str:
+def marked_role() -> str:
+    """The role explicitly set on the session. Empty when nobody set one."""
     return os.environ.get(ROLE_ENV, "").strip().lower()
 
 
+def in_fleet_repo(payload: dict[str, Any] | None = None) -> bool:
+    """True when the session is working inside the fleet repository itself."""
+    # Most authoritative source wins outright. Taking any match instead would
+    # let the process's own working directory overrule a payload that says the
+    # session is somewhere else entirely.
+    candidate = (payload or {}).get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR")
+    if not candidate:
+        try:
+            candidate = str(Path.cwd())
+        except OSError:
+            return False
+    try:
+        here = Path(candidate).resolve()
+    except OSError:
+        return False
+    return here == REPO or REPO in here.parents
+
+
+def role(payload: dict[str, Any] | None = None) -> str:
+    """The session's role.
+
+    An explicit marker always wins: that is how a worker and a reviewer are
+    dispatched, and a reviewer's write ban hangs off it. An unmarked session
+    opened in the fleet repository is the stoker, because that is the one
+    conversation the operator talks to, and requiring them to remember a marker
+    failed silently — the session opened, looked ordinary, and was not it.
+    """
+    return marked_role() or ("stoker" if in_fleet_repo(payload) else "")
+
+
 def is_dispatched() -> bool:
-    return role() in DISPATCHED_ROLES
+    """Deliberately reads the explicit marker only.
+
+    Routing enforcement is about whether the stoker sent this session, which
+    only a marker can answer. Letting the fleet-repo default satisfy it would
+    silently retire the unrouted-write warning.
+    """
+    return marked_role() in DISPATCHED_ROLES
 
 
 def log_dir() -> Path:

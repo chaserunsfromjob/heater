@@ -234,6 +234,85 @@ class TestRoutingIsNowEnforced(unittest.TestCase):
         self.assertTrue(pre_tool_use.ENFORCE_STOKER_ROUTING)
 
 
+class TestOpeningTheRepoIsTheStoker(unittest.TestCase):
+    """The operator talks to one session, and opening the fleet repository is
+    what makes it the stoker. The marker stays authoritative where it is set."""
+
+    def setUp(self):
+        import heater_hook
+        self.hook = heater_hook
+        self.saved = os.environ.get("HEATER_ROLE")
+        os.environ.pop("HEATER_ROLE", None)
+        self.project_dir = os.environ.pop("CLAUDE_PROJECT_DIR", None)
+
+    def tearDown(self):
+        for name, value in (("HEATER_ROLE", self.saved), ("CLAUDE_PROJECT_DIR", self.project_dir)):
+            os.environ.pop(name, None)
+            if value is not None:
+                os.environ[name] = value
+
+    def test_unmarked_in_the_repo_is_the_stoker(self):
+        self.assertEqual(self.hook.role({"cwd": str(ROOT)}), "stoker")
+
+    def test_unmarked_in_a_subdirectory_is_the_stoker(self):
+        self.assertEqual(self.hook.role({"cwd": str(ROOT / "tools")}), "stoker")
+
+    def test_unmarked_elsewhere_has_no_role(self):
+        with tempfile.TemporaryDirectory() as elsewhere:
+            self.assertEqual(self.hook.role({"cwd": elsewhere}), "")
+
+    def test_the_marker_still_wins(self):
+        os.environ["HEATER_ROLE"] = "worker"
+        self.assertEqual(self.hook.role({"cwd": str(ROOT)}), "worker")
+
+    def test_a_reviewer_in_the_repo_is_still_a_reviewer(self):
+        """The reviewer's write ban hangs off this. Defaulting over it would
+        hand a judge the power to edit what it is judging."""
+        os.environ["HEATER_ROLE"] = "reviewer"
+        self.assertEqual(self.hook.role({"cwd": str(ROOT)}), "reviewer")
+
+    def test_payload_outranks_the_process_working_directory(self):
+        """The suite runs inside the repo, so a payload naming somewhere else
+        must not be overruled by where the hook process happens to sit."""
+        with tempfile.TemporaryDirectory() as elsewhere:
+            self.assertFalse(self.hook.in_fleet_repo({"cwd": elsewhere}))
+
+    def test_routing_enforcement_still_reads_the_marker_only(self):
+        """Otherwise the fleet-repo default would silently retire the
+        unrouted-write warning."""
+        self.assertFalse(self.hook.is_dispatched())
+
+    def test_the_session_start_hook_loads_the_stoker_rules(self):
+        done = subprocess.run([sys.executable, str(ROOT / "hooks" / "session_start.py")],
+                              input=json.dumps({"cwd": str(ROOT), "source": "startup"}),
+                              capture_output=True, text=True)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn("stoker", done.stdout.lower())
+
+
+class TestProjectMemory(unittest.TestCase):
+    def test_claude_md_exists_and_names_the_role(self):
+        text = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
+        self.assertIn("stoker", text.lower())
+
+    def test_it_points_at_the_rules_rather_than_restating_them(self):
+        """Opinion 8: a rule lives in exactly one place."""
+        text = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
+        self.assertIn("rules/global.md", text)
+        self.assertLess(len(text.splitlines()), 40, "CLAUDE.md rides in every session; keep it small")
+
+
+class TestHandoverArchivesTheSession(unittest.TestCase):
+    skill = ROOT / "skills" / "handover" / "SKILL.md"
+
+    def test_the_procedure_ends_by_archiving(self):
+        self.assertIn("Archive the session", self.skill.read_text(encoding="utf-8"))
+
+    def test_it_archives_only_after_the_push(self):
+        text = self.skill.read_text(encoding="utf-8")
+        self.assertLess(text.index("Commit the handover and push it"), text.index("Archive the session"))
+
+
 class TestStokerLauncher(unittest.TestCase):
     """The operator is not a programmer. The launcher is the whole interface,
     so a broken one is a broken system, not a broken convenience."""

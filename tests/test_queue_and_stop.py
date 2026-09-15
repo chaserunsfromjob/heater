@@ -120,10 +120,20 @@ class TestStopHook(QueueCase):
         self.set_role("worker")
         self.assertEqual(stop_hook.handle({}), {})
 
-    def test_never_wakes_an_undispatched_session(self):
+    def test_never_wakes_an_unmarked_session_outside_the_fleet_repo(self):
         queue.add("escalation", "needs a product call")
         self.set_role(None)
-        self.assertEqual(stop_hook.handle({}), {})
+        with tempfile.TemporaryDirectory() as elsewhere:
+            self.assertEqual(stop_hook.handle({"cwd": elsewhere}), {})
+
+    def test_wakes_an_unmarked_session_inside_the_fleet_repo(self):
+        """The operator's own session in the fleet repo is the stoker, marker or
+        not. Requiring the marker failed silently: the session opened, looked
+        ordinary, and never received the queue."""
+        queue.add("escalation", "needs a product call")
+        self.set_role(None)
+        decision = stop_hook.handle({"cwd": str(ROOT)})
+        self.assertEqual(decision["hookSpecificOutput"]["decision"], "continue")
 
     def test_does_not_wake_twice_for_the_same_item(self):
         queue.add("finding", "only once")

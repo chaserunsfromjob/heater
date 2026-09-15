@@ -53,6 +53,20 @@ Nothing can clear the conversation for you. Hook output cannot send input into a
 session, so the last step is a person typing `/clear`. Everything before it —
 noticing, writing, committing, pushing, verifying — happens without being asked.
 
+## A handed-over session is spent
+
+Its notes are written and pushed, so everything it knew is now in the
+repository. Leaving it open invites the operator back into a conversation that
+has already said goodbye, and invites a second session editing the same files.
+
+So archive it as the last act, where the session can be archived: a session
+running in the cloud has an archive action, which turns it read-only and
+releases its container. A session in a terminal has no equivalent, and there
+`/clear` is the end of it.
+
+Archive only after the handover commit is pushed. An archived session cannot go
+back and finish.
+
 ## What the next session can look up, and must not be told again
 
 - What the code does. It reads the code.
@@ -80,7 +94,8 @@ applies to handover notes as much as to rules.
 3. Write `HANDOVER.md` from the second list above, and nothing from the first.
 4. Stamp it with the commit it describes, so a later reader can tell it is stale.
 5. Run `bin/handover.py`. Fix whatever it names.
-6. Commit the handover. Only then clear.
+6. Commit the handover and push it. Only then clear.
+7. Archive the session, if this session can be archived.
 
 ## Writing it
 

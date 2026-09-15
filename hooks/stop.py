@@ -94,7 +94,7 @@ def handle(payload: dict[str, Any]) -> dict[str, Any]:
     if (decision := handover_decision(payload.get("transcript_path"))) is not None:
         return decision
 
-    if role() != "stoker":
+    if role(payload) != "stoker":
         return stop()
 
     waiting = queue.pending()
