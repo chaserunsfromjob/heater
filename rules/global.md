@@ -47,6 +47,9 @@ conflicts with this one.
 
 - File an off-task observation as a one-line finding with a path, then continue.
 - Never fix an off-task observation inline.
+- Run `bin/inbox.py check --summary` before filing, and drop anything it names as already judged.
+- Judge every filed finding: dismiss it with a recorded reason, or promote it with a score.
+- Delete a task that falls past the list cap rather than moving it somewhere quieter.
 
 ## Evidence
 

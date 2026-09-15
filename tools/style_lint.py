@@ -13,10 +13,13 @@ Defaults to `rules/` and `roles/`. Exits 0 when everything passes, 1 otherwise.
 
 from __future__ import annotations
 
-import difflib
 import re
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import textmatch
 
 MAX_WORDS = 50
 MAX_SENTENCES = 2
@@ -51,12 +54,10 @@ BANNED_PHRASES = (
 )
 
 DATE_RE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b|\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2},?\s+\d{4}\b", re.I)
-CODE_SPAN_RE = re.compile(r"`[^`]*`")
 FENCE_RE = re.compile(r"^\s*```")
 BULLET_RE = re.compile(r"^- +(\S.*)$")
 CONTINUATION_RE = re.compile(r"^ {2,}(\S.*)$")
 SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
-NORMALISE_RE = re.compile(r"[^a-z0-9]+")
 
 
 class Finding:
@@ -70,13 +71,8 @@ class Finding:
         return f"{self.path}:{self.line}: {self.code} {self.message}"
 
 
-def mask_code(text: str) -> str:
-    """Collapse each code span to one token so commands do not blow the budget."""
-    return CODE_SPAN_RE.sub("CMD", text)
-
-
-def normalise(text: str) -> str:
-    return NORMALISE_RE.sub(" ", mask_code(text).lower()).strip()
+mask_code = textmatch.mask_code
+normalise = textmatch.normalise
 
 
 def parse_rules(path: Path) -> list[tuple[int, str]]:
@@ -164,13 +160,10 @@ def check_duplicates(collected: list[tuple[Path, int, str]]) -> list[Finding]:
     keys = [(k, w) for k, w in seen.items() if len(k.split()) >= NEAR_DUPLICATE_MIN_TOKENS]
     for i, (key_a, where_a) in enumerate(keys):
         for key_b, where_b in keys[i + 1:]:
-            # Cheap reject: strings this different in length cannot clear the ratio.
-            if min(len(key_a), len(key_b)) < NEAR_DUPLICATE_RATIO * max(len(key_a), len(key_b)):
-                continue
-            ratio = difflib.SequenceMatcher(None, key_a, key_b).ratio()
-            if ratio >= NEAR_DUPLICATE_RATIO:
+            score = textmatch.ratio(key_a, key_b)
+            if score >= NEAR_DUPLICATE_RATIO:
                 findings.append(
-                    Finding(where_b[0], where_b[1], "NEARDUP", f"{ratio:.0%} identical to {where_a[0]}:{where_a[1]}")
+                    Finding(where_b[0], where_b[1], "NEARDUP", f"{score:.0%} identical to {where_a[0]}:{where_a[1]}")
                 )
 
     return findings

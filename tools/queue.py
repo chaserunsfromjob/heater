@@ -52,6 +52,8 @@ def add(kind: str, summary: str, *, project: str = "", path: str = "",
         "origin": origin or os.environ.get("HEATER_ROLE", ""),
         "summary": summary.strip(),
         "delivered_at": None,
+        # Set by the inbox when the stoker judges the item. None means unjudged.
+        "resolution": None,
     }
     write(item)
     return item
@@ -67,6 +69,11 @@ def write(item: dict[str, Any]) -> Path:
 
 def load_all() -> list[dict[str, Any]]:
     return jsonstore.load(queue_dir())
+
+
+def find(item_id: str) -> dict[str, Any] | None:
+    """One item by id, or None. Ids are unique, so the first match is the only one."""
+    return next((i for i in load_all() if i["id"] == item_id), None)
 
 
 def pending() -> list[dict[str, Any]]:

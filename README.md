@@ -24,6 +24,7 @@ from that.
 | `agents/fixer.md` | Applies findings. Never passes its own work. |
 | `skills/adversarial-review/SKILL.md` | The per-change gate: lens routing, the round loop, when review ends. |
 | `store/` | Every review round and every suite run, as written. |
+| `inbox/` | The ranked task list, and the lifecycle over filed findings. |
 | `HANDOVER.md` | What the next session cannot look up for itself. Rewritten, never appended to. |
 | `skills/handover/SKILL.md` | The procedure for ending a session safely. |
 
@@ -40,6 +41,8 @@ bin/queue.py add --kind escalation --summary "..."   # file a note for the stoke
 bin/queue.py list        # what the stoker will be woken with
 bin/store.py review --change X --round 1 --lens default --verdict fail   # record a round
 bin/store.py query --days 7    # is review eating the week? stamped with when it ran
+bin/inbox.py check --summary "..."   # already judged? exit 1 means do not file
+bin/inbox.py list / dismiss <id> --reason / promote <id> --score 70 / tasks
 bin/handover.py          # is this session safe to clear? exit 0 means yes
 tools/style_lint.py      # check rule files on their own
 python3 -m unittest discover -s tests
@@ -72,7 +75,9 @@ complete.
       because Bash is a write tool and a reviewer needs it to run tests.
 - [x] **4. A review-rounds store** the skill writes to, and one query over it,
       plus a suite-run store beside it.
-- [ ] **5. The findings inbox**, with dismiss and promote.
+- [x] **5. The findings inbox**, with dismiss and promote. Findings live in the
+      queue store rather than a second directory, so one finding has one record.
+      The dismissal reason is what `check` uses to refuse a refile.
 - [ ] **6. The stoker**: its role file, its SessionStart loader, its dispatch
       command. This is where the guard's stoker warning becomes a denial.
 - [ ] **7. The worktree pool**, once one worker at a time is no longer enough.
