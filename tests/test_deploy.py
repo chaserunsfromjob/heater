@@ -134,6 +134,14 @@ class TestHookRegistration(unittest.TestCase):
                     self.assertTrue(script.exists(), f"{script} is registered but missing")
                     self.assertTrue(os.access(script, os.X_OK), f"{script} is not executable")
 
+    def test_registered_status_line_exists_and_is_executable(self):
+        # The status line is registered as a command like any hook, but it is
+        # not in hook_groups(), so the check above never reaches it.
+        import os
+        script = Path(deploy.status_line()["command"])
+        self.assertTrue(script.exists(), f"{script} is registered but missing")
+        self.assertTrue(os.access(script, os.X_OK), f"{script} is not executable")
+
     def test_preserves_a_foreign_hook(self):
         foreign = {"matcher": "Bash", "hooks": [{"type": "command", "command": "/elsewhere/hook.sh"}]}
         merged = deploy.merge_hooks({"PreToolUse": [foreign]})
