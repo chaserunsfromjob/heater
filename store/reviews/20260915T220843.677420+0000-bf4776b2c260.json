@@ -1,0 +1,17 @@
+{
+  "id": "bf4776b2c260",
+  "created": "2026-09-15T22:08:43.677420+00:00",
+  "change": "059566b3e160",
+  "project": "heater",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 2,
+  "wording_only": false,
+  "files": 2,
+  "insertions": 191,
+  "deletions": 16,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "core fix correct and fails closed; a rejected change is reported as 'awaiting review' with no round named; skills/dispatch/SKILL.md still documents the any-pass rule; observations: non-int round sorts to 0 and fails open, exact tie resolves to pass"
+}

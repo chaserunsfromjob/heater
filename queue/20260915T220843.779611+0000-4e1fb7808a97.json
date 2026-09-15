@@ -1,0 +1,17 @@
+{
+  "id": "4e1fb7808a97",
+  "created": "2026-09-15T22:08:43.779611+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "tools/store.py:101",
+  "origin": "",
+  "summary": "bin/store.py query counts a change as landed when ANY round passed (tools/store.py:101), the same stale-pass reading just removed from the landing path in tools/dispatp.py; the operator-facing landed count should rest on the latest round, or better on the dispatch store's outcome=landed",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-15T22:08:43.844655+00:00",
+    "score": 40,
+    "task_id": "93567cd3610d"
+  }
+}

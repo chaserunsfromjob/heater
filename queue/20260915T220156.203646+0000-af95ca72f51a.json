@@ -7,7 +7,7 @@
   "path": "",
   "origin": "",
   "summary": "Autosave hook committed two mid-edit snapshots of RESOURCES_SOLVERS.md on worker/048795519f43 (9bea6bb..b36fa5b), so the branch history holds half-applied review fixes; path /Users/chasethompson/.heater/worktrees/pokerbot/85f4140c6fae",
-  "delivered_at": null,
+  "delivered_at": "2026-09-15T22:04:36.818107+00:00",
   "resolution": {
     "action": "dismissed",
     "at": "2026-09-15T22:02:41.020344+00:00",
