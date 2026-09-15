@@ -12,7 +12,7 @@
   "branch": "worker/837c714321ea",
   "run_id": "",
   "part": "",
-  "closed_at": "2026-09-15T16:02:36.789265+00:00",
-  "outcome": "pushed",
-  "note": "branch worker/837c714321ea, commit 0149a25; committed locally in the leased worktree, remote push failed (git auth not configured in worker sandbox) but branch is ready to land [slot held: b4042c2543f5 still holds work on worker/837c714321ea that exists nowhere else; land it or push it before releasing the slot]"
+  "closed_at": null,
+  "outcome": null,
+  "note": "reopened by the stoker: the worker's close reported outcome \"pushed\" but the push never happened (no git credentials on the machine); a review pass is now recorded (32d8da728560) and the branch, plus a stoker fixup commit, is ready to land through bin/dispatch.py land"
 }
