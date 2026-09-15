@@ -1,0 +1,10 @@
+{
+  "id": "39bbe6c23627",
+  "created": "2026-09-15T19:00:32.821180+00:00",
+  "score": 50,
+  "title": "Record firm operator requirements in pokerbot/CLAUDE.md: 2-9 players, true no-limit, per-player-name exploitative play",
+  "source_finding": "83e231399c33",
+  "project": "pokerbot",
+  "path": "CLAUDE.md",
+  "done_at": null
+}

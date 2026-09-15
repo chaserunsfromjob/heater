@@ -1,8 +1,8 @@
 {
   "id": "23127556e5db",
   "created": "2026-09-15T18:39:02.642516+00:00",
-  "score": 35,
-  "title": "poker_ai's vendored betting is fixed-limit (1 BB per raise, capped 3 raises/street), not no-limit -- scope real bet-sizing alongside the 52-card move",
+  "score": 45,
+  "title": "Operator-confirmed hard requirements: true no-limit bet sizing (poker_ai's vendored engine is fixed-limit, 1 BB per raise capped at 3/street) and support for every table size 2-9 players (not whatever poker_ai defaults to) -- scope both alongside the 52-card move",
   "source_finding": "5a94f4bf910c",
   "project": "pokerbot",
   "path": "vendor/poker_ai/poker_ai/games/short_deck/state.py",

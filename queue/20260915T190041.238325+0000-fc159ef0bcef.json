@@ -1,0 +1,12 @@
+{
+  "id": "fc159ef0bcef",
+  "created": "2026-09-15T19:00:41.238325+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "tests/ground_truth/test_hand_ranking.py",
+  "origin": "stoker",
+  "summary": "The treys ground-truth fixture is far less independent of the vendored engine than CLAUDE.md:16 assumes. poker_ai's own evaluator (vendor/poker_ai/poker_ai/poker/evaluation/eval_card.py) is a deuces fork too: same 32-bit card encoding, same PRIMES list, same verbatim INT_SUIT_TO_CHAR_SUIT = 'xshxdxxxc', same 7462-entry Cactus Kev lookup. treys descends from deuces as well, so the fixture checks a library against its own cousin and a shared-ancestor bug passes both. A genuinely independent check needs a different algorithm family.",
+  "delivered_at": null,
+  "resolution": null
+}
