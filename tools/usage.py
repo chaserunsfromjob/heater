@@ -24,18 +24,16 @@ state directory, and everything here reads that file.
 
 The bands
 ---------
-Weekly first, because the weekly window is the one that runs out:
+`THRESHOLDS` below holds every band and the percentage on each window that
+triggers it, tightest first, and `ALLOWS` holds the one plain-words line each
+band says about what may still be started. Those two are the definition; this
+docstring deliberately does not restate them, because a paraphrase that drifts
+from the code is worse than no paraphrase at all.
 
-    NOTHING_NEW                seven_day >= 95% or five_hour >= 98%
-        Finish what is in flight and hand over. Start nothing.
-    REVIEWS_AND_LANDINGS_ONLY  seven_day >= 85% or five_hour >= 93%
-        Only rounds that close a change already in flight. No new research and
-        no new features.
-    TOP_OF_LIST_ONLY           seven_day >= 75% or five_hour >= 85%
-        The top task on the list, plus rounds already in flight, with at most
-        three agents out at once.
-    OPEN                       below all of those
-        Whatever the task list justifies.
+Weekly leads, because the weekly window is the one that runs out. The tightest
+band stops the fleet: every agent still running is stopped there rather than
+left to finish, and the operator is sent an account of what the whole window
+bought (`bin/debrief.py`). Opinion 13 carries the operator's words for that.
 
 OPEN is not a licence to ignore the number: the percentages are printed at every
 band so that judgment about what is worth spending can tighten as they climb.
@@ -63,9 +61,11 @@ OPEN = "OPEN"
 
 # --- the constants block --------------------------------------------------
 # One entry per band, tightest first: (seven-day %, five-hour %, env prefix).
-# Crossing either percentage puts the fleet in that band.
+# Crossing either percentage puts the fleet in that band. The five-hour stop sits
+# at 95, level with the weekly one, because opinion 13 quotes the operator naming
+# that figure as where the agents stop and the debrief is written.
 THRESHOLDS: tuple[tuple[str, float, float, str], ...] = (
-    (NOTHING_NEW, 95.0, 98.0, "HEATER_TAPER_NOTHING_NEW"),
+    (NOTHING_NEW, 95.0, 95.0, "HEATER_TAPER_NOTHING_NEW"),
     (REVIEWS_AND_LANDINGS_ONLY, 85.0, 93.0, "HEATER_TAPER_REVIEWS_ONLY"),
     (TOP_OF_LIST_ONLY, 75.0, 85.0, "HEATER_TAPER_TOP_OF_LIST"),
 )
@@ -80,12 +80,15 @@ STALE_HOURS = 6.0
 TOP_OF_LIST_AGENTS = 3
 
 ALLOWS = {
-    NOTHING_NEW: "Start nothing. Finish what is already out, then hand over.",
+    NOTHING_NEW:
+        "Stop every agent that is still running, write the account of what the window "
+        "bought with bin/debrief.py and send it to the operator, then hand over. Start nothing.",
     REVIEWS_AND_LANDINGS_ONLY:
-        "Only rounds that close a change already in flight. No new research, no new features.",
+        "Only rounds that close a change already in flight. No new research, no new features. "
+        "Stop the lowest-priority agents still running rather than letting them run on.",
     TOP_OF_LIST_ONLY:
         f"Only the top task on the list and rounds already in flight, "
-        f"at most {TOP_OF_LIST_AGENTS} agents out at once.",
+        f"at most {TOP_OF_LIST_AGENTS} agents out at once; stop the least important first.",
     OPEN: "Dispatch whatever the task list justifies.",
 }
 
@@ -253,31 +256,60 @@ def _clock(when: datetime | None) -> str:
     return when.astimezone().strftime("%a %d %b %H:%M %Z") if when else "reset time unknown"
 
 
+def _time_left(days: float | None) -> str:
+    """How long the week has left to run, written the way a person would say it."""
+    if days is None:
+        return ""
+    if days < 1:
+        hours = days * 24
+        return ", less than an hour left" if hours < 1 else f", about {hours:.0f} hours left"
+    return ", about a day left" if round(days) == 1 else f", about {days:.0f} days left"
+
+
+def _window_line(reading: dict[str, Any], window: str, label: str, tail: str = "") -> str:
+    """One window, or a plain sentence saying why it carries no figure.
+
+    A window with no figure beside a window that has one is what Claude Code
+    sends after that window has reset, so it is reported as a fresh window
+    rather than as a gap in the reading.
+    """
+    used = percentage(reading, window)
+    if used is None:
+        return (f"  {label}: no figure given, which is what arrives once that window has "
+                "reset; treat it as freshly reset with nothing used")
+    return f"  {label}: {used:.0f}% used, resets {_clock(resets_at(reading, window))}{tail}"
+
+
 def lines(reading: dict[str, Any] | None = None, now: datetime | None = None) -> list[str]:
-    """What bearings prints: both windows, the band, and what the band allows."""
+    """What bearings prints: both windows, what may be started, and the band's name."""
     reading = read() if reading is None else reading
     current = band(reading)
     age = age_hours(reading, now)
 
     if missing(reading):
+        path = snapshot_path()
+        where = (f"  {path} is present but unreadable, so it says nothing about the plan"
+                 if path.exists() else
+                 f"  nothing has written {path} yet")
         return [
             "  no usage reading",
-            f"  nothing has written {snapshot_path()} yet; the status line writes it "
-            "on its next render in an interactive session on a Pro or Max plan",
-            f"  band: {current} (unknown) — {allows(current)}",
+            f"{where}; the status line writes it on its next render in an "
+            "interactive session on a Pro or Max plan",
+            f"  nothing is known about how much of the plan is spent, so nothing is held "
+            f"back: {allows(current)} (that state is called the {current} band)",
         ]
 
-    out = []
-    seven, five = percentage(reading, "seven_day"), percentage(reading, "five_hour")
-    left = days_left(reading, now)
-    remaining = f", {left:.1f} day(s) left" if left is not None else ""
-    out.append(f"  weekly (7 day): {seven:.0f}% used, resets {_clock(resets_at(reading, 'seven_day'))}{remaining}"
-               if seven is not None else "  weekly (7 day): not reported")
-    out.append(f"  session (5 hour): {five:.0f}% used, resets {_clock(resets_at(reading, 'five_hour'))}"
-               if five is not None else "  session (5 hour): not reported")
-    out.append(f"  band: {current} ({_age_words(age)}) — {allows(current)}")
+    out = [
+        _window_line(reading, "seven_day", "last 7 days", _time_left(days_left(reading, now))),
+        _window_line(reading, "five_hour", "last 5 hours"),
+        f"  what may be started now: {allows(current)} "
+        f"({_age_words(age)}; that state is called the {current} band)",
+    ]
     if stale(reading, now):
-        out.append(f"  reading is older than {STALE_HOURS:.0f} hours; treat it as a guess until it refreshes")
+        out.append(f"  {_age_words(age)} — older than {STALE_HOURS:.0f} hours, "
+                   "so treat it as a guess until it refreshes" if age is not None else
+                   "  this reading does not say when it was taken, "
+                   "so treat it as a guess until it refreshes")
     return out
 
 

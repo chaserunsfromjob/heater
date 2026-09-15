@@ -49,11 +49,15 @@ def plan_usage() -> tuple[list[str], bool]:
 
     First, because it bounds everything below it: there is no point ranking
     tasks before knowing how many may be started at all.
+
+    An old reading is not by itself something to act on: the status line
+    refreshes it on the first reply of the next session, so every morning would
+    otherwise open with an alarm that clears itself. It is printed with its age
+    and a warning to treat it as a guess instead. Only a reading that does not
+    exist, or one that says the fleet must stop, raises the flag.
     """
     reading = usage.read()
-    needs = (usage.band(reading) == usage.NOTHING_NEW
-             or usage.missing(reading)
-             or usage.stale(reading))
+    needs = usage.band(reading) == usage.NOTHING_NEW or usage.missing(reading)
     return usage.lines(reading), needs
 
 
