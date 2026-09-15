@@ -1,8 +1,8 @@
 # Handover
 
-<!-- handover-commit: 3e9ed40 -->
+<!-- handover-commit: 46fbf22 -->
 
-Written at `3e9ed40` on `main`. Verify with
+Written at `46fbf22` on `main`. Verify with
 `bin/handover.py`. A snapshot, not a log — rewrite it, do not append.
 
 Read `README.md` for what is built and what is next, `OPINIONS.md` for the
@@ -52,6 +52,11 @@ operator", so the standard is enforceable rather than a matter of tone.
 
 The chosen style: plain words carry the explanation, and the technical term is
 named last, after the plain version already stands on its own.
+
+**The second mistake to avoid.** Opinion 10 exists because they were handed an
+implementation walkthrough and a bug report for something already fixed. Report
+what changed and whether it works. The account of how it was made goes in the
+commit message, which is where this sentence is aimed.
 
 **The mistake to avoid.** Early on they were asked to choose between
 architectural options using vocabulary they had never been given. They answered
