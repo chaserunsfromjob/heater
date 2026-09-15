@@ -5,7 +5,7 @@
   "urgency": "normal",
   "project": "heater",
   "path": "tools/bearings.py",
-  "origin": "stoker",
+  "origin": "worker",
   "summary": "bearings machine() still prints the machine-level 'hook registration out of date' line for a stoker session whose repo .claude/settings.json already covers those hooks",
   "delivered_at": null,
   "resolution": null
