@@ -8,5 +8,9 @@
   "origin": "worker",
   "summary": "bearings machine() still prints the machine-level 'hook registration out of date' line for a stoker session whose repo .claude/settings.json already covers those hooks",
   "delivered_at": null,
-  "resolution": null
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-15T16:28:26.716883+00:00",
+    "reason": "continuation of already-promoted parent finding 64ee15ded3fb/task d8d5dec3ef4e, now landed; bearings.machine() deliberately still reports true machine-level drift regardless of any one project's coverage, since that signal drives bin/deploy.py --check and matters for every other project on this machine \u2014 suppressing it there too would leave nobody told the machine itself has no hooks registered"
+  }
 }

@@ -1,0 +1,10 @@
+{
+  "id": "cf94755e8f87",
+  "created": "2026-09-15T16:28:34.178625+00:00",
+  "score": 10,
+  "title": "pin suppression of the third settings_drift() status-line-mismatch message, and document the statusLine-precedence assumption it rests on",
+  "source_finding": "1d862441ef3d",
+  "project": "heater",
+  "path": "tests/test_stoker.py",
+  "done_at": null
+}
