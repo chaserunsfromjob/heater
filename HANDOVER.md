@@ -1,8 +1,8 @@
 # Handover
 
-<!-- handover-commit: 46fbf22 -->
+<!-- handover-commit: 3ab1280 -->
 
-Written at `46fbf22` on `main`. Verify with
+Written at `3ab1280` on `main`. Verify with
 `bin/handover.py`. A snapshot, not a log — rewrite it, do not append.
 
 Read `README.md` for what is built and what is next, `OPINIONS.md` for the
@@ -189,7 +189,19 @@ flattens below that while disruption keeps growing. Re-orientation cost is the
 thing that moves the optimum: a tight HANDOVER.md and a small CLAUDE.md are what
 make a low mark affordable, so they are coupled, not independent.
 
-**The bridge that makes any of this possible is fragile.** Hooks are never told how full the context window is — only the
+**Context is read from the transcript, not the status line.** Every hook gets a
+`transcript_path`, and the last usage record in it carries the token counts the
+API reported. That works in a web session, where no status line runs at all —
+which is exactly how this sat silent at 53% of the window for a whole evening.
+The status line is now only a fallback, useful because it knows the exact window
+size. Verified live: 53.4% from the transcript against 528,816 reported by the
+session record.
+
+**The system is deployed on this container.** `bin/deploy.py` has been run for
+real for the first time: nine targets linked, hooks and status line registered.
+It has still never run on the operator's own machine.
+
+**The old status-line note, kept because the failure mode is worth knowing.** Hooks are never told how full the context window is — only the
 status line is. So `hooks/statusline.py` records it to `~/.heater/context.json`
 and `hooks/stop.py` reads it. If the status line is not deployed, or the operator
 has their own, automatic handover silently never fires. Deploy reports that as
