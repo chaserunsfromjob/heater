@@ -1,0 +1,18 @@
+{
+  "id": "dcbe15411fa1",
+  "created": "2026-09-15T19:18:14.982015+00:00",
+  "task": "Resolve the merge conflict between worker/36e2ae4be45b and main in pokerbot. The branch is a research/design-writing task (OPPONENT_MODEL_DESIGN.md) with no poker-decision code. main has moved ahead and both sides touched CLAUDE.md -- merge main into this branch, resolve the CLAUDE.md conflict by keeping both sides' substance (main's operator-confirmed firm requirements section AND whatever this branch added), commit the resolved merge, and push the branch. Do not touch OPPONENT_MODEL_DESIGN.md's content beyond what the merge requires.",
+  "project": "pokerbot",
+  "done_when": "worker/36e2ae4be45b merges cleanly against main with no conflict markers left in any file, the merge is committed on the branch, and the branch is pushed",
+  "task_id": "",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/ffa5584864c2",
+  "lease_id": "ffa5584864c2",
+  "branch": "worker/dcbe15411fa1",
+  "run_id": "",
+  "part": "",
+  "closed_at": "2026-09-15T19:28:01.703192+00:00",
+  "outcome": "failed",
+  "note": "worker agent died with the session context wipe before doing anything; re-dispatched"
+}

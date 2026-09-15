@@ -1,0 +1,18 @@
+{
+  "id": "984aa6810a05",
+  "created": "2026-09-15T19:29:52.501229+00:00",
+  "task": "Research and design-writing, not code. The operator has confirmed firm requirements: the bot must handle every table size from 2 to 9 players and use true no-limit bet sizing (continuous raise amounts, not fixed increments). Our existing OPPONENT_MODEL_DESIGN.md (do not edit it -- it's mid-review on a different in-progress task; read it for context only) was written mostly assuming a fixed-ish table size and doesn't address how bet-sizing tells or table-size effects should factor into opponent modeling. Research and write a NEW file, TABLE_SIZE_AND_SIZING_NOTES.md, covering: (1) how player statistics and exploitative adjustments should change with table size -- e.g. why a stat like VPIP means something different at a 9-max full ring vs 3-handed vs heads-up, and whether separate baselines/buckets are needed per table-size band rather than one global baseline (ground this in real poker literature/strategy sources the way the existing design doc does, don't invent numbers); (2) how continuous no-limit bet sizing (as opposed to fixed raise amounts) creates additional signal -- e.g. bet-sizing tells, sizing as a feature for opponent classification, and how a bot's own bet-sizing might need to vary for genuine unpredictability (per real strategy literature on bet-sizing balance/game-theory-optimal sizing, not intuition); (3) a concrete recommendation for how this should eventually be reconciled into the main opponent-model design (e.g. does BASELINE need to be computed per table-size band, does the archetype system need a table-size dimension) -- but do not make that edit yourself, just recommend it clearly enough that a future task can. Cite real sources the way OPPONENT_MODEL_DESIGN.md does. (Re-dispatch of ba8300646017, whose worker was lost before writing anything. Run bin/queue.py and bin/inbox.py from /Users/chasethompson/heater; pokerbot has no inbox of its own. pokerbot has no GitHub remote: commit on your branch, and 'push' means nothing here; say so in your report rather than treating it as an error.)",
+  "project": "pokerbot",
+  "done_when": "TABLE_SIZE_AND_SIZING_NOTES.md exists, is grounded in cited real sources not invented numbers, and ends with concrete, specific recommendations for reconciling with OPPONENT_MODEL_DESIGN.md that a future task could act on directly",
+  "task_id": "",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/8b0b4064141f",
+  "lease_id": "8b0b4064141f",
+  "branch": "worker/984aa6810a05",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

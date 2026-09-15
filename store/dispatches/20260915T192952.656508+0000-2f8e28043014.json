@@ -1,0 +1,18 @@
+{
+  "id": "2f8e28043014",
+  "created": "2026-09-15T19:29:52.656508+00:00",
+  "task": "Resolve the merge conflict between worker/36e2ae4be45b and main in pokerbot, working IN THE EXISTING checkout /Users/chasethompson/.heater/worktrees/pokerbot/4c952047cdd3 (already on branch worker/36e2ae4be45b; do not create another). The branch is a research/design-writing task (OPPONENT_MODEL_DESIGN.md) with no poker-decision code. main has moved ahead and both sides touched CLAUDE.md -- merge main into this branch, resolve the CLAUDE.md conflict by keeping both sides' substance, commit the resolved merge on the branch. Do not touch OPPONENT_MODEL_DESIGN.md's content beyond what the merge requires. pokerbot has no GitHub remote, so there is nothing to push; the commit on the branch is the deliverable. Run bin/queue.py and bin/inbox.py from /Users/chasethompson/heater.",
+  "project": "pokerbot",
+  "done_when": "worker/36e2ae4be45b merges cleanly against main with no conflict markers left in any file, the merge is committed on the branch, and the suite in that checkout passes",
+  "task_id": "",
+  "agent": "fixer",
+  "repo": "",
+  "workdir": "",
+  "lease_id": "",
+  "branch": "",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

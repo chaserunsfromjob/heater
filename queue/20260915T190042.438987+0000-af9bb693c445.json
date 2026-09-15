@@ -7,7 +7,7 @@
   "path": "CLAUDE.md",
   "origin": "stoker",
   "summary": "Operator-confirmed firm requirements (2026-09-15): the bot must (1) work for every table size from 2 to 9 players, not a fixed count, (2) use true no-limit bet sizing, and (3) play exploitatively based on player identity (per-opponent adaptive modeling, not per-table). Record these explicitly in pokerbot/CLAUDE.md's project description/plan so every future worker and reviewer treats them as firm scope. Wait for the in-progress fixer on worker/36e2ae4be45b to land first, since it's also editing CLAUDE.md right now -- dispatching this concurrently would conflict on the same file.",
-  "delivered_at": null,
+  "delivered_at": "2026-09-15T19:19:22.106285+00:00",
   "resolution": {
     "action": "promoted",
     "at": "2026-09-15T19:00:48.657316+00:00",
