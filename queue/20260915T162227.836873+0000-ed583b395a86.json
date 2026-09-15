@@ -1,0 +1,12 @@
+{
+  "id": "ed583b395a86",
+  "created": "2026-09-15T16:22:27.836873+00:00",
+  "kind": "escalation",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "git remote (push)",
+  "origin": "stoker",
+  "summary": "This Mac has no saved GitHub sign-in, so 'git push' fails everywhere on it ('could not read Username for https://github.com'). Two dispatched workers hit this today; each was still landed by merging its branch straight into the local copy of main, so today's work was not blocked, but the online copy at https://github.com/chaserunsfromjob/heater is now behind, and every future dispatch on this machine will hit the same wall. Options, any of which would fix it: (1) set up a saved GitHub sign-in for the git command line (a 'credential helper') on this machine; (2) install and sign in to GitHub's own command-line tool ('gh'); (3) switch the repository's remote to an SSH key instead of a username/password login. This is the operator's call, not a design decision the stoker can make.",
+  "delivered_at": null,
+  "resolution": null
+}
