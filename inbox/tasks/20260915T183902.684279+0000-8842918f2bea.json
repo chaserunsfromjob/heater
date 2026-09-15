@@ -1,0 +1,10 @@
+{
+  "id": "8842918f2bea",
+  "created": "2026-09-15T18:39:02.684279+00:00",
+  "score": 18,
+  "title": "guard poker_ai's CLI entry point against the macOS multiprocessing import-order crash (workaround already documented in REFERENCE_NOTES.md)",
+  "source_finding": "1e79e31d3675",
+  "project": "pokerbot",
+  "path": "vendor/poker_ai/poker_ai/ai/agent.py",
+  "done_at": null
+}

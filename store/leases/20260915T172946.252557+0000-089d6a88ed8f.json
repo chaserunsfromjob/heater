@@ -1,0 +1,13 @@
+{
+  "id": "089d6a88ed8f",
+  "created": "2026-09-15T17:29:46.252557+00:00",
+  "project": "heater",
+  "repo": "/Users/chasethompson/heater",
+  "branch": "worker/ca03e4463c49",
+  "dispatch_id": "ca03e4463c49",
+  "base_sha": "6b1a3c340fdc8d3063d043692848445ab09dd195",
+  "base_branch": "main",
+  "path": "/Users/chasethompson/.heater/worktrees/heater/089d6a88ed8f",
+  "released_at": null,
+  "released_how": ""
+}

@@ -1,0 +1,18 @@
+{
+  "id": "ca03e4463c49",
+  "created": "2026-09-15T17:29:46.192348+00:00",
+  "task": "Raise tools/worktrees.py's MAX_SLOTS constant from 3 to 6. The operator wants more concurrent workers per project (was hitting the cap running research/coding/testing streams in parallel on the pokerbot project) and considers 3 an arbitrary default rather than a load-bearing limit -- confirm that's true by reading the surrounding code and existing tests before changing it (check tests/test_worktrees.py and anywhere else MAX_SLOTS is referenced or relied on for a specific value). Update the constant's comment if it references the old number. Do not change any other behavior.",
+  "project": "heater",
+  "done_when": "bin/gate.sh passes; MAX_SLOTS is 6; no test hard-codes an assumption that breaks at the new value (if one does, fix that test's assumption, not the feature)",
+  "task_id": "",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/heater",
+  "workdir": "/Users/chasethompson/.heater/worktrees/heater/089d6a88ed8f",
+  "lease_id": "089d6a88ed8f",
+  "branch": "worker/ca03e4463c49",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

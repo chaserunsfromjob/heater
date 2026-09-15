@@ -1,0 +1,18 @@
+{
+  "id": "aebf85e3a420",
+  "created": "2026-09-15T17:11:28.402553+00:00",
+  "task": "Vendor github.com/fedden/poker_ai into this repo (e.g. under vendor/poker_ai/ or as a git submodule, your call) and get it running. This is a class project poker bot; the operator's standing rule in this repo's CLAUDE.md is that AI models never do poker judgment (hand reading, equity, action decisions) -- only real engine code does, so your job here is integration and assessment, not writing any poker logic of your own. Concretely: (1) clone/vendor the repo, install its dependencies, and get its own existing tests and any example/CLI script running so we know it actually works on this machine; (2) it defaults to a 20-card 'short deck' game -- read its code and docs and report exactly what would be involved in moving it to standard 52-card no-limit hold'em (is it a config flag, a card-set constant, or does it touch the CFR abstraction/bucketing in a way that's riskier to change); (3) confirm it supports 6-player (or otherwise 3+) multiway play, not just heads-up; (4) do not modify its poker logic or attempt the 52-card switch yet -- this task is vendor-and-report, so the next task can be scoped correctly. Write your findings into a new REFERENCE_NOTES.md in this repo's root.",
+  "project": "pokerbot",
+  "done_when": "poker_ai is vendored into the repo and committed; its own test suite (or the closest equivalent it has) runs and passes on this machine, with the exact command recorded; REFERENCE_NOTES.md exists and answers all three questions above (short-deck-to-52-card effort, multiway support, how to run it) with specific file/function references, not guesses",
+  "task_id": "",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/0f748212fb4c",
+  "lease_id": "0f748212fb4c",
+  "branch": "worker/aebf85e3a420",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

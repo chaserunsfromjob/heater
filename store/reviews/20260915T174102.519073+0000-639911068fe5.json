@@ -1,0 +1,17 @@
+{
+  "id": "639911068fe5",
+  "created": "2026-09-15T17:41:02.519073+00:00",
+  "change": "ca03e4463c49",
+  "project": "heater",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 4,
+  "wording_only": false,
+  "files": 1,
+  "insertions": 1,
+  "deletions": 1,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "reviewer a3b42fe0a060cdb10: FAIL. A (blocking): roles/stoker.md:27, skills/dispatch/SKILL.md:34-35, and tools/worktrees.py's own docstring/refusal message all still tell every session never to raise the cap, unchanged by this diff, and OPINIONS.md records no position on concurrency -- so the rule files now contradict the code. B (blocking): the justification (\"hit the cap\") and the new value (6) are both unbacked by any store; running exactly 3 streams against a cap of 3 is precisely at the cap, not over it, and no data exists on refusal frequency or peak concurrency to size 6 against. C (non-blocking, flagged): no fleet-wide disk ceiling exists, and disk headroom is currently 312MB free with pokerbot about to vendor a library into every one of up to 6 checkouts -- worth stating in the landing commit or filing separately, not blocking this diff. D (minor): tests/test_worktrees.py:184 uses a literal range(3) that incidentally exercised cap-boundary behavior at the old value and silently stops doing so at 6; should read worktrees.MAX_SLOTS. Gate and suite both genuinely green (393 tests) -- the fail is entirely on the two always-fail categories, not on correctness of the one-line change itself. Not wording-only. Awaiting the operator's own OPINIONS.md entry before dispatching a fixer, since only the operator's stated position belongs there."
+}

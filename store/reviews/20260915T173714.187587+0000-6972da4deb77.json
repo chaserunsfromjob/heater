@@ -1,0 +1,17 @@
+{
+  "id": "6972da4deb77",
+  "created": "2026-09-15T17:37:14.187587+00:00",
+  "change": "5376405d3e28",
+  "project": "pokerbot",
+  "round": 2,
+  "lens": "default",
+  "verdict": "pass",
+  "findings": 2,
+  "wording_only": true,
+  "files": 4,
+  "insertions": 45,
+  "deletions": 11,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "reviewer aa327a7b32cc8d0e2: PASS. All round-1 findings (F1 blocking, F2, F3, F5) independently re-verified as genuinely resolved, not cosmetic -- treys' release date/license/fork lineage re-checked against live PyPI/installed metadata, 20/20 tests still pass in a fresh venv, poker semantics spot-checked by hand. Two wording-only observations, explicitly confirmed as such by the reviewer: N1 README.md line 23 phrases treys' role backwards (treys produces the rankings the tests check, not the reverse); N2 the run commands are now duplicated verbatim in README.md and the test docstring with nothing keeping them in sync. Recorded as observations per the review-ends rule, not filed as findings; landing on this pass rather than spinning a third round to re-confirm two trivial wording nits."
+}

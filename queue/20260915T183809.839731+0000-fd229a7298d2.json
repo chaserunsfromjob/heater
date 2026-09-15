@@ -1,0 +1,17 @@
+{
+  "id": "fd229a7298d2",
+  "created": "2026-09-15T18:38:09.839731+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "tests/test_queue_and_stop.py",
+  "origin": "stoker",
+  "summary": "TestStopHook and TestStopFailsOpen read live session/repo state (context.state(None), handover.in_flight(), handover.problems()) instead of stubbing it, so the suite passes or fails depending on whether the working tree is currently clean and how full the session's own context window is at the moment the suite runs -- confirmed: 20/20 pass in a clean worktree, 7 fail in the dirty main checkout with identical code. This makes bin/gate.sh unreliable as a landing signal (a branch can be falsely green or falsely red depending on unrelated live state). Needs the tests to stub/fake context.state and handover.in_flight()/problems() rather than reading the real ones.",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-15T18:38:22.275060+00:00",
+    "score": 40,
+    "task_id": "26604eac53cb"
+  }
+}

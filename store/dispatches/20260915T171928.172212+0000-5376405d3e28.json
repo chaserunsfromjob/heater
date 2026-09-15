@@ -1,0 +1,18 @@
+{
+  "id": "5376405d3e28",
+  "created": "2026-09-15T17:19:28.172212+00:00",
+  "task": "Build an independent ground-truth test fixture for poker hand evaluation, completely separate from wherever poker_ai is being vendored (use a different directory, e.g. tests/ground_truth/, so this does not collide with that other in-progress task). Per this repo's CLAUDE.md rule, hand evaluation must come from real, separately-maintained code, never logic written by an AI -- so pick a well-established, widely-used Python poker hand-evaluation library (e.g. treys or deuces; verify it's real and maintained, don't guess) and add it as a proper dependency. Using that library, write automated tests for a handful of known hands/boards with unambiguous correct answers (at minimum: royal flush beats full house, two pair beats a straight [i.e. loses to it -- get the direction right], and at least one genuinely close comparison like two-pair-vs-two-pair with different kickers). Each test should assert the library's real output matches the known-correct ranking. This is meant as a durable sanity check we'll keep using later to validate whatever hand-evaluation code the final bot actually uses.",
+  "project": "pokerbot",
+  "done_when": "the test fixture is committed, uses a real named external library (not hand-written logic), and running it (record the exact command) passes on this machine right now, independent of whether poker_ai vendoring has finished",
+  "task_id": "",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/59c1baa8cffc",
+  "lease_id": "59c1baa8cffc",
+  "branch": "worker/5376405d3e28",
+  "run_id": "",
+  "part": "",
+  "closed_at": "2026-09-15T17:37:20.880789+00:00",
+  "outcome": "landed",
+  "note": "merged worker/5376405d3e28 into main"
+}

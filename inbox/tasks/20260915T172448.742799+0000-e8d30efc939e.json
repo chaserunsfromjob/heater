@@ -1,0 +1,10 @@
+{
+  "id": "e8d30efc939e",
+  "created": "2026-09-15T17:24:48.742799+00:00",
+  "score": 8,
+  "title": "unify pokerbot's dependency/test-runner convention across the ground-truth fixture and the vendored poker_ai once vendoring lands",
+  "source_finding": "5ea857099a4d",
+  "project": "pokerbot",
+  "path": "tests/ground_truth/requirements.txt",
+  "done_at": null
+}

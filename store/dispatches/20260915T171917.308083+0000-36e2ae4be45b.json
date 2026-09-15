@@ -1,0 +1,18 @@
+{
+  "id": "36e2ae4be45b",
+  "created": "2026-09-15T17:19:17.308083+00:00",
+  "task": "This is research and design-writing, not poker-decision code (that stays banned per this repo's CLAUDE.md). Survey how to make a multiway no-limit hold'em bot beat real human opponents specifically (not chase game-theory-optimal, which doesn't exist at 3+ players) by exploiting common human tendencies. Cover: (1) what per-opponent statistics are cheap to track from observed hands and are known to be predictive (e.g. voluntarily-put-money-in-pot rate, preflop-raise rate, aggression factor, fold-to-3-bet rate -- ground these in real poker literature/strategy sources, don't invent numbers); (2) what publicly documented approaches real multiway poker bots (Pluribus's paper, academic MCCFR-based bots, etc.) have used for opponent modeling, and how much of that is realistic to replicate solo in a few weeks; (3) a concrete plan: what to compute after each hand, how to bucket/classify an opponent, and what strategy adjustment to make against each bucket. Do not assume anything about poker_ai's internals yet -- another task is still assessing that. Write it to OPPONENT_MODEL_DESIGN.md in the repo root, concrete enough that a future coding task could implement it directly.",
+  "project": "pokerbot",
+  "done_when": "OPPONENT_MODEL_DESIGN.md exists, cites real reasoning/sources rather than invented numbers, and lays out a plan specific enough to hand to a coding worker directly",
+  "task_id": "",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/4c952047cdd3",
+  "lease_id": "4c952047cdd3",
+  "branch": "worker/36e2ae4be45b",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

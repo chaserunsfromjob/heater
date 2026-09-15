@@ -1,0 +1,17 @@
+{
+  "id": "5a94f4bf910c",
+  "created": "2026-09-15T17:53:54.590229+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "vendor/poker_ai/poker_ai/games/short_deck/state.py",
+  "origin": "stoker",
+  "summary": "Vendored poker_ai betting is fixed-limit, not no-limit: state.py:184-193 always raises exactly one big blind (doubled on turn/river) and legal_actions caps raises at 3 per street. CLAUDE.md states the project goal is no-limit. Adding bet sizing enlarges the CFR action set and multiplies training cost, so it should be scoped alongside the 52-card move. Detail in REFERENCE_NOTES.md.",
+  "delivered_at": "2026-09-15T17:57:44.490515+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-15T18:39:02.644218+00:00",
+    "score": 35,
+    "task_id": "23127556e5db"
+  }
+}

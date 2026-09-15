@@ -1,0 +1,16 @@
+{
+  "id": "941517744501",
+  "created": "2026-09-15T17:35:10.598685+00:00",
+  "kind": "finding",
+  "urgency": "low",
+  "project": "pokerbot",
+  "path": "/private/tmp/claude-501/-Users-chasethompson-heater/1218468f-d425-4610-be8a-b897dd7cd997/scratchpad",
+  "origin": "stoker",
+  "summary": "Concurrently dispatched workers share one scratchpad directory (keyed by the stoker session, not the dispatch), so parallel briefs can clobber each other's files",
+  "delivered_at": "2026-09-15T17:37:24.373869+00:00",
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-15T17:38:09.943501+00:00",
+    "reason": "the shared scratchpad is a harness-level property of this stoker session, not something heater's own code assigns or can fix; mitigation going forward is procedural, not code: future dispatch briefs will tell each worker to make and use its own named subdirectory under the scratchpad rather than writing at its root"
+  }
+}

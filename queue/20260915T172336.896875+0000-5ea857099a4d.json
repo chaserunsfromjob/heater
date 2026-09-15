@@ -1,0 +1,17 @@
+{
+  "id": "5ea857099a4d",
+  "created": "2026-09-15T17:23:36.896875+00:00",
+  "kind": "finding",
+  "urgency": "low",
+  "project": "pokerbot",
+  "path": "tests/ground_truth/requirements.txt",
+  "origin": "stoker",
+  "summary": "pokerbot has no top-level dependency or test-runner convention, so the ground-truth fixture ships its own tests/ground_truth/requirements.txt and venv instructions; once poker_ai vendoring lands, decide on one project-wide dependency file and fold this into it.",
+  "delivered_at": "2026-09-15T17:25:10.238958+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-15T17:24:48.743914+00:00",
+    "score": 8,
+    "task_id": "e8d30efc939e"
+  }
+}

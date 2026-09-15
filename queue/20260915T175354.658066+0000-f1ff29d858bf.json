@@ -1,0 +1,17 @@
+{
+  "id": "f1ff29d858bf",
+  "created": "2026-09-15T17:53:54.658066+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "vendor/poker_ai/test/functional/test_cli.py",
+  "origin": "stoker",
+  "summary": "Upstream poker_ai test_cli.py has three tests that assert nothing (result = runner.invoke(..., catch_exceptions=True) then stop; the only assert is commented out at line 176) and point --pickle_dir at research/blueprint_algo/, a directory upstream never committed. Run by hand the command returns exit_code 2. So the vendored suite's 53 passes include zero real coverage of training.",
+  "delivered_at": "2026-09-15T17:57:44.490500+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-15T18:39:02.728800+00:00",
+    "score": 8,
+    "task_id": "64ab21433dd7"
+  }
+}

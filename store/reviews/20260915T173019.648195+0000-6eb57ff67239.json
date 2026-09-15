@@ -1,0 +1,17 @@
+{
+  "id": "6eb57ff67239",
+  "created": "2026-09-15T17:30:19.648195+00:00",
+  "change": "5376405d3e28",
+  "project": "pokerbot",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 5,
+  "wording_only": false,
+  "files": 3,
+  "insertions": 243,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "reviewer a9de23eb30f390cd0: FAIL. F1 (blocking, unrecorded design decision): CLAUDE.md never records that an external evaluator (treys) validates hand ranking, that it's a reference only, or that it must never enter the bot's decision path. F2 (substantive): docstring overstates reusability against poker_ai directly -- ignores the rank-scale/category-name mismatch and the current 20-card-vs-52-card mismatch. F3 (wording): 'maintained fork of deuces' should be a dated factual claim (last release 2022-06-21, MIT, descended from deuces via msaindon/deuces), not present-tense 'maintained'. F4 (low, coordination not code): both this branch and the concurrent vendoring branch likely add a root .gitignore -- will conflict at merge, note for stoker at land time. F5 (low): the required run command is discoverable only in a docstring; no README exists. Cross-checked with an independent second evaluator (phevaluator) agreeing on every case; poker content itself is correct, zero hand-rolled hand-strength logic. Not wording-only -- F1 and F2 require real content changes."
+}

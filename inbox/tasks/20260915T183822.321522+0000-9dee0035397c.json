@@ -1,0 +1,10 @@
+{
+  "id": "9dee0035397c",
+  "created": "2026-09-15T18:38:22.321522+00:00",
+  "score": 5,
+  "title": "surface store/refusals data (free/floor over time) through bin/store.py query, not just a bearings count",
+  "source_finding": "1ac36449d929",
+  "project": "heater",
+  "path": "tools/store.py",
+  "done_at": null
+}

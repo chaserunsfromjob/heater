@@ -1,0 +1,17 @@
+{
+  "id": "1e79e31d3675",
+  "created": "2026-09-15T17:53:54.722036+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "vendor/poker_ai/poker_ai/ai/agent.py",
+  "origin": "stoker",
+  "summary": "Installed poker_ai CLI is broken on macOS: agent.py:8 runs mp.Manager() at import time, and bin/poker_ai imports cli outside its __main__ guard, so under spawn the child re-imports and dies with EOFError. Workaround recorded in REFERENCE_NOTES.md is python -c 'from poker_ai.cli.runner import cli; cli()'. A guarded launcher script would fix it properly.",
+  "delivered_at": "2026-09-15T17:57:44.490500+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-15T18:39:02.685398+00:00",
+    "score": 18,
+    "task_id": "8842918f2bea"
+  }
+}

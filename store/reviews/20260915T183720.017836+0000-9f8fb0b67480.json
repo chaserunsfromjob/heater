@@ -1,0 +1,17 @@
+{
+  "id": "9f8fb0b67480",
+  "created": "2026-09-15T18:37:20.017836+00:00",
+  "change": "ca03e4463c49",
+  "project": "heater",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 6,
+  "wording_only": false,
+  "files": 7,
+  "insertions": 268,
+  "deletions": 41,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "reviewer a043182f2b9c89a96: FAIL. Confirmed this is a genuine redesign (disk-based, not a relabel), no force-push (verified via reflog), git history clean. F1 (blocking): MAX_SLOTS=100 kept as a 'backstop' still contradicts opinion 11's plain text (no fixed headcount capped in advance); reviewer's own reasoned recommendation is to delete it entirely -- the disk floor already covers the real risk, the residual scenario is speculative (opinion 3: imagined failures get dismissed, not guarded), and 100 is itself an unbacked number written into the refusals store. F2 (blocking, but NOT caused by this diff -- pre-existing): bin/gate.sh fails on this branch (7 failures in test_queue_and_stop.py) because those tests read live session/repo state (context.state(), handover.in_flight()/problems()) instead of stubbing it, so results differ between a dirty main checkout and a clean worktree. Needs its own separate dispatch against test_queue_and_stop.py, then re-gate this branch. F3: a test asserting the right volume gets measured is vacuous under mutation (probing '/' instead of the worktree root passes all 73 tests). F4: opinion 11's 'it waits, or it asks' -- only 'it waits' was implemented; no escalation route exists for a session stuck below the floor. F5: an unmeasurable disk (OSError) writes a value into the refusals store indistinguishable from a real reading; should record measurement failure explicitly. F6: active(project) with an empty project string counts every project's leases combined while the refusal record attributes it to repo.name -- pre-existing bug, now writes wrong data into the new store. F7: the floor's code comment ('several checkouts' worth') is off by three orders of magnitude on this machine (real checkout ~1-2MB, floor is 5GiB). F8 (non-blocking, filed separately): refusal data has no bin/store.py query path, only a 7-day count via bearings -- the free/floor numbers that matter for 'is this the right floor' still aren't queryable."
+}

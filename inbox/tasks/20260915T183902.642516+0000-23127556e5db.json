@@ -1,0 +1,10 @@
+{
+  "id": "23127556e5db",
+  "created": "2026-09-15T18:39:02.642516+00:00",
+  "score": 35,
+  "title": "poker_ai's vendored betting is fixed-limit (1 BB per raise, capped 3 raises/street), not no-limit -- scope real bet-sizing alongside the 52-card move",
+  "source_finding": "5a94f4bf910c",
+  "project": "pokerbot",
+  "path": "vendor/poker_ai/poker_ai/games/short_deck/state.py",
+  "done_at": null
+}

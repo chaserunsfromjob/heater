@@ -1,0 +1,17 @@
+{
+  "id": "1ac36449d929",
+  "created": "2026-09-15T18:38:09.889851+00:00",
+  "kind": "finding",
+  "urgency": "low",
+  "project": "heater",
+  "path": "tools/store.py",
+  "origin": "stoker",
+  "summary": "The new store/refusals/ records (free_bytes, floor_bytes, project, reason) have no bin/store.py query path -- only a 7-day count surfaces via bin/bearings.py. The numbers that actually answer 'is the disk floor sized right' (free/floor over time) aren't queryable, so the evidence-hole finding behind the disk-based worktree redesign is only partly closed.",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-15T18:38:22.322403+00:00",
+    "score": 5,
+    "task_id": "9dee0035397c"
+  }
+}

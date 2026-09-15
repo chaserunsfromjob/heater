@@ -1,0 +1,17 @@
+{
+  "id": "3811ad2ed20c",
+  "created": "2026-09-15T18:24:45.963290+00:00",
+  "change": "36e2ae4be45b",
+  "project": "pokerbot",
+  "round": 2,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 1,
+  "wording_only": false,
+  "files": 2,
+  "insertions": 189,
+  "deletions": 73,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "reviewer a29c96db5cd63875f: FAIL, but close -- seven of eight round-1 findings genuinely resolved (verified independently: arithmetic recomputed, provenance rows spot-checked, merge conflict with the landed treys bullet reproduced and confirmed trivially resolvable). R1 (blocking): F5 was only half-applied -- the rewritten sentence at line ~304 correctly forbids non-engine code from multiplying fold rates to adjust bluff frequency, but an identical forbidden instruction survives untouched 630 lines later in the exploit-flag table (OVERFOLDS_TO_CBET row, 'gate on the product of all live opponents' fold rates', in bold, inside classify.py's stated no-engine-dependency scope) -- a literal-minded coding worker hits the contradiction and could resolve it the wrong way. R2-R5 wording-only: F4's hedge states the bias direction as fact in one paragraph then retracts it four lines later (substance is honest and correct, just needs the first paragraph conditioned); the provenance table's 'every one labelled at point of use' claim is false for four numbers that do have provenance rows but aren't labelled at their use site; two small residuals of the F1 move (an intro sentence pointing at the wrong authority, one missing provenance row for a citation figure); a pre-existing contents-numbering mismatch, not new. No new issues introduced this round."
+}

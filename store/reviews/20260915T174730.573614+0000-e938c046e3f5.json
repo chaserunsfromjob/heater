@@ -1,0 +1,17 @@
+{
+  "id": "e938c046e3f5",
+  "created": "2026-09-15T17:47:30.573614+00:00",
+  "change": "36e2ae4be45b",
+  "project": "pokerbot",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 5,
+  "wording_only": false,
+  "files": 1,
+  "insertions": 1144,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "reviewer a0c591b33ed51d023: FAIL, but research itself verified sound -- every citation checked against primary sources (Brown thesis, Teofilo & Reis, Ganzfried & Sandholm, Johanson & Bowling, Johanson et al., Southey et al.), every arithmetic table recomputed exactly, no fabrication found. F1 (blocking): the forefront-rule AI/engine boundary the doc draws (what's ok for AI-written code vs engine-only) is settled in scaffolding, not in CLAUDE.md, and would be lost when this design doc is deleted per landing convention. F2 (blocking): three numbers driving the build-tier order (fold_to_three_bet/fold_to_cbet/wtsd opportunity rates) have no source and are missing from the doc's own provenance table, which falsely claims completeness. F3: CONF_S per-stat values referenced but never specified, leaving every exploit flag's firing point undefined. F4: VPIP_SPLIT=0.28 rests on a fold-rate complement the doc elsewhere contradicts (checked big blind option). F5 (important): one sentence states bluff-frequency gating as a hard per-decision non-engine requirement, contradicting the rest of the document's careful engine-only compliance -- a coding worker reading it literally would breach the forefront rule. F6/F7 wording-only (wrong thesis section number; tournament vs cash-game corpus description). F8: Q2 (is opponent identity stable) already resolved directly by the operator in conversation -- consistent, unchangeable names, and the operator wants true per-opponent adaptive modeling -- so this does not need a formal escalation, just folding into the document. Not wording-only overall; F1-F5 require real content changes."
+}
