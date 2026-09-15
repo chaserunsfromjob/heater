@@ -36,6 +36,11 @@ conflicts with this one.
 - Delete design briefs, audits, and specs in the landing commit.
 - Move anything durable out of scaffolding into the contract doc or `OPINIONS.md` before deleting it.
 
+## Sessions
+
+- Never open a successor session from a session that is ending; the operator opens it from the project.
+- Archive a session once its handover note is pushed, never before.
+
 ## Escalation
 
 - Escalate only a design judgment, an ambiguous product call, or a blast radius you cannot reason about.

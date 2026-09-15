@@ -279,5 +279,45 @@ class TestFailsOpen(unittest.TestCase):
         self.assertEqual(parsed["hookSpecificOutput"]["permissionDecision"], "deny")
 
 
+class TestSuccessorSessions(unittest.TestCase):
+    """A session created from inside another arrives with no checkout, so it is
+    filed under no project and the operator cannot find it. This happened."""
+
+    def decide(self, tool_name):
+        return pre_tool_use.handle({"tool_name": tool_name, "tool_input": {}})
+
+    def verdict(self, decision):
+        return decision.get("hookSpecificOutput", {}).get("permissionDecision")
+
+    def test_it_denies_creating_a_session(self):
+        self.assertEqual(self.verdict(self.decide("mcp__anything__create_session")), "deny")
+
+    def test_it_denies_the_bare_tool_name(self):
+        self.assertEqual(self.verdict(self.decide("create_session")), "deny")
+
+    def test_the_denial_says_who_opens_the_next_one(self):
+        reason = self.decide("mcp__x__create_session")["hookSpecificOutput"]["permissionDecisionReason"]
+        self.assertIn("operator opens it", reason)
+
+    def test_it_leaves_other_session_tools_alone(self):
+        """Denying on suspicion is the failure mode the guard exists to avoid."""
+        for tool in ("mcp__x__get_session", "mcp__x__list_sessions",
+                     "mcp__x__archive_session", "mcp__x__set_session_title"):
+            self.assertNotEqual(self.verdict(self.decide(tool)), "deny", tool)
+
+    def test_the_registered_matcher_reaches_it(self):
+        """A denial the matcher never routes to the guard is decoration."""
+        import re
+        import deploy
+        matcher = deploy.hook_groups()["PreToolUse"][0]["matcher"]
+        self.assertTrue(re.fullmatch(matcher, "mcp__x__create_session"),
+                        f"matcher {matcher!r} never sees the tool it denies")
+
+    def test_the_committed_project_settings_carry_that_matcher(self):
+        import json
+        settings = json.loads((ROOT / ".claude" / "settings.json").read_text(encoding="utf-8"))
+        self.assertIn("create_session", settings["hooks"]["PreToolUse"][0]["matcher"])
+
+
 if __name__ == "__main__":
     unittest.main()

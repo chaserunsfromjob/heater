@@ -50,7 +50,9 @@ def hook_groups() -> dict[str, list[dict]]:
     """The hook registrations this repo owns, with absolute paths to its scripts."""
     return {
         "PreToolUse": [{
-            "matcher": "Bash|Read|Edit|Write|NotebookEdit",
+            # create_session is matched too: the guard denies a session opening
+            # its own successor, and that tool is not a Bash command.
+            "matcher": "Bash|Read|Edit|Write|NotebookEdit|.*create_session",
             "hooks": [{"type": "command", "command": str(HOOK_DIR / "pre_tool_use.py"), "timeout": 10}],
         }],
         "PostToolUse": [{

@@ -148,6 +148,9 @@ def main(argv: list[str]) -> int:
         print(f"handover: NOT safe to clear, {len(problems)} problem(s) above", file=sys.stderr)
         return 1
     print("handover: safe to clear")
+    # Said here because this is the moment it is acted on, and getting it wrong
+    # is invisible: the successor opens, works, and is filed under no project.
+    print("next session: the operator opens it from the project, not this session")
     return 0
 
 

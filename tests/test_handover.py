@@ -138,5 +138,11 @@ class TestRunsEndToEnd(unittest.TestCase):
         self.assertIn(result.returncode, (0, 1))
 
 
+class TestItSaysWhoOpensTheNext(unittest.TestCase):
+    def test_the_pass_message_names_the_operator(self):
+        source = (ROOT / "tools" / "handover.py").read_text(encoding="utf-8")
+        self.assertIn("the operator opens it from the project", source)
+
+
 if __name__ == "__main__":
     unittest.main()

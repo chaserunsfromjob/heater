@@ -102,6 +102,19 @@ STOKER_WARNING = (
 )
 
 
+# A session created from inside another one arrives with no checkout: the
+# repository is named on its record but nothing is on its disk, so it is filed
+# under no project and the operator cannot find it where they look. This one
+# actually happened, which is what earns it a denial rather than a warning.
+SESSION_CREATE_TOOL = re.compile(r"(?:\A|__)create_session\Z", re.I)
+
+SESSION_CREATE_RULE = (
+    "Never open a successor session from a session that is ending; the operator opens it "
+    "from the project. A session created from inside another arrives with no checkout, so it "
+    "is filed under no project and cannot be found."
+)
+
+
 def cited(rule: str) -> str:
     return f"{rule} [{RULES}]"
 
@@ -154,6 +167,10 @@ def handle(payload: dict[str, Any]) -> dict[str, Any]:
         return allow()
 
     command = str(tool_input.get("command") or "")
+
+    if SESSION_CREATE_TOOL.search(tool_name):
+        log("guard", {"tool": tool_name, "decision": "deny", "reason": SESSION_CREATE_RULE})
+        return deny(cited(SESSION_CREATE_RULE))
 
     if tool_name == "Bash":
         decision = check_command(command)
