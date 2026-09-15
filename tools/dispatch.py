@@ -123,14 +123,28 @@ class NotReadyToLand(RuntimeError):
     """A landing condition is unmet. Never a reason to merge anyway."""
 
 
-def round_order(record: dict[str, Any]) -> tuple[int, str]:
-    """Sort key for review rounds: the round number, then when it was recorded.
+def round_order(record: dict[str, Any]) -> tuple[int, int, str, int]:
+    """Sort key for review rounds: usable last, then number, stamp, then verdict.
 
     Rounds are not always written in the order they ran, and two lenses can
     share a round number, so the later of the two is the one that stands.
+
+    Every tie is broken towards refusing to land. A round whose number is
+    missing, text, or a decimal cannot be placed among the others, so it sorts
+    newest and answers for the change; reading it as round 0 would let a
+    malformed rejection lose to an older pass. When two records tie on number
+    and stamp as well, the fail outranks the pass, so which file happened to
+    load first never decides whether work merges.
     """
     number = record.get("round")
-    return (number if isinstance(number, int) else 0, record.get("created", ""))
+    return (0 if usable_round(record) else 1, number if usable_round(record) else 0,
+            record.get("created", ""), 0 if record.get("verdict") == "pass" else 1)
+
+
+def usable_round(record: dict[str, Any]) -> bool:
+    """True when this round's number can be placed against the other rounds'."""
+    number = record.get("round")
+    return isinstance(number, int) and not isinstance(number, bool)
 
 
 def latest_round(change: str) -> dict[str, Any] | None:
@@ -146,9 +160,12 @@ def reviewed(change: str) -> bool:
     read: an earlier pass describes a change that no longer exists. Counting any
     pass lands work that later rounds rejected, and lands it while the next round
     is still running.
+
+    A round whose number cannot be read is never a pass, whatever its verdict:
+    nothing can be said about where it sits among the others.
     """
     last = latest_round(change)
-    return bool(last and last.get("verdict") == "pass")
+    return bool(last and usable_round(last) and last.get("verdict") == "pass")
 
 
 def resting_on(change: str) -> dict[str, Any]:
@@ -157,8 +174,11 @@ def resting_on(change: str) -> dict[str, Any]:
     if last is None:
         return {"round": None, "review": "", "verdict": None,
                 "said": "no recorded review round"}
+    said = f"review round {last.get('round')} {last['id']} ({last.get('verdict')})"
+    if not usable_round(last):
+        said += ", an unreadable round number"
     return {"round": last.get("round"), "review": last["id"], "verdict": last.get("verdict"),
-            "said": f"review round {last.get('round')} {last['id']} ({last.get('verdict')})"}
+            "said": said}
 
 
 def land(dispatch_id: str, *, gate: str = "", change: str = "",
@@ -326,7 +346,16 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
             continue
 
         if require_review and not reviewed(record["id"]):
-            report["awaiting_review"].append(record["id"])
+            # Nobody has looked yet and a reviewer rejected it are different
+            # jobs: the first wants a review round, the second wants a fixer.
+            # needs_fix is where a branch that needs a fixer is reported, so a
+            # rejection belongs there beside a conflict and a failing gate.
+            if rested["verdict"] is None:
+                report["awaiting_review"].append(record["id"])
+            else:
+                report["needs_fix"].append(
+                    {"dispatch": record["id"], "branch": branch,
+                     "why": f"rejected at {rested['said']}", **rested})
             continue
 
         if gate:
@@ -400,16 +429,24 @@ def age_minutes(record: dict[str, Any]) -> float | None:
 
 def render_reconcile(result: dict[str, Any]) -> str:
     lines = [f"reconcile as of {result['at']}",
-             f"  landed           {len(result['landed'])}",
-             f"  awaiting review  {len(result['awaiting_review'])}",
+             f"  landed           {len(result['landed'])}  "
+             "(merged into the trunk, then cleaned up after)",
+             f"  awaiting review  {len(result['awaiting_review'])}  (nobody has reviewed these yet)",
              f"  needs a fixer    {len(result['needs_fix'])}",
              f"  held             {len(result['held'])}"]
     # Which round each landing rested on, so a stale pass is visible in the
-    # report rather than only in the store.
+    # report rather than only in the store. A landing that rested on a failed
+    # round or on no round at all is written so a reader stops at it.
     for entry in result.get("landed_on", []):
-        lines.append(f"    {entry['dispatch']} landed on {entry['said']}")
+        if entry.get("verdict") == "pass":
+            lines.append(f"    {entry['dispatch']} landed on {entry['said']}")
+        else:
+            lines.append(f"    {entry['dispatch']} landed WITHOUT a passing review: {entry['said']}")
     for entry in result["needs_fix"]:
-        lines.append(f"    {entry['branch']}: {entry['why']}")
+        if entry.get("review"):
+            lines.append(f"    {entry['dispatch']} rejected at {entry['said']}; needs a fixer")
+        else:
+            lines.append(f"    {entry['branch']}: {entry['why']}")
     for entry in result["held"]:
         lines.append(f"    {entry['dispatch']}: {entry['why']}")
     if result["runs_finished"]:

@@ -54,6 +54,24 @@ class TestRecording(StoreCase):
         with self.assertRaises(ValueError):
             store.record_review("auth", 0, "default", "pass")
 
+    def test_rejects_a_round_written_as_text(self):
+        """A round that is not a whole number cannot be ordered against the others."""
+        with self.assertRaises(ValueError):
+            store.record_review("auth", "3", "default", "pass")
+
+    def test_rejects_a_round_written_as_a_decimal(self):
+        with self.assertRaises(ValueError):
+            store.record_review("auth", 3.0, "default", "pass")
+
+    def test_rejects_a_round_written_as_true_or_false(self):
+        with self.assertRaises(ValueError):
+            store.record_review("auth", True, "default", "pass")
+
+    def test_the_refusal_says_what_a_round_must_be(self):
+        with self.assertRaises(ValueError) as caught:
+            store.record_review("auth", "3", "default", "pass")
+        self.assertIn("whole number", str(caught.exception))
+
     def test_rejects_unnamed_change(self):
         with self.assertRaises(ValueError):
             store.record_review("   ", 1, "default", "pass")

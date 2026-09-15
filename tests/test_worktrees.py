@@ -445,6 +445,56 @@ class TestTheRoundThatCounts(WorktreeCase):
     def test_a_change_nobody_reviewed_is_not_reviewed(self):
         self.assertFalse(dispatch.reviewed("never-seen"))
 
+    def raw_round(self, change: str, number, verdict: str, created: str = "") -> dict:
+        """A round written straight into the store, past the checks recording makes.
+
+        Records written by an older tool, or by hand, are the only way a round
+        number that is not a whole number reaches the store now.
+        """
+        record = {"id": jsonstore.new_id(), "created": created or jsonstore.now(),
+                  "change": change, "round": number, "lens": "default",
+                  "verdict": verdict, "findings": 0}
+        jsonstore.write(store.reviews_dir(), record)
+        return record
+
+    def test_a_round_with_no_number_is_read_as_the_newest(self):
+        """An unreadable round must fail closed, not hand an old pass the answer."""
+        store.record_review("auth", 1, "default", "pass")
+        self.raw_round("auth", None, "fail")
+        self.assertFalse(dispatch.reviewed("auth"))
+
+    def test_a_round_number_written_as_text_is_read_as_the_newest(self):
+        store.record_review("auth", 5, "default", "pass")
+        self.raw_round("auth", "3", "fail")
+        self.assertFalse(dispatch.reviewed("auth"))
+
+    def test_a_round_number_written_as_a_decimal_is_read_as_the_newest(self):
+        store.record_review("auth", 1, "default", "pass")
+        self.raw_round("auth", 3.0, "fail")
+        self.assertFalse(dispatch.reviewed("auth"))
+
+    def test_a_round_nobody_can_place_never_counts_as_a_pass(self):
+        """It sorts newest, so it answers; answering must not mean landing."""
+        self.raw_round("auth", "3", "pass")
+        self.assertFalse(dispatch.reviewed("auth"))
+
+    def test_the_refusal_says_the_round_number_could_not_be_read(self):
+        self.raw_round("auth", "3", "pass")
+        self.assertIn("unreadable round number", dispatch.resting_on("auth")["said"])
+
+    def test_a_fail_outranks_a_pass_when_everything_else_ties(self):
+        """Same round, same stamp: the answer cannot depend on which file loads first."""
+        stamp = jsonstore.now()
+        self.raw_round("auth", 2, "pass", created=stamp)
+        self.raw_round("auth", 2, "fail", created=stamp)
+        self.assertFalse(dispatch.reviewed("auth"))
+
+    def test_the_tie_is_broken_the_same_way_whichever_was_written_first(self):
+        stamp = jsonstore.now()
+        self.raw_round("auth", 2, "fail", created=stamp)
+        self.raw_round("auth", 2, "pass", created=stamp)
+        self.assertFalse(dispatch.reviewed("auth"))
+
     def test_the_round_a_landing_would_rest_on_is_named(self):
         first = store.record_review("auth", 1, "default", "fail", findings=1)
         latest = store.record_review("auth", 2, "default", "pass")
@@ -523,9 +573,69 @@ class TestReconcile(WorktreeCase):
         store.record_review(first["id"], 1, "default", "pass")
         store.record_review(first["id"], 2, "default", "fail", findings=2)
         report = dispatch.reconcile()
-        self.assertIn(first["id"], report["awaiting_review"])
+        self.assertIn(first["id"], [e["dispatch"] for e in report["needs_fix"]])
         self.assertFalse((self.repo / "a.py").is_file(), "a rejected change must not reach the trunk")
         self.assertTrue(Path(first["workdir"]).exists())
+
+    def test_a_rejected_change_is_told_apart_from_one_nobody_reviewed(self):
+        """The stoker dispatches a fixer for one and a reviewer for the other."""
+        rejected, waiting = self.start()
+        self.work(rejected, "a.py", "from a\n")
+        self.work(waiting, "b.py", "from b\n")
+        store.record_review(rejected["id"], 1, "default", "pass")
+        latest = store.record_review(rejected["id"], 2, "default", "fail", findings=2)
+        report = dispatch.reconcile()
+
+        self.assertEqual(report["awaiting_review"], [waiting["id"]])
+        named = next(e for e in report["needs_fix"] if e["dispatch"] == rejected["id"])
+        self.assertEqual(named["round"], 2)
+        self.assertEqual(named["review"], latest["id"])
+        self.assertEqual(named["verdict"], "fail")
+
+    def test_the_rendered_sweep_names_the_round_that_rejected_a_change(self):
+        rejected, waiting = self.start()
+        self.work(rejected, "a.py", "from a\n")
+        self.work(waiting, "b.py", "from b\n")
+        latest = store.record_review(rejected["id"], 2, "default", "fail", findings=2)
+        text = dispatch.render_reconcile(dispatch.reconcile())
+        self.assertIn(f"{rejected['id']} rejected at review round 2", text)
+        self.assertIn(latest["id"], text)
+        self.assertIn("needs a fixer", text)
+        self.assertNotIn(waiting["id"], text, "nobody has reviewed it; there is no round to name")
+
+    def test_a_rejected_change_keeps_its_work_and_its_checkout(self):
+        rejected, _ = self.start()
+        self.work(rejected, "a.py", "from a\n")
+        store.record_review(rejected["id"], 1, "default", "fail", findings=2)
+        dispatch.reconcile()
+        self.assertFalse((self.repo / "a.py").is_file())
+        self.assertTrue(Path(rejected["workdir"]).exists())
+
+    def test_a_landing_with_no_passing_review_stands_out(self):
+        """Nothing was done, so it lands on no round at all; the report must say so."""
+        records = self.start()
+        text = dispatch.render_reconcile(dispatch.reconcile())
+        self.assertIn("landed WITHOUT a passing review", text)
+        self.assertNotIn(f"{records[0]['id']} landed on", text)
+
+    def test_a_landing_on_a_failed_round_stands_out(self):
+        first, _ = self.start()
+        self.work(first, "a.py", "from a\n")
+        store.record_review(first["id"], 1, "default", "fail", findings=2)
+        worktrees.release(first["lease_id"], "test", force=True)
+        text = dispatch.render_reconcile(dispatch.reconcile())
+        self.assertIn(f"{first['id']} landed WITHOUT a passing review", text)
+
+    def test_a_landing_on_a_pass_reads_plainly(self):
+        first, _ = self.start()
+        self.work(first, "a.py", "from a\n")
+        self.approve(first)
+        text = dispatch.render_reconcile(dispatch.reconcile())
+        self.assertIn(f"{first['id']} landed on review round 1", text)
+        self.assertNotIn(f"{first['id']} landed WITHOUT", text)
+
+    def test_the_report_says_what_landing_means(self):
+        self.assertIn("merged into the trunk", dispatch.render_reconcile(dispatch.reconcile()))
 
     def test_a_later_pass_clears_an_earlier_fail(self):
         first, _ = self.start()

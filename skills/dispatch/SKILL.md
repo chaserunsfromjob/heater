@@ -79,7 +79,8 @@ What it does with each case, without asking:
 | The trunk moved while the worker was out | The trunk is merged into the worker's branch, then the landing is retried. |
 | A real conflict | The branch, its checkout and its slot are all kept, and it is reported as needing a fixer. Dispatch one. |
 | Nothing was done | The slot and branch are cleared away. |
-| Not yet reviewed | Left alone and reported. Record the round; nothing lands unreviewed. |
+| Not yet reviewed | Left alone and counted as awaiting review. Record a round; nothing lands unreviewed. |
+| The last review round failed | Left alone and reported as needing a fixer, naming the round and its review id. Only the last recorded round counts, so an earlier pass does not rescue it. |
 | The trunk is dirty | Everything is held. The operator has uncommitted work there and mixing it in is not a call to make for them. |
 
 Nothing is deleted until its commits are provably reachable from the trunk. That
@@ -92,7 +93,9 @@ clean up a branch that has not landed.
 2. Run the adversarial-review loop against the change. Never judge it yourself,
    and never accept the worker's own assessment that it is ready.
 3. Record each round with `bin/store.py review --change <dispatch-id>`. Landing
-   reads the store for a pass, so an unrecorded round did not happen.
+   reads the store for the last round recorded against the change, so an
+   unrecorded round did not happen and a round recorded after a pass replaces
+   it as the answer.
 4. Land it:
 
 ```sh
@@ -105,10 +108,13 @@ checkout, frees the slot, and closes the dispatch as `landed`. A merge that
 leaves the checkout behind and a checkout deleted before its merge are both ways
 to lose work, so neither half happens alone.
 
-It refuses, changing nothing, when there is no recorded review pass, when the
-worker left uncommitted changes, when the gate does not exit 0, when the main
-checkout is dirty or on the wrong branch, or when the merge conflicts. A
-conflicting merge is aborted rather than left half-applied for someone to find.
+It refuses, changing nothing, when the last recorded review round is not a pass,
+when the worker left uncommitted changes, when the gate does not exit 0, when the
+main checkout is dirty or on the wrong branch, or when the merge conflicts. A
+change that passed round 1 and failed round 2 is refused: the last round is the
+one that counts, and an earlier pass describes a change that no longer exists.
+The refusal names the round it read. A conflicting merge is aborted rather than
+left half-applied for someone to find.
 
 `--skip-review` exists for a human who has read the change themselves. It is not
 for getting past a review the loop has not finished.

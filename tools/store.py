@@ -45,6 +45,11 @@ def record_review(change: str, round_number: int, lens: str, verdict: str, *,
         raise ValueError(f"lens must be one of {LENSES}, got {lens!r}")
     if verdict not in VERDICTS:
         raise ValueError(f"verdict must be one of {VERDICTS}, got {verdict!r}")
+    # Rounds are ordered against each other to find the last one, and text, a
+    # decimal, or True cannot be ordered, so such a record is refused at the door
+    # rather than left for the reader to guess at.
+    if isinstance(round_number, bool) or not isinstance(round_number, int):
+        raise ValueError(f"a round must be a whole number, got {round_number!r}")
     if round_number < 1:
         raise ValueError("round numbering starts at 1")
     if not change.strip():
