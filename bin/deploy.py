@@ -14,6 +14,7 @@ Anything already at a target path that is not our symlink is moved aside to
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -24,6 +25,75 @@ CLAUDE_HOME = Path.home() / ".claude"
 LINKS: dict[Path, Path] = {
     CLAUDE_HOME / "CLAUDE.md": REPO / "rules" / "global.md",
 }
+
+SETTINGS = CLAUDE_HOME / "settings.json"
+HOOK_DIR = REPO / "hooks"
+
+
+def hook_groups() -> dict[str, list[dict]]:
+    """The hook registrations this repo owns, with absolute paths to its scripts."""
+    return {
+        "PreToolUse": [{
+            "matcher": "Bash|Read|Edit|Write|NotebookEdit",
+            "hooks": [{"type": "command", "command": str(HOOK_DIR / "pre_tool_use.py"), "timeout": 10}],
+        }],
+        "Stop": [{
+            "hooks": [{"type": "command", "command": str(HOOK_DIR / "stop.py"), "timeout": 10}],
+        }],
+    }
+
+
+def is_ours(group: dict) -> bool:
+    """True when every handler in the group points at a script in this repo."""
+    handlers = group.get("hooks") or []
+    return bool(handlers) and all(
+        str(h.get("command", "")).startswith(str(HOOK_DIR)) for h in handlers
+    )
+
+
+def merge_hooks(existing: dict) -> dict:
+    """Replace only the groups this repo owns; leave every other hook untouched.
+
+    Symlinking settings.json would wipe whatever else the operator has configured,
+    so this merges instead.
+    """
+    merged = {event: list(groups) for event, groups in existing.items()}
+    for event, ours in hook_groups().items():
+        theirs = [g for g in merged.get(event, []) if not is_ours(g)]
+        merged[event] = theirs + ours
+    return merged
+
+
+def read_settings() -> dict:
+    if not SETTINGS.exists():
+        return {}
+    try:
+        parsed = json.loads(SETTINGS.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def settings_drift() -> str | None:
+    current = read_settings()
+    if not SETTINGS.exists():
+        return "not deployed"
+    if current.get("hooks") != merge_hooks(current.get("hooks") or {}):
+        return "hook registration out of date"
+    return None
+
+
+def deploy_settings() -> str:
+    current = read_settings()
+    updated = {**current, "hooks": merge_hooks(current.get("hooks") or {})}
+    if updated == current and SETTINGS.exists():
+        return "already correct"
+    SETTINGS.parent.mkdir(parents=True, exist_ok=True)
+    if SETTINGS.exists():
+        backup = SETTINGS.with_name(SETTINGS.name + ".pre-heater")
+        backup.write_text(SETTINGS.read_text(encoding="utf-8"), encoding="utf-8")
+    SETTINGS.write_text(json.dumps(updated, indent=2) + "\n", encoding="utf-8")
+    return "hooks registered"
 
 
 def describe(target: Path, source: Path) -> str | None:
@@ -72,11 +142,19 @@ def main(argv: list[str]) -> int:
             continue
         print(f"{target}: {deploy(target, source)}")
 
+    drift = settings_drift()
+    if args.check:
+        if drift:
+            drifted += 1
+            print(f"DRIFT {SETTINGS}: {drift}")
+    else:
+        print(f"{SETTINGS}: {deploy_settings()}")
+
     if args.check:
         if drifted:
             print(f"\ndeploy: {drifted} target(s) drifted; run bin/deploy.py", file=sys.stderr)
             return 1
-        print(f"deploy: {len(LINKS)} target(s) in sync")
+        print(f"deploy: {len(LINKS) + 1} target(s) in sync")
     return 0
 
 

@@ -7,6 +7,7 @@ one of the four things the opinions file allows hardening before it happens.
 
 from __future__ import annotations
 
+import json
 import sys
 import tempfile
 import unittest
@@ -91,6 +92,53 @@ class TestDescribe(unittest.TestCase):
     def test_silent_when_correct(self):
         deploy.deploy(self.target, self.source)
         self.assertIsNone(deploy.describe(self.target, self.source))
+
+
+class TestHookRegistration(unittest.TestCase):
+    """Settings must be merged, never replaced: the operator has other settings."""
+
+    def test_adds_both_hook_events(self):
+        merged = deploy.merge_hooks({})
+        self.assertIn("PreToolUse", merged)
+        self.assertIn("Stop", merged)
+
+    def test_hook_commands_point_into_this_repo(self):
+        for groups in deploy.merge_hooks({}).values():
+            for group in groups:
+                for handler in group["hooks"]:
+                    self.assertTrue(Path(handler["command"]).is_relative_to(deploy.REPO))
+
+    def test_registered_hook_scripts_exist_and_are_executable(self):
+        import os
+        for groups in deploy.hook_groups().values():
+            for group in groups:
+                for handler in group["hooks"]:
+                    script = Path(handler["command"])
+                    self.assertTrue(script.exists(), f"{script} is registered but missing")
+                    self.assertTrue(os.access(script, os.X_OK), f"{script} is not executable")
+
+    def test_preserves_a_foreign_hook(self):
+        foreign = {"matcher": "Bash", "hooks": [{"type": "command", "command": "/elsewhere/hook.sh"}]}
+        merged = deploy.merge_hooks({"PreToolUse": [foreign]})
+        self.assertIn(foreign, merged["PreToolUse"])
+
+    def test_preserves_a_foreign_event(self):
+        foreign = {"hooks": [{"type": "command", "command": "/elsewhere/start.sh"}]}
+        merged = deploy.merge_hooks({"SessionStart": [foreign]})
+        self.assertEqual(merged["SessionStart"], [foreign])
+
+    def test_is_idempotent(self):
+        once = deploy.merge_hooks({})
+        self.assertEqual(deploy.merge_hooks(once), once)
+
+    def test_replaces_a_stale_registration_rather_than_duplicating_it(self):
+        stale = {"matcher": "Bash", "hooks": [{"type": "command", "command": str(deploy.HOOK_DIR / "pre_tool_use.py"), "timeout": 999}]}
+        merged = deploy.merge_hooks({"PreToolUse": [stale]})
+        self.assertEqual(len(merged["PreToolUse"]), 1)
+        self.assertEqual(merged["PreToolUse"][0]["hooks"][0]["timeout"], 10)
+
+    def test_output_is_serialisable(self):
+        json.dumps(deploy.merge_hooks({}))
 
 
 if __name__ == "__main__":

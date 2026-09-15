@@ -17,6 +17,9 @@ from that.
 | `OPINIONS.md` | The operator's positions on direction. Dated. Only the operator edits it. Every other file answers to it. |
 | `rules/global.md` | Rules deployed to every project on every machine. |
 | `rules/project.template.md` | Starting point for a per-project rules file, which wins where it conflicts with the global one. |
+| `hooks/pre_tool_use.py` | The guard. Denies the destructive spellings it is certain about, warns on the rest, never blocks ordinary work. |
+| `hooks/stop.py` | The one channel to the stoker. Wakes it with the queue at a turn boundary. |
+| `queue/` | Notes waiting for the stoker, one JSON file each. |
 
 A rule is one imperative bullet under fifty words, stated in exactly one place.
 `tools/style_lint.py` enforces that, and the gate runs it.
@@ -25,14 +28,22 @@ A rule is one imperative bullet under fifty words, stated in exactly one place.
 
 ```sh
 bin/gate.sh              # the landing gate: style + suite. Exit 0 or it does not land.
-bin/deploy.py            # symlink this machine's ~/.claude files into this repo
+bin/deploy.py            # link ~/.claude files and register the hooks on this machine
 bin/deploy.py --check    # report drift without changing anything
+bin/queue.py add --kind escalation --summary "..."   # file a note for the stoker
+bin/queue.py list        # what the stoker will be woken with
 tools/style_lint.py      # check rule files on their own
 python3 -m unittest discover -s tests
 ```
 
 Deploy uses symlinks so a machine cannot drift between pulls. Anything already
 sitting at a target path is moved to `<name>.pre-heater`, never deleted.
+`settings.json` is merged rather than linked, so hook registration never wipes
+whatever else the operator has configured there.
+
+Every hook fails open. A hook that raises, gets malformed input, or cannot reach
+the queue exits 0 and changes nothing, because a guard that blocks every tool
+call is a fleet halt.
 
 ## Build order
 
@@ -41,12 +52,14 @@ complete.
 
 - [x] **1. Opinions and global rules**, written in the strict style, with the
       style linter and the gate that runs it.
-- [ ] **2. The PreToolUse guard and the Stop hook**, both failing open.
+- [x] **2. The PreToolUse guard and the Stop hook**, both failing open, with the
+      fleet queue they read and write.
 - [ ] **3. One adversarial-review skill**, with a judge-only reviewer agent and a
       fixer agent.
 - [ ] **4. A review-rounds store** the skill writes to, and one query over it.
 - [ ] **5. The findings inbox**, with dismiss and promote.
-- [ ] **6. The stoker**: its role file, its SessionStart loader, its dispatch command.
+- [ ] **6. The stoker**: its role file, its SessionStart loader, its dispatch
+      command. This is where the guard's stoker warning becomes a denial.
 - [ ] **7. The worktree pool**, once one worker at a time is no longer enough.
 
 ## Credit
