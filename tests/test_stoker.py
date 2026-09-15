@@ -33,7 +33,8 @@ import stoker  # noqa: E402
 
 class StoreCase(unittest.TestCase):
     ENV = ("HEATER_DISPATCHES_DIR", "HEATER_QUEUE_DIR", "HEATER_TASKS_DIR",
-           "HEATER_REVIEWS_DIR", "HEATER_SUITES_DIR", "HEATER_LOG_DIR", "HEATER_ROLE")
+           "HEATER_REVIEWS_DIR", "HEATER_SUITES_DIR", "HEATER_LOG_DIR",
+           "HEATER_STATE_DIR", "HEATER_ROLE")
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
