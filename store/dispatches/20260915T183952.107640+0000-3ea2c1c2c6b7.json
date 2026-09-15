@@ -1,0 +1,18 @@
+{
+  "id": "3ea2c1c2c6b7",
+  "created": "2026-09-15T18:39:52.107640+00:00",
+  "task": "tests/test_queue_and_stop.py's TestStopHook and TestStopFailsOpen read live session/repo state instead of stubbing it: context.state(None) reads the actual current context-usage reading, and handover.in_flight()/handover.problems() read the actual current git working-tree cleanliness and HANDOVER.md staleness. Confirmed: the module passes 20/20 in a clean worktree and fails 7/20 in the main checkout right now, with byte-identical code, purely because the main checkout currently has uncommitted files and/or a different context-usage reading. This makes bin/gate.sh an unreliable landing signal -- a branch can look falsely green or falsely red depending on unrelated live state at the moment the suite happens to run. Fix by making these tests stub/monkeypatch context.state, handover.in_flight, and handover.problems (or whatever hooks/stop.py actually calls) to fixed, deterministic values for each test case, the way other tests in this suite already isolate themselves from real environment state (look at how other test modules in tests/ set up isolation, e.g. via HEATER_*_DIR env overrides or monkeypatching, and follow the existing pattern rather than inventing a new one).",
+  "project": "heater",
+  "done_when": "bin/gate.sh passes with the same result regardless of whether it's run from a clean worktree or from a dirty checkout with a different context-usage reading; tests/test_queue_and_stop.py no longer reads live session/repo state for its assertions",
+  "task_id": "26604eac53cb",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/heater",
+  "workdir": "/Users/chasethompson/.heater/worktrees/heater/bc1457eb090f",
+  "lease_id": "bc1457eb090f",
+  "branch": "worker/3ea2c1c2c6b7",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

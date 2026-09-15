@@ -1,0 +1,17 @@
+{
+  "id": "8dcef1875d9b",
+  "created": "2026-09-15T18:55:07.563127+00:00",
+  "change": "3ea2c1c2c6b7",
+  "project": "heater",
+  "round": 1,
+  "lens": "default",
+  "verdict": "pass",
+  "findings": 0,
+  "wording_only": false,
+  "files": 2,
+  "insertions": 66,
+  "deletions": 6,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "reviewer ab41af72bc1cdd104: PASS, zero findings. Independently reproduced the original defect (old code + forced 90% reading: 7 failures; old code + live 42% reading: passes only by accident). Confirmed new code is deterministic across 4 environments including a dirtied fresh clone, while main dirtied the same way still fails. Mutation-checked both isolation mechanisms (HEATER_STATE_DIR removal, TestStopFailsOpen's explicit child env) -- both load-bearing. No always-fail issues. One informational note, no action needed: the handover.in_flight/problems mocks are currently redundant (QUIET check short-circuits first) but are correct defense-in-depth; flagged so future reordering of handover_decision() doesn't silently reintroduce live-state coupling in the in-process test path unnoticed."
+}

@@ -7,7 +7,7 @@
   "path": "tools/store.py",
   "origin": "stoker",
   "summary": "The new store/refusals/ records (free_bytes, floor_bytes, project, reason) have no bin/store.py query path -- only a 7-day count surfaces via bin/bearings.py. The numbers that actually answer 'is the disk floor sized right' (free/floor over time) aren't queryable, so the evidence-hole finding behind the disk-based worktree redesign is only partly closed.",
-  "delivered_at": null,
+  "delivered_at": "2026-09-15T18:41:12.880009+00:00",
   "resolution": {
     "action": "promoted",
     "at": "2026-09-15T18:38:22.322403+00:00",
