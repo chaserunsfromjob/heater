@@ -412,6 +412,13 @@ class TestStokerLauncher(unittest.TestCase):
     def test_it_sets_the_role_the_session_start_hook_reads(self):
         self.assertEqual(stoker.child_env()["HEATER_ROLE"], "stoker")
 
+    def test_it_gives_the_session_an_identity_the_hook_can_read(self):
+        """The hook reads it from its own environment and writes it into the
+        marker, which is how the supervisor knows the marker is its child's."""
+        with mock.patch.dict(os.environ, {stoker.CHILD_ENV: "abc123"}):
+            self.assertEqual(stoker.child_env("abc123")[stoker.CHILD_ENV], "abc123")
+            self.assertEqual(stoker.child_token(), "abc123")
+
     def test_the_role_it_sets_has_a_rules_file(self):
         self.assertTrue((ROOT / "roles" / "stoker.md").is_file())
 
@@ -451,12 +458,14 @@ from pathlib import Path
 
 log = Path(os.environ["STUB_LOG"])
 state = Path(os.environ["HEATER_STATE_DIR"])
+token = os.environ.get("HEATER_STOKER_CHILD")
 seen = len(log.read_text().splitlines()) if log.exists() else 0
 with log.open("a") as handle:
     handle.write(json.dumps({
         "launch": seen + 1,
         "argv": sys.argv[1:],
         "role": os.environ.get("HEATER_ROLE"),
+        "token": token,
         "cwd": os.getcwd(),
         "marker_present": (state / "handover-complete").exists(),
     }) + "\\n")
@@ -464,6 +473,10 @@ with log.open("a") as handle:
 mode = os.environ.get("STUB_MODE", "sleep")
 if mode == "exit" or (mode == "handoff" and seen >= 1):
     sys.exit(int(os.environ.get("STUB_EXIT", "0")))
+if mode == "mark":
+    # What the Stop hook does once the handover is written, current and pushed.
+    (state / "handover-complete").write_text(
+        json.dumps({"at": "now", "token": token, "session": f"s{seen + 1}"}) + "\\n")
 time.sleep(60)
 '''
 
@@ -497,7 +510,8 @@ class TestStokerSupervisor(unittest.TestCase):
                 "STUB_LOG": str(self.log),
                 "HEATER_STOKER_POLL": "0.05",
                 "HEATER_STOKER_PAUSE": "0.05",
-                "HEATER_STOKER_GRACE": "5",
+                "HEATER_STOKER_GRACE": "0.05",
+                "HEATER_STOKER_KILL_AFTER": "5",
                 **extra}
 
     def launches(self) -> list[dict]:
@@ -519,6 +533,26 @@ class TestStokerSupervisor(unittest.TestCase):
             out, err = done.communicate()
             self.fail(f"the supervisor never exited\nstdout: {out}\nstderr: {err}")
         return done.returncode, out, err
+
+    def hook_events(self) -> list[dict]:
+        path = Path(self.tmp.name) / "logs" / "hooks.jsonl"
+        if not path.exists():
+            return []
+        return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+
+    def hand_over(self, token: str | None) -> None:
+        """Write the marker exactly as the Stop hook in that session would."""
+        self.marker().write_text(
+            json.dumps({"at": "2026-01-01T00:00:00+00:00", "token": token, "session": "s"}) + "\n",
+            encoding="utf-8")
+
+    def wait_until(self, condition, timeout: float = 30.0) -> bool:
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if condition():
+                return True
+            time.sleep(0.02)
+        return False
 
     def wait_for_launches(self, count: int, process: subprocess.Popen, timeout: float = 30.0):
         deadline = time.monotonic() + timeout
@@ -544,8 +578,8 @@ class TestStokerSupervisor(unittest.TestCase):
     def test_the_marker_ends_the_session_and_a_fresh_one_follows(self):
         """This is the handoff. Nobody types anything for it to happen."""
         running = self.supervisor(STUB_MODE="handoff", HEATER_STOKER_MIN_LIFETIME="0")
-        self.wait_for_launches(1, running)
-        self.marker().write_text("2026-01-01T00:00:00+00:00\n", encoding="utf-8")
+        first = self.wait_for_launches(1, running)
+        self.hand_over(first[0]["token"])
         records = self.wait_for_launches(2, running)
         running.communicate(timeout=30)
         self.assertEqual(len(records), 2)
@@ -589,6 +623,62 @@ class TestStokerSupervisor(unittest.TestCase):
             self.fail("the supervisor ignored SIGTERM")
         self.assertEqual(len(self.launches()), 1, "it must not reopen after being stopped")
 
+    def test_every_launch_gets_an_identity_of_its_own(self):
+        """The marker is one shared path, so the token in it is the only thing
+        that says which session asked to be ended."""
+        running = self.supervisor(STUB_MODE="handoff", HEATER_STOKER_MIN_LIFETIME="0")
+        first = self.wait_for_launches(1, running)
+        self.hand_over(first[0]["token"])
+        records = self.wait_for_launches(2, running)
+        running.communicate(timeout=30)
+        tokens = [r["token"] for r in records]
+        self.assertTrue(all(tokens), "a launch with no identity cannot be told apart")
+        self.assertEqual(len(set(tokens)), 2, "a reused identity makes a stale marker fatal")
+
+    def test_a_marker_from_a_session_it_did_not_start_is_left_alone(self):
+        """Opening a plain `claude` in this folder makes another stoker. Its
+        handover must not end the supervised session in its place."""
+        running = self.supervisor(STUB_MODE="sleep", HEATER_STOKER_MIN_LIFETIME="30")
+        self.wait_for_launches(1, running)
+        self.hand_over("some-other-session")
+        noticed = self.wait_until(
+            lambda: any(e["event"] == "stoker_foreign_marker" for e in self.hook_events()), 15)
+        self.assertTrue(noticed, "it must say that it saw a marker and whose it was")
+        self.assertIsNone(running.poll(), "the supervised session was ended by somebody else's marker")
+        self.assertEqual(len(self.launches()), 1)
+        self.assertTrue(self.marker().exists(), "another session's marker is not ours to delete")
+        os.kill(running.pid, signal.SIGTERM)
+        running.communicate(timeout=30)
+
+    def test_stopping_during_the_pause_between_sessions_opens_no_new_one(self):
+        """A `kill` that lands in the gap after a handoff has to stop the
+        supervisor too, not be slept through and a fresh session opened over it."""
+        running = self.supervisor(STUB_MODE="sleep", HEATER_STOKER_MIN_LIFETIME="0",
+                                  HEATER_STOKER_PAUSE="10")
+        first = self.wait_for_launches(1, running)
+        self.hand_over(first[0]["token"])
+        paused = self.wait_until(
+            lambda: any(e["event"] == "stoker_restart" for e in self.hook_events()), 20)
+        self.assertTrue(paused, "the handoff never finished, so the pause was never reached")
+        os.kill(running.pid, signal.SIGTERM)
+        try:
+            # Well inside the ten-second pause: a supervisor that only notices
+            # once the pause is over has already sat through being stopped.
+            running.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            running.kill()
+            self.fail("the supervisor slept through being stopped")
+        self.assertEqual(len(self.launches()), 1, "it opened a session after being stopped")
+
+    def test_fast_handoffs_are_never_mistaken_for_launches_that_will_not_start(self):
+        """A session that hands over did its job, however quickly it got there."""
+        running = self.supervisor(STUB_MODE="mark", HEATER_STOKER_MIN_LIFETIME="30")
+        self.wait_for_launches(4, running)
+        self.assertIsNone(running.poll(), "handoffs counted as failed launches")
+        os.kill(running.pid, signal.SIGTERM)
+        _, err = running.communicate(timeout=30)
+        self.assertNotIn("times in a row", err)
+
     def test_a_missing_claude_says_so_rather_than_tracebacking(self):
         done = subprocess.run([sys.executable, str(ROOT / "tools" / "stoker.py")],
                               env={**self.environment(), "PATH": str(Path(self.tmp.name) / "empty")},
@@ -598,13 +688,80 @@ class TestStokerSupervisor(unittest.TestCase):
         self.assertIn("Claude", done.stderr)
 
 
+class FakeChild:
+    """A session that ignores everything, so the timing under test is the
+    supervisor's own and not a real process's scheduling."""
+
+    pid = 4321
+
+    def __init__(self, lifetime: float | None = None):
+        self.started = time.monotonic()
+        self.lifetime = lifetime
+        self.terminated_at: float | None = None
+
+    def poll(self):
+        if self.terminated_at is not None:
+            return 0
+        if self.lifetime is not None and time.monotonic() - self.started >= self.lifetime:
+            return 0
+        return None
+
+    def terminate(self):
+        self.terminated_at = time.monotonic()
+
+    def wait(self, timeout=None):
+        return 0
+
+
+class TestWatchingForTheMarker(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        patch = mock.patch.dict(os.environ, {"HEATER_STATE_DIR": self.tmp.name})
+        patch.start()
+        self.addCleanup(patch.stop)
+
+    def test_the_session_gets_a_breath_before_it_is_ended(self):
+        """The Stop hook that wrote the marker has to return and its closing
+        message has to reach the screen, and neither is instant."""
+        stoker.mark_complete("now", "mine", "s1")
+        child = FakeChild()
+        started = time.monotonic()
+        _, handed_over, _ = stoker.watch(child, 0.01, "mine", grace=0.4, kill_after=1.0)
+        self.assertTrue(handed_over)
+        self.assertGreaterEqual(child.terminated_at - started, 0.35,
+                                "it ended the session before the hook could finish")
+
+    def test_the_grace_is_short_and_separate_from_the_bound_on_a_hang(self):
+        self.assertEqual(stoker.DEFAULT_GRACE, 2.0)
+        self.assertLess(stoker.DEFAULT_GRACE, stoker.DEFAULT_KILL_AFTER)
+
+    def test_the_grace_is_configurable(self):
+        with mock.patch.dict(os.environ, {"HEATER_STOKER_GRACE": "0.25"}):
+            self.assertEqual(stoker._number("HEATER_STOKER_GRACE", stoker.DEFAULT_GRACE), 0.25)
+
+    def test_a_marker_naming_another_session_is_not_a_handover(self):
+        stoker.mark_complete("now", "somebody-else", "s2")
+        _, handed_over, _ = stoker.watch(FakeChild(lifetime=0.2), 0.01, "mine",
+                                         grace=0.01, kill_after=1.0)
+        self.assertFalse(handed_over, "it ended its session on another session's marker")
+        self.assertTrue(stoker.marker_path().exists())
+
+    def test_an_unreadable_marker_is_not_a_handover_either(self):
+        stoker.marker_path().write_text("left behind by an older version\n", encoding="utf-8")
+        _, handed_over, _ = stoker.watch(FakeChild(lifetime=0.2), 0.01, "mine",
+                                         grace=0.01, kill_after=1.0)
+        self.assertFalse(handed_over)
+
+
 class TestHandoverMarker(unittest.TestCase):
     """The marker is the whole signal between the hook and the supervisor."""
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
-        patch = mock.patch.dict(os.environ, {"HEATER_STATE_DIR": self.tmp.name})
+        patch = mock.patch.dict(os.environ, {"HEATER_STATE_DIR": self.tmp.name,
+                                             stoker.CHILD_ENV: "tok"})
         patch.start()
         self.addCleanup(patch.stop)
 
@@ -615,6 +772,21 @@ class TestHandoverMarker(unittest.TestCase):
         self.assertTrue(stoker.mark_complete("first"))
         self.assertFalse(stoker.mark_complete("second"), "the marker's existence is the guard")
         self.assertIn("first", stoker.marker_path().read_text(encoding="utf-8"))
+
+    def test_it_names_the_session_that_asked_to_be_ended(self):
+        stoker.mark_complete("first", "tok", "session-9")
+        self.assertEqual(stoker.marker_token(), "tok")
+        self.assertEqual(json.loads(stoker.marker_path().read_text())["session"], "session-9")
+
+    def test_a_session_nobody_supervises_writes_nothing(self):
+        """Its marker would end whichever session a supervisor is running,
+        which is never the one that wrote it."""
+        with mock.patch.dict(os.environ, {stoker.CHILD_ENV: ""}):
+            self.assertFalse(stoker.mark_complete("first"))
+        self.assertFalse(stoker.marker_path().exists())
+
+    def test_no_marker_reads_as_no_token_at_all(self):
+        self.assertIsNone(stoker.marker_token())
 
     def test_clearing_a_marker_that_is_not_there_is_not_an_error(self):
         stoker.clear_marker()

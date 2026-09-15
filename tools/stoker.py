@@ -10,8 +10,10 @@ Nothing here types into a session, because nothing can: hook output cannot send
 input, and injecting keystrokes into a terminal is off the table. So the process
 lifecycle moves up one level instead. This supervisor is what the operator
 starts; `claude` is its child. When the Stop hook has proved the handover is
-written, current and pushed, it leaves a marker file. The supervisor sees the
-marker, ends that session, and starts a fresh one in the same folder.
+written, current and pushed, it leaves a marker file naming the session it was
+written from. The supervisor sees a marker naming its own child, ends that
+session, and starts a fresh one in the same folder. A marker naming anything
+else is somebody else's session and is left alone.
 
 A relauncher spawned from a hook is not guaranteed to outlive the process that
 ran the hook, so the relauncher has to be the thing that launched `claude` in
@@ -25,7 +27,9 @@ The operator's own plain `claude` in this folder is untouched by any of it.
 
 from __future__ import annotations
 
+import json
 import os
+import secrets
 import signal
 import subprocess
 import sys
@@ -65,9 +69,14 @@ DEFAULT_SESSION_NAME = "heater stoker"
 # feels immediate, slow enough to cost nothing.
 DEFAULT_POLL = 0.5
 
+# Between seeing the marker and ending the session. The Stop hook has to return
+# and its closing message has to render, and neither is instant. Short enough
+# that the handoff still feels immediate.
+DEFAULT_GRACE = 2.0
+
 # SIGTERM first, SIGKILL after this. A session that is already finished has
 # nothing to flush, so this is a bound on a hang, not a courtesy.
-DEFAULT_GRACE = 10.0
+DEFAULT_KILL_AFTER = 10.0
 
 # A breath between sessions, so the terminal settles and the ending session's
 # own SessionEnd hook gets its budget.
@@ -79,6 +88,17 @@ DEFAULT_MIN_LIFETIME = 30.0
 MAX_SHORT_LAUNCHES = 3
 
 MARKER_NAME = "handover-complete"
+
+# Set on the session the supervisor launches, and on nothing else. The marker is
+# one shared path, and the fleet repository makes any unmarked session in it the
+# stoker, so without an identity a plain `claude` opened in this folder would end
+# the supervised session instead of its own. The hook writes this token into the
+# marker, and the supervisor acts only on a marker naming the child it started.
+CHILD_ENV = "HEATER_STOKER_CHILD"
+
+# How finely an interruptible wait notices that the supervisor has been told to
+# stop. A `kill` during the pause between sessions must not open another one.
+STOP_CHECK = 0.05
 
 
 def _number(name: str, fallback: float) -> float:
@@ -97,21 +117,60 @@ def marker_path() -> Path:
     return state_dir() / MARKER_NAME
 
 
-def mark_complete(when: str) -> bool:
+def child_token() -> str:
+    """The identity the supervisor gave this session. Empty when nobody did.
+
+    Empty means this session was not launched by a supervisor, so no supervisor
+    is waiting on it and it has no business leaving a marker.
+    """
+    return os.environ.get(CHILD_ENV, "").strip()
+
+
+def mark_complete(when: str, token: str | None = None,
+                  session: str | None = None) -> bool:
     """Say the handover is done and this session can end. Never raises.
 
     Returns True when this call is what wrote the marker. The marker's own
-    existence is the guard against writing it twice.
+    existence is the guard against writing it twice, and the token in it is what
+    says which session is asking to be ended. A session with no token writes
+    nothing: only the supervisor's own child can ask the supervisor for anything.
     """
+    token = (token if token is not None else child_token()).strip()
+    if not token:
+        return False
     try:
         path = marker_path()
         if path.exists():
             return False
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(f"{when}\n", encoding="utf-8")
+        path.write_text(
+            json.dumps({"at": when, "token": token, "session": session or None}) + "\n",
+            encoding="utf-8")
         return True
     except Exception:
         return False
+
+
+def read_marker() -> dict[str, Any] | None:
+    """The marker as written, or None when there is none or it is unreadable."""
+    try:
+        raw = marker_path().read_text(encoding="utf-8")
+    except (OSError, ValueError):
+        return None
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def marker_token() -> str | None:
+    """Which session the marker on disk names. None when there is no marker."""
+    marker = read_marker()
+    if marker is None:
+        return None
+    value = marker.get("token")
+    return value.strip() if isinstance(value, str) else ""
 
 
 def clear_marker() -> None:
@@ -138,8 +197,14 @@ def command(extra: list[str] | None = None) -> list[str]:
     return ["claude", "--remote-control", session_name(), *(extra or []), INITIAL_PROMPT]
 
 
-def child_env() -> dict[str, str]:
-    return {**os.environ, "HEATER_ROLE": "stoker"}
+def new_token() -> str:
+    """A fresh identity for one launch. Unguessable so no other session wears it."""
+    return secrets.token_hex(8)
+
+
+def child_env(token: str | None = None) -> dict[str, str]:
+    return {**os.environ, "HEATER_ROLE": "stoker",
+            CHILD_ENV: token or os.environ.get(CHILD_ENV, "")}
 
 
 # The session in progress, and whether the supervisor itself has been told to
@@ -173,40 +238,70 @@ def install_signal_handlers() -> None:
         pass
 
 
-def _terminate(child: subprocess.Popen, grace: float) -> int:
+def _terminate(child: subprocess.Popen, kill_after: float) -> int:
     """End a session that has already handed over. SIGTERM, then SIGKILL."""
     try:
         child.terminate()
     except OSError:
         pass
     try:
-        return child.wait(timeout=grace)
+        return child.wait(timeout=kill_after)
     except subprocess.TimeoutExpired:
-        log("stoker_kill", {"pid": child.pid, "after_seconds": grace})
+        log("stoker_kill", {"pid": child.pid, "after_seconds": kill_after})
         try:
             child.kill()
         except OSError:
             pass
         try:
-            return child.wait(timeout=grace)
+            return child.wait(timeout=kill_after)
         except subprocess.TimeoutExpired:  # pragma: no cover - unkillable child
             return -signal.SIGKILL
 
 
-def watch(child: subprocess.Popen, poll: float, grace: float) -> tuple[int, bool, bool]:
+def wait_unless_stopping(seconds: float) -> bool:
+    """Wait, and stop waiting the moment the supervisor is told to stop.
+
+    A bare sleep here is what let a `kill` during the pause between sessions be
+    slept through and a fresh session opened over it. Returns True when the full
+    wait elapsed, False when it was cut short.
+    """
+    deadline = time.monotonic() + seconds
+    while not _stopping:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return True
+        time.sleep(min(STOP_CHECK, remaining))
+    return False
+
+
+def watch(child: subprocess.Popen, poll: float, token: str, grace: float,
+          kill_after: float) -> tuple[int, bool, bool]:
     """Wait for the session to end or to hand over.
+
+    Only a marker naming this child is a handover. Any other marker belongs to
+    some session this supervisor did not start — the operator's own `claude` in
+    this folder counts as the stoker too — and ending this session on it would
+    end the wrong conversation. So it is logged once and left where it is.
 
     Returns (exit code, handed over, interrupted).
     """
     interrupted = False
+    reported = False
     while True:
         code = child.poll()
         if code is not None:
             return code, False, interrupted
-        if marker_path().exists():
+        found = marker_token()
+        if found is not None and found == token:
             clear_marker()
-            log("handover_marker_seen", {"pid": child.pid})
-            return _terminate(child, grace), True, interrupted
+            log("handover_marker_seen", {"pid": child.pid, "grace_seconds": grace})
+            # The Stop hook that wrote the marker has to return, and its closing
+            # message has to reach the screen, before the session is ended.
+            wait_unless_stopping(grace)
+            return _terminate(child, kill_after), True, interrupted
+        if found is not None and not reported:
+            reported = True
+            log("stoker_foreign_marker", {"pid": child.pid, "marker_token": found or None})
         try:
             time.sleep(poll)
         except KeyboardInterrupt:
@@ -239,30 +334,49 @@ def supervise(extra: list[str] | None = None,
 
     poll = _number("HEATER_STOKER_POLL", DEFAULT_POLL)
     grace = _number("HEATER_STOKER_GRACE", DEFAULT_GRACE)
+    kill_after = _number("HEATER_STOKER_KILL_AFTER", DEFAULT_KILL_AFTER)
     pause = _number("HEATER_STOKER_PAUSE", DEFAULT_PAUSE)
     minimum = _number("HEATER_STOKER_MIN_LIFETIME", DEFAULT_MIN_LIFETIME)
 
     short = 0
+    code = 0
     while True:
+        # Asked to stop is asked to stop, whether that arrived while a session
+        # ran or during the pause between two of them.
+        if _stopping:
+            log("stoker_exit", {"exit_code": code, "stopped": True})
+            return exit_code(code)
+
         # A marker left by a session that is already gone would kill the next
         # one on its first poll. This is the only file the supervisor removes.
         clear_marker()
 
+        token = new_token()
         line = command(extra)
         log("stoker_launch", {"command": line, "cwd": str(REPO)})
         started = time.monotonic()
         try:
-            child = spawn(line, cwd=str(REPO), env=child_env())
+            child = spawn(line, cwd=str(REPO), env=child_env(token))
         except (OSError, ValueError) as error:
             print(f"bin/stoker.sh: could not start Claude: {error}", file=sys.stderr)
             log("stoker_launch_failed", {"error": str(error)})
             return 127
 
         _current = child
-        code, handed_over, interrupted = watch(child, poll, grace)
+        if _stopping:
+            # The signal landed while this one was being spawned, so the handler
+            # had nothing to aim at. Take it down here instead of watching it.
+            code = _terminate(child, kill_after)
+            _current = None
+            log("stoker_exit", {"exit_code": code, "stopped": True})
+            return exit_code(code)
+
+        code, handed_over, interrupted = watch(child, poll, token, grace, kill_after)
         _current = None
         lifetime = time.monotonic() - started
-        short = short + 1 if lifetime < minimum else 0
+        # A handover is a session doing its job, however fast it got there, so it
+        # is never evidence that launching is broken.
+        short = 0 if handed_over else (short + 1 if lifetime < minimum else 0)
 
         if _stopping:
             log("stoker_exit", {"exit_code": code, "stopped": True})
@@ -275,7 +389,7 @@ def supervise(extra: list[str] | None = None,
 
         if handed_over:
             log("stoker_restart", {"exit_code": code, "seconds": round(lifetime, 1)})
-            time.sleep(pause)
+            wait_unless_stopping(pause)
             continue
 
         if interrupted or code == 0 or lifetime >= minimum:
@@ -285,7 +399,7 @@ def supervise(extra: list[str] | None = None,
 
         log("stoker_relaunch_after_failure",
             {"exit_code": code, "seconds": round(lifetime, 1)})
-        time.sleep(pause)
+        wait_unless_stopping(pause)
 
 
 def main(argv: list[str]) -> int:

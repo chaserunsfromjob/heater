@@ -31,7 +31,8 @@ import stop as stop_hook  # noqa: E402
 class StateCase(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        managed = ("HEATER_STATE_DIR", "HEATER_HANDOVER_AT", "HEATER_HANDOVER_CEILING")
+        managed = ("HEATER_STATE_DIR", "HEATER_HANDOVER_AT", "HEATER_HANDOVER_CEILING",
+                   stoker.CHILD_ENV)
         self.previous = {k: os.environ.get(k) for k in managed}
         os.environ["HEATER_STATE_DIR"] = self.tmp.name
         for key in managed[1:]:
@@ -229,6 +230,10 @@ class TestStopTrigger(StateCase):
     def outstanding(self, *reasons):
         return mock.patch.object(stop_hook.handover, "problems", return_value=list(reasons))
 
+    def supervised(self, token: str = "child-token"):
+        """A session a supervisor launched, which is the only kind it can end."""
+        return mock.patch.dict(os.environ, {stoker.CHILD_ENV: token})
+
     def test_quiet_below_the_arming_mark(self):
         self.at(10)
         self.assertIsNone(stop_hook.handover_decision())
@@ -278,7 +283,7 @@ class TestStopTrigger(StateCase):
 
     def test_it_lets_the_turn_end_once_the_handover_is_ready(self):
         self.at(30)
-        with self.busy(), self.outstanding():
+        with self.supervised(), self.busy(), self.outstanding():
             decision = stop_hook.handover_decision()
         self.assertNotIn("hookSpecificOutput", decision)
         self.assertIn("bin/stoker.sh", decision["systemMessage"])
@@ -286,20 +291,48 @@ class TestStopTrigger(StateCase):
     def test_the_ready_message_asks_the_operator_for_nothing(self):
         """Opinion 12: the handoff needs nothing from the operator."""
         self.at(30)
-        with self.busy(), self.outstanding():
+        with self.supervised(), self.busy(), self.outstanding():
             decision = stop_hook.handover_decision()
         self.assertNotIn("/clear", decision["systemMessage"])
 
     def test_a_ready_handover_marks_the_session_done(self):
         """The marker is the signal the supervisor is watching for."""
         self.at(30)
-        with self.busy(), self.outstanding():
+        with self.supervised(), self.busy(), self.outstanding():
             stop_hook.handover_decision(None, "stoker")
         self.assertTrue(stoker.marker_path().exists())
 
-    def test_it_marks_the_session_done_only_once(self):
+    def test_the_marker_names_the_session_that_wrote_it(self):
+        """One shared path with no identity in it would end whichever session
+        the supervisor is running, which need not be this one."""
+        self.at(30)
+        with self.supervised("child-9"), self.busy(), self.outstanding():
+            stop_hook.handover_decision(None, "stoker", "session-42")
+        written = json.loads(stoker.marker_path().read_text(encoding="utf-8"))
+        self.assertEqual(written["token"], "child-9")
+        self.assertEqual(written["session"], "session-42")
+
+    def test_a_session_nobody_supervises_leaves_no_marker(self):
+        """A plain `claude` opened in the fleet repository is the stoker too.
+        Its clean handover must not end the supervised session."""
         self.at(30)
         with self.busy(), self.outstanding():
+            decision = stop_hook.handover_decision(None, "stoker", "session-42")
+        self.assertFalse(stoker.marker_path().exists())
+        self.assertIn("handover is written, current and pushed", decision["systemMessage"])
+        self.assertNotIn("ending now", decision["systemMessage"])
+
+    def test_the_session_id_reaches_the_marker_from_the_payload(self):
+        self.at(30)
+        os.environ["HEATER_ROLE"] = "stoker"
+        self.addCleanup(os.environ.pop, "HEATER_ROLE", None)
+        with self.supervised(), self.busy(), self.outstanding():
+            stop_hook.handle({"session_id": "from-payload"})
+        self.assertEqual(json.loads(stoker.marker_path().read_text())["session"], "from-payload")
+
+    def test_it_marks_the_session_done_only_once(self):
+        self.at(30)
+        with self.supervised(), self.busy(), self.outstanding():
             stop_hook.handover_decision(None, "stoker")
             first = stoker.marker_path().read_text(encoding="utf-8")
             stop_hook.handover_decision(None, "stoker")
@@ -308,14 +341,14 @@ class TestStopTrigger(StateCase):
     def test_it_never_ends_a_session_that_is_not_the_stoker(self):
         """A worker's session is a dispatch, not something to replace."""
         self.at(30)
-        with self.busy(), self.outstanding():
+        with self.supervised(), self.busy(), self.outstanding():
             decision = stop_hook.handover_decision(None, "worker")
         self.assertFalse(stoker.marker_path().exists())
         self.assertNotIn("bin/stoker.sh", decision["systemMessage"])
 
     def test_an_unfinished_handover_is_never_marked_done(self):
         self.at(90)
-        with self.busy(), self.outstanding("working tree clean: uncommitted changes"):
+        with self.supervised(), self.busy(), self.outstanding("working tree clean: uncommitted"):
             stop_hook.handover_decision(None, "stoker")
         self.assertFalse(stoker.marker_path().exists())
 

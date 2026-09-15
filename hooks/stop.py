@@ -9,9 +9,11 @@ mid-turn, and there is no listener.
 Only the stoker is woken. A worker's turn ends normally.
 
 It is also where a stoker session ends. Once the handover is written, current
-and pushed, this leaves the marker that `tools/stoker.py` is watching for, and
-the supervisor ends this session and opens the next one. Nothing here can end a
-session itself, and nothing is asked of the operator.
+and pushed, this leaves the marker that `tools/stoker.py` is watching for, named
+with the identity that supervisor gave this session, and the supervisor ends
+this session and opens the next one. A session nobody is supervising leaves no
+marker. Nothing here can end a session itself, and nothing is asked of the
+operator.
 """
 
 from __future__ import annotations
@@ -31,7 +33,8 @@ from heater_hook import keep_going, log, now, role, run, say, stop  # noqa: E402
 
 
 def handover_decision(transcript: str | None = None,
-                      session_role: str | None = None) -> dict[str, Any] | None:
+                      session_role: str | None = None,
+                      session_id: str | None = None) -> dict[str, Any] | None:
     """Past the arming mark, handing over outranks starting anything new.
 
     Armed is not the same as due. Cutting a session off mid-task costs the work
@@ -94,8 +97,20 @@ def handover_decision(transcript: str | None = None,
     if (session_role if session_role is not None else role()) != "stoker":
         return say(f"Context {used:.0f}% — handover is written, current and pushed.")
 
-    if stoker.mark_complete(now()):
-        log("handover_complete", {"used_percentage": used})
+    # Which session is asking. A supervisor gives its own child a token; a
+    # session opened by hand in this folder is the stoker too but has none, and
+    # nothing is waiting to end it. Writing an unnamed marker would end whatever
+    # session the supervisor happens to be running, which is not this one.
+    token = stoker.child_token()
+    if not token:
+        log("handover_complete", {"used_percentage": used, "supervised": False})
+        return say(
+            f"Context {used:.0f}% — handover is written, current and pushed. Nothing is "
+            "outstanding, so this session can be closed whenever you like."
+        )
+
+    if stoker.mark_complete(now(), token, session_id):
+        log("handover_complete", {"used_percentage": used, "supervised": True})
     return say(
         f"Context {used:.0f}% — handover is written, current and pushed. This session is "
         "ending now and bin/stoker.sh is opening the next one from HANDOVER.md. "
@@ -111,7 +126,9 @@ def handle(payload: dict[str, Any]) -> dict[str, Any]:
 
     # Context pressure outranks the queue: picking up new work now only makes
     # the handover harder to write.
-    if (decision := handover_decision(payload.get("transcript_path"), role(payload))) is not None:
+    decision = handover_decision(payload.get("transcript_path"), role(payload),
+                                 payload.get("session_id"))
+    if decision is not None:
         return decision
 
     if role(payload) != "stoker":
