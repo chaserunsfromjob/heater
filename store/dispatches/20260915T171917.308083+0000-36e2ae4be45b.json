@@ -12,7 +12,7 @@
   "branch": "worker/36e2ae4be45b",
   "run_id": "",
   "part": "",
-  "closed_at": null,
-  "outcome": null,
-  "note": ""
+  "closed_at": "2026-09-15T21:49:12.951666+00:00",
+  "outcome": "landed",
+  "note": "merged"
 }
