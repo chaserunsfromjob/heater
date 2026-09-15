@@ -1,0 +1,17 @@
+{
+  "id": "d10fd1934968",
+  "created": "2026-09-15T18:56:24.723455+00:00",
+  "change": "ca03e4463c49",
+  "project": "heater",
+  "round": 2,
+  "lens": "default",
+  "verdict": "pass",
+  "findings": 1,
+  "wording_only": true,
+  "files": 5,
+  "insertions": 102,
+  "deletions": 63,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "reviewer adf3bf7ae0839b93d: PASS. All 6 round-1 findings independently re-verified via the reviewer's own fresh mutation tests (not the fixer's) -- F1 (MAX_SLOTS fully gone, grep confirms zero remnants), F3, F5, F6 each caught by exactly one targeted mutation, F4's escalation route confirmed real (--kind escalation is valid), F7's comment now arithmetically accurate. One actionable finding, wording-only: store/README.md's refusal-record schema description doesn't mention the new 'measured' field. Two observations filed, not requested: 'measured' is currently always True in practice (record_refusal is only reached when free is not None); NoSlotAvailable's docstring still says 'wait for room, or free some' without naming the escalation route the message/rule already name. Gate showed the known, separately-tracked F2 failures at review time (informational only, not a factor in this verdict) -- since resolved on main by dispatch 3ea2c1c2c6b7, landed moments before this round completed."
+}

@@ -5,8 +5,13 @@
   "urgency": "low",
   "project": "heater",
   "path": "tests/test_queue_and_stop.py",
-  "origin": "stoker",
+  "origin": "worker",
   "summary": "tests/test_queue_and_stop.py and tests/test_handover_trigger.py leave HEATER_LOG_DIR unset, so running the suite appends hook log records to the operator's real ~/.heater/logs/hooks.jsonl",
   "delivered_at": null,
-  "resolution": null
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-15T18:56:13.413636+00:00",
+    "score": 6,
+    "task_id": "1b1cd960c353"
+  }
 }
