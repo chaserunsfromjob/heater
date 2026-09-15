@@ -15,6 +15,14 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from typing import Callable
+from unittest import mock
+
+# "More than one", where no particular number is the point.
+SEVERAL = 4
+# More checkouts than any headcount cap ever allowed, to prove none is left.
+MANY = 8
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
@@ -30,7 +38,7 @@ def run(*args: str, cwd: Path) -> None:
 
 class WorktreeCase(unittest.TestCase):
     ENV = ("HEATER_LEASES_DIR", "HEATER_WORKTREE_ROOT", "HEATER_DISPATCHES_DIR",
-           "HEATER_REVIEWS_DIR", "HEATER_SUITES_DIR")
+           "HEATER_REVIEWS_DIR", "HEATER_SUITES_DIR", "HEATER_REFUSALS_DIR")
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -41,6 +49,7 @@ class WorktreeCase(unittest.TestCase):
         os.environ["HEATER_DISPATCHES_DIR"] = str(self.root / "dispatches")
         os.environ["HEATER_REVIEWS_DIR"] = str(self.root / "reviews")
         os.environ["HEATER_SUITES_DIR"] = str(self.root / "suites")
+        os.environ["HEATER_REFUSALS_DIR"] = str(self.root / "refusals")
 
         self.repo = self.root / "proj"
         self.repo.mkdir()
@@ -50,6 +59,41 @@ class WorktreeCase(unittest.TestCase):
         (self.repo / "a.txt").write_text("hello\n")
         run("git", "add", "-A", cwd=self.repo)
         run("git", "commit", "-qm", "init", cwd=self.repo)
+
+    def pretend_free(self, free: int | Callable[[], int]) -> mock.Mock:
+        """Answer `free` bytes free on every volume, for as long as this test runs.
+
+        The disk check is the thing under test, so it is fed a made-up number
+        rather than a real one: filling a real disk to see what happens is not a
+        test anybody can run twice.
+        """
+        def usage(path):
+            room = free() if callable(free) else free
+            return SimpleNamespace(total=room * 4, used=room * 3, free=room)
+
+        patcher = mock.patch.object(worktrees.shutil, "disk_usage", side_effect=usage)
+        self.addCleanup(patcher.stop)
+        return patcher.start()
+
+    def pretend_free_only_under(self, under: Path, free: int, elsewhere: int) -> mock.Mock:
+        """Answer `free` bytes for `under` and anything inside it, `elsewhere` for
+        every other path.
+
+        Different volumes have to answer differently, or a check that measures
+        the wrong one reads exactly like a check that measures the right one.
+        """
+        def usage(path):
+            probed = Path(path)
+            room = free if probed == under or under in probed.parents else elsewhere
+            return SimpleNamespace(total=room * 4, used=room * 3, free=room)
+
+        patcher = mock.patch.object(worktrees.shutil, "disk_usage", side_effect=usage)
+        self.addCleanup(patcher.stop)
+        return patcher.start()
+
+    def checkouts_on_disk(self) -> int:
+        trees = Path(os.environ["HEATER_WORKTREE_ROOT"])
+        return len([p for p in trees.glob("*/*") if p.is_dir()]) if trees.exists() else 0
 
     def tearDown(self):
         for record in worktrees.active():
@@ -90,17 +134,123 @@ class TestLeasing(WorktreeCase):
         with self.assertRaises(ValueError):
             worktrees.lease(self.root / "not-a-repo", "api", "worker/one")
 
-    def test_the_cap_is_enforced(self):
-        for n in range(worktrees.MAX_SLOTS):
-            worktrees.lease(self.repo, "api", f"worker/{n}")
-        with self.assertRaises(worktrees.NoSlotAvailable):
-            worktrees.lease(self.repo, "api", "worker/overflow")
 
-    def test_the_cap_is_per_project(self):
-        for n in range(worktrees.MAX_SLOTS):
-            worktrees.lease(self.repo, "api", f"worker/{n}")
-        other = worktrees.lease(self.repo, "web", "worker/web")
-        self.assertTrue(Path(other["path"]).exists(), "one busy project must not block another")
+class TestTheDiskIsTheLimit(WorktreeCase):
+    """What stops another checkout is the room left on the machine, not a
+    headcount decided in advance."""
+
+    def test_a_lease_is_refused_when_the_disk_is_nearly_full(self):
+        self.pretend_free(worktrees.MIN_FREE_BYTES - 1)
+        with self.assertRaises(worktrees.NoSlotAvailable):
+            worktrees.lease(self.repo, "api", "worker/one")
+
+    def test_nothing_is_created_by_a_refused_lease(self):
+        self.pretend_free(worktrees.MIN_FREE_BYTES - 1)
+        with self.assertRaises(worktrees.NoSlotAvailable):
+            worktrees.lease(self.repo, "api", "worker/one")
+        self.assertEqual(worktrees.active("api"), [], "a refusal must leave nothing behind")
+
+    def test_room_on_the_disk_is_enough_however_many_are_already_held(self):
+        self.pretend_free(worktrees.MIN_FREE_BYTES * 10)
+        held = [worktrees.lease(self.repo, "api", f"worker/{n}") for n in range(MANY)]
+        self.assertEqual(len(worktrees.active("api")), MANY)
+        self.assertTrue(all(Path(h["path"]).exists() for h in held))
+
+    def test_the_refusal_says_what_it_measured(self):
+        self.pretend_free(worktrees.MIN_FREE_BYTES // 2)
+        with self.assertRaises(worktrees.NoSlotAvailable) as caught:
+            worktrees.lease(self.repo, "api", "worker/one")
+        message = str(caught.exception)
+        self.assertIn("GiB free", message)
+        self.assertIn("floor", message)
+
+    def test_the_room_is_measured_where_the_checkouts_live(self):
+        """Measuring some other volume is the failure this has to catch, so only
+        the worktree root is given room and every other path is given none."""
+        root = worktrees.worktree_root()
+        root.mkdir(parents=True, exist_ok=True)
+        probe = self.pretend_free_only_under(root, worktrees.MIN_FREE_BYTES * 10,
+                                             elsewhere=worktrees.MIN_FREE_BYTES // 2)
+
+        # Refused if the reading came from anywhere but the checkouts' own volume.
+        worktrees.lease(self.repo, "api", "worker/one")
+
+        looked_at = [Path(call.args[0]) for call in probe.call_args_list]
+        self.assertTrue(looked_at, "the disk was never consulted at all")
+        self.assertTrue(all(p == root or root in p.parents for p in looked_at),
+                        f"measured {looked_at}, not the volume at {root}")
+
+    def test_a_volume_that_does_not_exist_yet_is_measured_by_its_parent(self):
+        """The worktree root is created on demand, and a missing directory is
+        not a reason to answer 'no room'."""
+        os.environ["HEATER_WORKTREE_ROOT"] = str(self.root / "not" / "made" / "yet")
+        self.assertGreater(worktrees.free_bytes(), 0)
+
+    def test_an_unmeasurable_disk_does_not_jam_the_pool(self):
+        patcher = mock.patch.object(worktrees.shutil, "disk_usage", side_effect=OSError("no stat"))
+        self.addCleanup(patcher.stop)
+        patcher.start()
+        held = worktrees.lease(self.repo, "api", "worker/one")
+        self.assertTrue(Path(held["path"]).exists(),
+                        "a failed stat call is not the same as a full disk")
+
+    def test_an_unmeasurable_disk_is_not_answered_with_a_number(self):
+        """A made-up figure here would be written to the store beside real
+        readings, with nothing to tell them apart."""
+        patcher = mock.patch.object(worktrees.shutil, "disk_usage", side_effect=OSError("no stat"))
+        self.addCleanup(patcher.stop)
+        patcher.start()
+        self.assertIsNone(worktrees.free_bytes())
+
+
+class TestRefusalsAreRecorded(WorktreeCase):
+    """A future 'is the floor right' has to be a query, not a feeling."""
+
+    def refuse(self) -> None:
+        self.pretend_free(worktrees.MIN_FREE_BYTES // 2)
+        with self.assertRaises(worktrees.NoSlotAvailable):
+            worktrees.lease(self.repo, "api", "worker/one")
+
+    def test_a_refusal_is_written_down(self):
+        self.refuse()
+        self.assertEqual(len(worktrees.refusals()), 1)
+
+    def test_it_records_what_was_free_and_what_the_floor_was(self):
+        self.refuse()
+        record = worktrees.refusals()[0]
+        self.assertEqual(record["reason"], "disk")
+        self.assertEqual(record["free_bytes"], worktrees.MIN_FREE_BYTES // 2)
+        self.assertEqual(record["floor_bytes"], worktrees.MIN_FREE_BYTES)
+        self.assertEqual(record["project"], "api")
+        self.assertTrue(record["measured"], "a real reading must say it is one")
+
+    def test_a_reading_that_never_happened_is_recorded_as_none(self):
+        record = worktrees.record_refusal("api", "disk", free=None, held=0)
+        self.assertIsNone(record["free_bytes"])
+        self.assertFalse(record["measured"],
+                         "an unmeasured disk must not be stored as a measurement")
+
+    def test_the_count_is_of_the_project_the_record_names(self):
+        """An unnamed project counted every checkout on the machine and filed the
+        total under this repository."""
+        self.pretend_free(worktrees.MIN_FREE_BYTES * 10)
+        worktrees.lease(self.repo, "api", "worker/api")
+        self.pretend_free(worktrees.MIN_FREE_BYTES // 2)
+        with self.assertRaises(worktrees.NoSlotAvailable):
+            worktrees.lease(self.repo, "", "worker/unnamed")
+        record = worktrees.refusals()[0]
+        self.assertEqual(record["project"], self.repo.name)
+        self.assertEqual(record["held"], 0)
+
+    def test_a_lease_that_succeeds_records_nothing(self):
+        self.pretend_free(worktrees.MIN_FREE_BYTES * 10)
+        worktrees.lease(self.repo, "api", "worker/one")
+        self.assertEqual(worktrees.refusals(), [])
+
+    def test_old_refusals_fall_outside_a_window(self):
+        self.refuse()
+        self.assertEqual(worktrees.refusals(days=7), worktrees.refusals())
+        self.assertEqual(worktrees.refusals(days=0), [])
 
 
 class TestReleasing(WorktreeCase):
@@ -165,11 +315,22 @@ class TestReclaim(WorktreeCase):
         self.assertEqual(worktrees.reclaim("api"), [])
 
     def test_lease_reclaims_before_refusing(self):
-        held = [worktrees.lease(self.repo, "api", f"worker/{n}") for n in range(worktrees.MAX_SLOTS)]
-        subprocess.run(["rm", "-rf", held[0]["path"]], check=True, timeout=30)
-        fresh = worktrees.lease(self.repo, "api", "worker/next")
+        """Room a dead worker is still holding is room: give it back before
+        telling a live worker there is none."""
+        per_checkout = worktrees.MIN_FREE_BYTES
+        self.pretend_free(lambda: per_checkout * (SEVERAL - 1 - self.checkouts_on_disk()))
+
+        for n in range(SEVERAL - 1):
+            worktrees.lease(self.repo, "api", f"worker/{n}")
+        with self.assertRaises(worktrees.NoSlotAvailable):
+            worktrees.lease(self.repo, "api", "worker/too-many")
+
+        # Every one of them is now old enough to count as abandoned, so the room
+        # they are sitting on comes back before the next lease is refused.
+        with mock.patch.object(worktrees, "STALE_MINUTES", -1):
+            fresh = worktrees.lease(self.repo, "api", "worker/next")
         self.assertTrue(Path(fresh["path"]).exists(),
-                        "a dead worker's slot must not block a live one")
+                        "a dead worker's checkout must not block a live one")
 
 
 class TestEveryWorkerGetsItsOwn(WorktreeCase):
@@ -181,7 +342,9 @@ class TestEveryWorkerGetsItsOwn(WorktreeCase):
         self.assertNotEqual(record["workdir"], str(self.repo))
 
     def test_the_main_checkout_is_never_handed_to_a_worker(self):
-        for n in range(3):
+        """Several in a row, because the temptation is to hand it to whichever
+        worker happens to arrive when nothing else is out."""
+        for n in range(SEVERAL):
             record = dispatch.open_dispatch(f"task {n}", project="api", repo=str(self.repo))
             self.assertNotEqual(record["workdir"], str(self.repo))
 
@@ -231,10 +394,16 @@ class TestRuns(WorktreeCase):
         with self.assertRaises(ValueError):
             dispatch.start_run("x", repo=str(self.repo), workers=0)
 
-    def test_a_run_cannot_exceed_the_slot_cap(self):
+    def test_a_run_stops_when_the_disk_has_no_room_for_the_next_worker(self):
+        self.pretend_free(worktrees.MIN_FREE_BYTES - 1)
         with self.assertRaises(worktrees.NoSlotAvailable):
-            dispatch.start_run("too many", repo=str(self.repo), project="api",
-                               workers=worktrees.MAX_SLOTS + 1)
+            dispatch.start_run("too many", repo=str(self.repo), project="api", workers=2)
+
+    def test_a_large_run_is_not_stopped_by_its_own_size(self):
+        self.pretend_free(worktrees.MIN_FREE_BYTES * 20)
+        records = dispatch.start_run("split it up", repo=str(self.repo), project="api",
+                                     workers=MANY)
+        self.assertEqual(len({r["workdir"] for r in records}), MANY)
 
 
 class TestReconcile(WorktreeCase):

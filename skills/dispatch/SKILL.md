@@ -31,8 +31,9 @@ workspace: sharing it with a worker means the thing being merged into is the
 thing being edited, and every clash between them becomes a decision somebody has
 to make.
 
-Slots are capped per project. When every slot is held, the dispatch is refused
-rather than queued: reconcile first, and do not raise the cap to get past it.
+A checkout needs room on the disk. When too little is left, the dispatch is
+refused rather than queued: reconcile first to hand the room back, and do not
+lower the floor to get past it.
 
 ## Several workers on one task
 

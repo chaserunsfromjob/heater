@@ -10,9 +10,11 @@ created if one is needed and none is free. The operator is never asked to
 provision a pool, because provisioning is a decision the system can make from
 what it already knows.
 
-Slots are capped. A cap is not a limitation to work around: an uncapped pool
-means one bad night starts thirty checkouts and fills the disk, and a full disk
-halts the whole fleet.
+What limits the pool is the machine, not a headcount picked in advance. Leasing
+is refused when the volume the checkouts live on is close to full, because one
+bad night starting thirty checkouts fills the disk, and a full disk halts the
+whole fleet. Every refusal is written to `store/refusals/`, so "how often does
+this actually bite" is a query rather than a guess.
 
     bin/worktrees.py list
     bin/worktrees.py reclaim
@@ -26,7 +28,7 @@ import re
 import shutil
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -34,8 +36,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import jsonstore
 
-# How many checkouts one project may have open at once, beyond its main one.
-MAX_SLOTS = 3
+# The only gate: how much room must be left on the volume the checkouts live on
+# before another one is created. Not a multiple of a checkout's size — it is
+# headroom for the volume as a whole, since a filling disk halts the fleet and
+# everything else on the machine long before the checkouts are what is left.
+MIN_FREE_BYTES = 5 * 1024 ** 3
+
+GIB = 1024 ** 3
 
 # A lease older than this whose worktree still exists is assumed abandoned.
 # Reclaiming is refused while the branch holds unpushed commits, so the cost of
@@ -46,11 +53,15 @@ SAFE = re.compile(r"[^A-Za-z0-9_-]")
 
 
 class NoSlotAvailable(RuntimeError):
-    """Every slot for this project is leased. Wait for one rather than widening the cap."""
+    """The machine has no room for another checkout. Wait for room, or free some."""
 
 
 def leases_dir() -> Path:
     return jsonstore.resolve_dir("HEATER_LEASES_DIR", "store/leases")
+
+
+def refusals_dir() -> Path:
+    return jsonstore.resolve_dir("HEATER_REFUSALS_DIR", "store/refusals")
 
 
 def worktree_root() -> Path:
@@ -85,6 +96,58 @@ def slug(text: str) -> str:
     return SAFE.sub("-", text).strip("-")[:40] or "project"
 
 
+def free_bytes(path: Path | None = None) -> int | None:
+    """Room left on the volume the checkouts live on, or None if it cannot be read.
+
+    Walks up to the nearest directory that exists: the worktree root is created
+    on demand, and a missing directory is not a reason to answer "no room".
+    """
+    probe = Path(path or worktree_root())
+    while not probe.exists() and probe != probe.parent:
+        probe = probe.parent
+    try:
+        return shutil.disk_usage(probe).free
+    except OSError:
+        # Unmeasurable is not the same as full, and it is not a number either:
+        # answering with the floor would put a figure nobody measured into the
+        # refusals store, where every number is supposed to be a real reading.
+        return None
+
+
+def short_of_room(free: int | None) -> bool:
+    """True only when the disk was measured and came back under the floor.
+
+    A failed stat call does not jam the pool: refusing over one would stop every
+    dispatch on the machine for something that is not a shortage.
+    """
+    return free is not None and free < MIN_FREE_BYTES
+
+
+def record_refusal(project: str, reason: str, *, free: int | None, held: int) -> dict[str, Any]:
+    """Write down a lease that was refused for lack of room.
+
+    Without this, "is the floor too high" is a feeling. With it, it is a query.
+    `measured` says whether `free_bytes` is a reading or a blank.
+    """
+    record = {
+        "id": jsonstore.new_id(), "created": jsonstore.now(),
+        "project": project, "reason": reason, "free_bytes": free,
+        "measured": free is not None,
+        "floor_bytes": MIN_FREE_BYTES, "held": held,
+    }
+    jsonstore.write(refusals_dir(), record)
+    return record
+
+
+def refusals(days: int | None = None) -> list[dict[str, Any]]:
+    """Refusals, newest last, optionally only recent ones."""
+    records = jsonstore.load(refusals_dir())
+    if days is None:
+        return records
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    return [r for r in records if r.get("created", "") >= cutoff]
+
+
 def lease(repo: Path, project: str, branch: str, *, dispatch_id: str = "",
           base: str = "HEAD") -> dict[str, Any]:
     """Create a checkout for one worker and record who holds it.
@@ -96,12 +159,19 @@ def lease(repo: Path, project: str, branch: str, *, dispatch_id: str = "",
     if not (repo / ".git").exists():
         raise ValueError(f"{repo} is not a git repository")
 
-    if len(active(project)) >= MAX_SLOTS:
-        reclaim(project)
-    if len(active(project)) >= MAX_SLOTS:
+    # One name for the project throughout: an empty `project` counts and reclaims
+    # across every project at once, while the refusal record says it is this one.
+    named = project or repo.name
+    room, held = free_bytes(), len(active(named))
+    if short_of_room(room):
+        reclaim(named)
+        room, held = free_bytes(), len(active(named))
+    if short_of_room(room):
+        record_refusal(named, "disk", free=room, held=held)
         raise NoSlotAvailable(
-            f"all {MAX_SLOTS} slot(s) for {project or repo.name} are leased; "
-            "wait for one rather than raising the cap")
+            f"{room / GIB:.1f} GiB free where the checkouts live, below the "
+            f"{MIN_FREE_BYTES / GIB:.1f} GiB floor; free some room, or escalate "
+            "with `bin/queue.py add --kind escalation` if there is none to free")
 
     # The commit this slot started from. Without it there is no way to tell a
     # fresh checkout from one carrying real work: both have commits in them.
@@ -109,7 +179,7 @@ def lease(repo: Path, project: str, branch: str, *, dispatch_id: str = "",
     branch_code, base_branch = git(repo, "rev-parse", "--abbrev-ref", "HEAD")
     record = {
         "id": jsonstore.new_id(), "created": jsonstore.now(),
-        "project": project or repo.name, "repo": str(repo), "branch": branch,
+        "project": named, "repo": str(repo), "branch": branch,
         "dispatch_id": dispatch_id, "base_sha": base_sha if code == 0 else "",
         # The branch this slot was cut from, and the one its work lands back into.
         "base_branch": base_branch if branch_code == 0 else "",
@@ -243,9 +313,12 @@ def autosave(record: dict[str, Any]) -> bool:
 
 
 def render(records: list[dict[str, Any]]) -> str:
+    free = free_bytes()
+    reading = f"{free / GIB:.1f} GiB free" if free is not None else "free space unreadable"
+    room = f"{reading}, floor {MIN_FREE_BYTES / GIB:.1f} GiB"
     if not records:
-        return "worktrees: no slots leased"
-    lines = [f"{len(records)} slot(s) leased (cap {MAX_SLOTS} per project):"]
+        return f"worktrees: no slots leased ({room})"
+    lines = [f"{len(records)} slot(s) leased ({room}):"]
     for record in records:
         age = age_minutes(record)
         stamp = f"{age:.0f}m" if age is not None else "?"

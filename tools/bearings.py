@@ -83,15 +83,27 @@ def heartbeats() -> tuple[list[str], bool]:
 
 
 def slots() -> tuple[list[str], bool]:
-    """Leases are created on demand, so a slot showing here means real concurrency."""
-    held = worktrees.active()
+    """Leases are created on demand, so a slot showing here means real concurrency.
+
+    The room left is what limits how many there can be, so it is reported beside
+    them, along with how often a lease was actually refused for lack of it.
+    """
     lines = []
-    for record in held:
+    for record in worktrees.active():
         age = worktrees.age_minutes(record)
         stamp = f"{age:.0f}m ago" if age is not None else "age unknown"
         stale = "  <- abandoned?" if age is not None and age > worktrees.STALE_MINUTES else ""
         lines.append(f"  {record['project']}  {record['branch']}  {stamp}{stale}")
-    return lines, any("abandoned" in l for l in lines)
+
+    free = worktrees.free_bytes()
+    floor = worktrees.MIN_FREE_BYTES
+    reading = (f"{free / worktrees.GIB:.1f} GiB free" if free is not None
+               else "free space could not be read")
+    lines.append(f"  {reading} where checkouts live "
+                 f"(floor {floor / worktrees.GIB:.1f} GiB)")
+    refused = worktrees.refusals(days=7)
+    lines.append(f"  {len(refused)} lease(s) refused for lack of room in 7 days")
+    return lines, any("abandoned" in l for l in lines) or worktrees.short_of_room(free)
 
 
 def review_load() -> list[str]:
