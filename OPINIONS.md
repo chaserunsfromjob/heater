@@ -153,8 +153,15 @@ blocked. It waits, or it asks. I decide that one.
 > can use /usage or whatever you need to to see how close we are but the weekly
 > usage is definitely more important so lets start with that"
 
-> "i think those usage barriers are a little bit low. i just want to slowly
-> prioritize more important tasks"
+> "a little bit low"
+
+> "by the time we get to 95% usage in the 5 hour period i want to stop running
+> agents and just get a full debrief of what they have accomplished over the 5
+> hours in plain english"
+
+The third quote is the whole of what can be sourced: the operator's verdict on
+the barriers in an earlier draft, which is why they were raised to where they
+now sit.
 
 The weekly window is the one that matters. Running it dry stops everything until
 it resets, and the five-hour window only refills a few hours later, so weekly
@@ -166,8 +173,21 @@ the ones still out on the things that matter most. Well below the barriers, the
 stoker should already be leaning toward the more important work by its own
 judgment — that is what the percentages are printed for.
 
+Narrowing means cutting, not waiting. As each barrier is crossed the stoker
+stops the agents working on the least important things rather than letting them
+run to their own finish — "cut agents that are working on things that are not as
+important" is the instruction, and a taper that merely declines to start
+anything new is not one.
+
+At 95% of the five-hour window the fleet stops outright. Every agent still
+running is stopped, not allowed to finish, and the operator is sent one
+plain-English account of what those five hours bought: what each agent was sent
+to do, what came back, what the checks found, what is still unfinished, and what
+it cost. `bin/debrief.py` writes that account and the queue carries it.
+
 The barriers themselves sit high, because cutting work off early wastes the plan
-just as surely as running out does.
+just as surely as running out does. The five-hour stop is the figure the operator
+named outright: 95%, level with the weekly stop.
 
 This does not loosen opinion 11. There is still no standing cap on how many
 workers may be out. The taper is a cap the usage number sets, not one I set in

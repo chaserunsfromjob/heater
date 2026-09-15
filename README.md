@@ -55,6 +55,7 @@ bin/store.py query --days 7    # is review eating the week? stamped with when it
 bin/inbox.py check --summary "..."   # already judged? exit 1 means do not file
 bin/inbox.py list / dismiss <id> --reason / promote <id> --score 70 / tasks
 bin/bearings.py          # where everything stands, in one read. exit 1 means something waits
+bin/debrief.py --hours 5 # what the agents did, in plain English. add --queue to send it
 bin/dispatch.py open --task "..." --done-when "..."   # record a dispatch, print the brief
 bin/dispatch.py run --task "..." --repo <path> --workers 2   # several workers, one task
 bin/dispatch.py reconcile --gate "..."   # consolidate everything finished, then clean up
@@ -88,8 +89,12 @@ refills several times a day. The other covers the last seven days, and when it
 runs out everything stops until it resets. The seven-day one is the one that
 hurts, so it is the one the fleet steers by.
 
-Claude Code tells the status line how full both clocks are. `hooks/statusline.py`
-writes that reading to `~/.heater/usage.json` every time the status line renders:
+Claude Code tells the status line how full both clocks are, and tells nothing
+else. `hooks/statusline.py` writes that reading to `~/.heater/usage.json` on
+every render that carries the figures. A render without them — an API key rather
+than a subscription, or a first render before any reply has come back — leaves
+the previous reading exactly as it was rather than erasing it, so what is known
+is never overwritten with nothing:
 
 ```json
 {"five_hour": {"used_percentage": 18.0, "resets_at": 1789560000},
@@ -101,13 +106,22 @@ writes that reading to `~/.heater/usage.json` every time the status line renders
 of seconds since the start of 1970. `bin/bearings.py` prints it as a date, and
 prints how many days of the week are left, so nobody has to read the number.
 
-From those two percentages `bin/bearings.py` works out a **band**: one word for
-how much the fleet may start right now. `tools/usage.py` defines the four bands
-and the percentages that trigger them. The band appears at the top of every
-`bin/bearings.py` run, and at the top of every wake message once it is anything
-other than `OPEN`. Bearings exits 1 — its way of saying "something needs your
-attention" — when the band is `NOTHING_NEW`, when no reading has been written
-yet, or when the last reading is more than six hours old.
+From those two percentages `bin/bearings.py` works out how much the fleet may
+start right now, and prints it as one word. That word is called a **band**.
+`tools/usage.py` holds the four of them and the percentages that trigger each.
+The word appears at the top of every `bin/bearings.py` run, and at the top of
+every wake message once it is anything other than `OPEN`. Bearings exits 1 — its
+way of saying "something needs your attention" — when the word is `NOTHING_NEW`,
+or when no reading exists at all. An old reading is printed with its age and a
+warning to treat it as a guess, but it is not by itself something to act on:
+every reading goes stale overnight and the next session's first reply refreshes
+it, so raising the flag for age alone would mean an alarm every morning.
+
+`NOTHING_NEW` is a full stop, not a slow-down. At 95% of either clock every agent
+still running is stopped, and `bin/debrief.py --hours 5 --queue` writes the
+operator one plain account of what the five hours bought — what each agent was
+sent to do, what came back, what the checks found, what is unfinished, and what
+it cost — and puts it in the queue. Run it without `--queue` to read it first.
 
 The reading only exists on a Pro or Max subscription, and only once an
 interactive session has had a reply back from the model. With an API key, or

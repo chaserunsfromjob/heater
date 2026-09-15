@@ -11,6 +11,7 @@ off-by-one here either halts the fleet a day early or lets it run into the wall.
 
 from __future__ import annotations
 
+import io
 import json
 import os
 import subprocess
@@ -95,27 +96,41 @@ class TestBandEdges(UsageCase):
             self.assertEqual(usage.band(), expected, f"weekly at {percentage}%")
 
     def test_five_hour_edges(self):
+        """95% of the five-hour window is where the operator said the agents stop."""
         for percentage, expected in ((84.9, usage.OPEN),
                                      (85.0, usage.TOP_OF_LIST_ONLY),
                                      (92.9, usage.TOP_OF_LIST_ONLY),
                                      (93.0, usage.REVIEWS_AND_LANDINGS_ONLY),
-                                     (97.9, usage.REVIEWS_AND_LANDINGS_ONLY),
-                                     (98.0, usage.NOTHING_NEW)):
+                                     (94.9, usage.REVIEWS_AND_LANDINGS_ONLY),
+                                     (95.0, usage.NOTHING_NEW),
+                                     (100.0, usage.NOTHING_NEW)):
             self.at(seven=0, five=percentage)
             self.assertEqual(usage.band(), expected, f"five-hour at {percentage}%")
 
-    def test_the_weekly_barrier_is_reached_before_the_five_hour_one(self):
-        """Weighted weekly-first: the same percentage bites sooner on the week."""
-        for _, seven, five, _ in usage.THRESHOLDS:
-            self.assertLess(seven, five)
+    def test_the_weekly_barrier_is_never_reached_after_the_five_hour_one(self):
+        """Weighted weekly-first: the same percentage never bites later on the week.
+
+        The stop band is the exception that is level rather than weighted, because
+        the operator named 95% of the five-hour window as the stop outright.
+        """
+        for name, seven, five, _ in usage.THRESHOLDS:
+            self.assertLessEqual(seven, five, name)
+
+    def test_the_stop_band_is_level_on_both_windows(self):
+        stop = next(t for t in usage.THRESHOLDS if t[0] == usage.NOTHING_NEW)
+        self.assertEqual((stop[1], stop[2]), (95.0, 95.0))
 
     def test_the_tightest_band_wins_when_both_windows_qualify(self):
         self.at(seven=76, five=98)
         self.assertEqual(usage.band(), usage.NOTHING_NEW)
 
     def test_one_window_alone_still_decides(self):
-        self.at(seven=None, five=96)
+        self.at(seven=None, five=94)
         self.assertEqual(usage.band(), usage.REVIEWS_AND_LANDINGS_ONLY)
+
+    def test_the_five_hour_window_alone_can_stop_the_fleet(self):
+        self.at(seven=None, five=96)
+        self.assertEqual(usage.band(), usage.NOTHING_NEW)
 
     def test_a_stale_reading_still_sets_a_band(self):
         """Eight hours old and at 96% weekly is still near the wall."""
@@ -250,16 +265,53 @@ class TestBearings(UsageCase):
         self.assertIn("42%", text)
         self.assertIn("18%", text)
         self.assertIn(usage.OPEN, text)
-        self.assertIn("3.0 day(s) left", text)
+        self.assertIn("about 3 days left", text)
+
+    def test_the_windows_are_labelled_by_the_stretch_of_time_they_cover(self):
+        """"Session" would read as this conversation, which is not what it means."""
+        self.at(seven=42, five=18)
+        text = "\n".join(usage.lines())
+        self.assertIn("last 7 days:", text)
+        self.assertIn("last 5 hours:", text)
+        self.assertNotIn("session (5 hour)", text)
+
+    def test_a_window_with_no_figure_is_read_as_freshly_reset(self):
+        """Claude Code drops a window once it resets; that is not a missing reading."""
+        self.at(seven=42, five=None)
+        text = "\n".join(usage.lines())
+        self.assertIn("freshly reset with nothing used", text)
+        self.assertNotIn("not reported", text)
+
+    def test_the_time_left_is_written_for_a_person(self):
+        self.at(seven=42, five=1, resets_in_days=0.25)
+        self.assertIn("about 6 hours left", "\n".join(usage.lines()))
 
     def test_it_says_in_plain_words_what_the_band_allows(self):
         self.at(seven=96, five=0)
         self.assertIn(usage.ALLOWS[usage.NOTHING_NEW], "\n".join(usage.lines()))
 
+    def test_the_stop_band_says_to_stop_the_agents_and_send_the_debrief(self):
+        """The operator's instruction, in the one line the stoker reads."""
+        meaning = usage.ALLOWS[usage.NOTHING_NEW]
+        self.assertIn("Stop every agent", meaning)
+        self.assertIn("bin/debrief.py", meaning)
+
+    def test_the_plain_words_come_before_the_name_of_the_band(self):
+        self.at(seven=96, five=0)
+        line = next(l for l in usage.lines() if usage.NOTHING_NEW in l)
+        self.assertLess(line.index("what may be started now"), line.index(usage.NOTHING_NEW))
+
     def test_it_says_plainly_when_there_is_no_reading(self):
         text = "\n".join(usage.lines())
         self.assertIn("no usage reading", text)
         self.assertIn("usage.json", text)
+        self.assertIn("nothing has written", text)
+
+    def test_a_file_that_exists_but_cannot_be_read_is_not_called_missing(self):
+        usage.snapshot_path().write_text("not json\n", encoding="utf-8")
+        text = "\n".join(usage.lines())
+        self.assertIn("present but unreadable", text)
+        self.assertNotIn("nothing has written", text)
 
     def test_the_usage_section_comes_before_the_fleet(self):
         self.at(seven=10, five=10)
@@ -293,8 +345,17 @@ class TestBearings(UsageCase):
     def test_a_missing_reading_needs_attention(self):
         self.assertTrue(self.quiet_report()[1], "an unknown band is not a safe band")
 
-    def test_a_stale_reading_needs_attention(self):
+    def test_an_old_reading_is_flagged_in_words_but_is_not_an_alarm(self):
+        """Overnight every reading goes stale and the first reply refreshes it, so
+        raising the flag for age alone would open every morning with a false alarm."""
         self.at(seven=10, five=10, age_hours=usage.STALE_HOURS + 1)
+        text, attention = self.quiet_report()
+        self.assertFalse(attention)
+        self.assertIn("treat it as a guess until it refreshes", text)
+        self.assertIn("hours ago", text)
+
+    def test_an_old_reading_at_the_stop_band_is_still_an_alarm(self):
+        self.at(seven=96, five=10, age_hours=usage.STALE_HOURS + 1)
         self.assertTrue(self.quiet_report()[1])
 
     def test_the_middle_bands_do_not_raise_an_alarm_on_their_own(self):
@@ -339,6 +400,60 @@ class TestWakeSummary(UsageCase):
     def test_it_is_one_line(self):
         self.at(seven=88, five=20)
         self.assertEqual(len(usage.wake_line().splitlines()), 1)
+
+
+class TestTheWakeSurvivesABadReading(UsageCase):
+    """The queue is stamped as delivered only after everything that can raise.
+
+    The stop hook swallows any exception and ends the turn, so an item stamped
+    before the throw is an item the stoker is never told about and never will be.
+    A usage file with bytes that are not text is the cheapest way to make the
+    read throw: the reader catches a missing or malformed file, not that.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.previous_queue = os.environ.get("HEATER_QUEUE_DIR")
+        os.environ["HEATER_QUEUE_DIR"] = str(Path(self.tmp.name) / "queue")
+        os.environ["HEATER_ROLE"] = "stoker"
+        self.addCleanup(os.environ.pop, "HEATER_ROLE", None)
+        self.addCleanup(self.restore_queue)
+
+    def restore_queue(self):
+        if self.previous_queue is None:
+            os.environ.pop("HEATER_QUEUE_DIR", None)
+        else:
+            os.environ["HEATER_QUEUE_DIR"] = self.previous_queue
+
+    def break_the_reading(self):
+        path = usage.snapshot_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b'{"seven_day": {"used_percentage": 96}, "note": "\xff\xfe"}')
+
+    def test_an_unreadable_reading_leaves_the_items_undelivered(self):
+        item = stop_hook.queue.add("finding", "something the stoker must judge")
+        self.break_the_reading()
+        with mock.patch.object(stop_hook, "handover_decision", return_value=None):
+            with self.assertRaises(UnicodeDecodeError):
+                stop_hook.handle({})
+        self.assertEqual([i["id"] for i in stop_hook.queue.pending()], [item["id"]],
+                         "the wake was lost: the item is marked as though it arrived")
+
+    def test_the_turn_still_ends_cleanly_and_the_item_waits(self):
+        stop_hook.queue.add("finding", "something the stoker must judge")
+        self.break_the_reading()
+        with mock.patch.object(stop_hook, "handover_decision", return_value=None), \
+             mock.patch.object(sys, "stdin", io.StringIO("{}")):
+            self.assertEqual(stop_hook.run(stop_hook.handle, "stop"), 0)
+        self.assertEqual(len(stop_hook.queue.pending()), 1)
+
+    def test_a_readable_reading_still_delivers(self):
+        stop_hook.queue.add("finding", "something the stoker must judge")
+        self.at(seven=96, five=20)
+        with mock.patch.object(stop_hook, "handover_decision", return_value=None):
+            reason = stop_hook.handle({})["hookSpecificOutput"]["reason"]
+        self.assertIn(usage.NOTHING_NEW, reason)
+        self.assertEqual(stop_hook.queue.pending(), [])
 
 
 if __name__ == "__main__":

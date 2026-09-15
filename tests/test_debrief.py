@@ -102,7 +102,7 @@ class TestAFullWindow(DebriefCase):
         self.assertIn("Vendor the poker solver", text)
         self.assertIn("Build the usage taper", text)
         self.assertIn("Checked over once", text)
-        self.assertIn("3 things to put right", text)
+        self.assertIn("3 things", text)
         self.assertIn("the work is now part of the project", text)
         self.assertIn("Still running", text)
         self.assertIn("$0.42", text)
@@ -130,22 +130,36 @@ class TestAFullWindow(DebriefCase):
         queue.add("escalation", "a decision is needed")
         self.workspace()
         self.workspace(released=True)
-        text = debrief.write(hours=5)
-        self.assertIn("1 note(s) were left for you", text)
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("One note was left for you", text)
         self.assertIn("a decision an agent needs from you", text)
-        self.assertIn("1 separate working copy(ies)", text)
+        self.assertIn("One separate working copy of a project is still checked out", text)
+        self.assertIn("one other was handed back", text)
+        self.assertNotIn("(s)", text, "a person does not read 'note(s)'")
 
     def test_it_says_when_no_cost_was_recorded(self):
         record = self.job("Anything at all")
         self.check(record["id"])
         self.assertIn("No check recorded what it cost", debrief.write(hours=5))
 
-    def test_it_leaves_out_identifiers_and_paths(self):
-        record = self.job("Vendor the poker solver")
+    def test_it_leaves_out_identifiers_and_branch_names(self):
+        """A record number and a branch name mean nothing to the reader, and the
+        closing note is where both of them live."""
+        record = self.job("Vendor the poker solver", outcome="landed",
+                          closed_minutes_ago=10,
+                          note="merged worker/aebf85e3a420 into main")
         self.check(record["id"])
         text = debrief.write(hours=5)
-        self.assertNotIn(record["id"], text, "an id means nothing to the reader")
-        self.assertNotIn("/", text.replace("\n", " ").replace("://", " "))
+        self.assertNotIn(record["id"], text)
+        self.assertNotIn("worker/aebf85e3a420", text)
+        self.assertIn("the work is now part of the project", text)
+
+    def test_a_task_written_with_an_abbreviation_is_not_cut_in_half(self):
+        self.job("Vendor the solver into this repo (e.g. under vendor/) so it "
+                 "builds without the network. The rest does not matter.")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("(e.g. under vendor/) so it builds without the network", text)
+        self.assertNotIn("The rest does not matter", text)
 
 
 class TestAnEmptyWindow(DebriefCase):

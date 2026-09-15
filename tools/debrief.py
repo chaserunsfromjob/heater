@@ -21,6 +21,7 @@ is described by what it does before it is named.
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 import textwrap
 from datetime import datetime, timedelta, timezone
@@ -37,6 +38,10 @@ import worktrees
 
 DEFAULT_HOURS = 5.0
 WIDTH = 78
+
+# A full stop that ends a sentence: one that follows an ordinary word and is
+# followed by a capital. "e.g." and a file name with a suffix both fail it.
+SENTENCE_END = re.compile(r"(?<=[a-z0-9)\"'])\.\s+(?=[A-Z])")
 
 # What each ending means, said the way it would be said out loud.
 OUTCOME_WORDS = {
@@ -135,14 +140,28 @@ def _ago(when: datetime | None, now: datetime) -> str:
 
 
 def _first_sentence(text: str, limit: int = 220) -> str:
-    """The opening of the brief, which is the part that says what it was for."""
+    """The opening of the brief, which is the part that says what it was for.
+
+    Split only where a full stop is followed by a capital, so that "e.g." and
+    "bin/gate.sh" do not cut the sentence off in the middle of itself.
+    """
     flat = " ".join((text or "").split())
     if not flat:
         return "no task was recorded"
-    head = flat.split(". ")[0].rstrip(".")
+    head = SENTENCE_END.split(flat)[0].rstrip(".")
     if len(head) > limit:
         head = head[:limit].rsplit(" ", 1)[0] + "..."
     return head
+
+
+def _count(number: int, singular: str, plural: str) -> str:
+    """"One note", not "1 note(s)": the reader is a person, not a log file."""
+    return f"one {singular}" if number == 1 else f"{number} {plural}"
+
+
+def _upper(text: str) -> str:
+    """A sentence that begins with a counted word still begins with a capital."""
+    return text[:1].upper() + text[1:]
 
 
 def _wrap(text: str, indent: str = "   ") -> str:
@@ -169,6 +188,26 @@ def _checks_sentence(rounds: list[dict[str, Any]]) -> str:
     return f"{count}, and the last check sent it back with {thing} to put right."
 
 
+def _tally(jobs: int, done: int, landed: int, running: int) -> str:
+    """The opening count, with the plurals a person would actually use."""
+    if jobs == 0:
+        return "No agent was sent out in this window, though other work went on."
+    if jobs == 1:
+        ending = ("It is still running." if running else
+                  "It finished, and its work is in the project." if landed else
+                  "It has finished.")
+        return f"One job went out. {ending}"
+    parts = [f"{jobs} jobs went out"]
+    if done:
+        inside = ("" if not landed
+                  else ", one of which is now in the project" if landed == 1
+                  else f", {landed} of which are now in the project")
+        parts.append(f"{done} of them finished{inside}")
+    parts.append("one is still running" if running == 1 else
+                 f"{running} are still running" if running else "none are still running")
+    return ", and ".join([", ".join(parts[:-1]), parts[-1]]) + "."
+
+
 def _job_lines(record: dict[str, Any], rounds: list[dict[str, Any]], now: datetime) -> list[str]:
     out = [_wrap(_first_sentence(record.get("task", "")), indent="   ")]
     purpose = AGENT_WORDS.get(record.get("agent", ""), "")
@@ -176,10 +215,11 @@ def _job_lines(record: dict[str, Any], rounds: list[dict[str, Any]], now: dateti
     out.append(_wrap(f"Sent out {began}" + (f", {purpose}." if purpose else ".")))
 
     if record.get("closed_at"):
+        # The closing note is the machinery talking to itself -- branch names and
+        # record numbers -- so the ending is said in words instead of quoted.
         ending = OUTCOME_WORDS.get(record.get("outcome") or "", "ended in a way nobody recorded")
         finished = _ago(_moment(record["closed_at"]), now)
-        note = f" It said: {record['note']}" if record.get("note") else ""
-        out.append(_wrap(f"It {ending}, {finished}.{note}"))
+        out.append(_wrap(f"It {ending}, {finished}."))
     else:
         out.append(_wrap("Still running: nothing has come back from it yet."))
 
@@ -212,13 +252,7 @@ def render(data: dict[str, Any]) -> str:
     done = [j for j in jobs if j.get("closed_at")]
     landed = [j for j in done if j.get("outcome") == "landed"]
 
-    count = ("No job went out" if not jobs
-             else "One job went out" if len(jobs) == 1
-             else f"{len(jobs)} jobs went out")
-    tail = (f" {len(done)} of them finished, {len(landed)} of those ending up in the "
-            f"project itself, and {len(running)} are still running."
-            if jobs else "")
-    body = ["", _wrap(count + "." + tail, indent="")]
+    body = ["", _wrap(_tally(len(jobs), len(done), len(landed), len(running)), indent="")]
 
     for number, record in enumerate(jobs, 1):
         rounds = data["checks_by_change"].get(record.get("id", ""), [])
@@ -232,8 +266,8 @@ def render(data: dict[str, Any]) -> str:
     elsewhere = sum(len(v) for k, v in data["checks_by_change"].items() if k not in known)
     if elsewhere:
         body += ["", _wrap(
-            f"{elsewhere} further round(s) of checking went on work that was not sent "
-            "out in this window.", indent="")]
+            f"{_count(elsewhere, 'further round', 'further rounds')} of checking went "
+            "on work that was not sent out in this window.", indent="")]
 
     all_costs = [r["cost_usd"] for r in data["checks"]
                  if isinstance(r.get("cost_usd"), (int, float))]
@@ -248,21 +282,28 @@ def render(data: dict[str, Any]) -> str:
     if notes:
         kinds = ", ".join(sorted({KIND_WORDS.get(i.get("kind", ""), i.get("kind", "a note"))
                                   for i in notes}))
-        body += ["", _wrap(f"{len(notes)} note(s) were left for you in this window, of "
-                           f"which {len(waiting)} you have not seen yet. They are: {kinds}.",
+        unseen = ("all of which you have already seen" if not waiting
+                  else "and you have not seen it yet" if len(notes) == 1
+                  else "and you have not seen any of them yet" if len(waiting) == len(notes)
+                  else f"{len(waiting)} of which you have not seen yet")
+        body += ["", _wrap(_upper(f"{_count(len(notes), 'note was', 'notes were')} left for "
+                                  f"you in this window, {unseen}. They are: {kinds}."),
                            indent="")]
 
     open_spaces = [w for w in data["workspaces"] if not w.get("released_at")]
+    handed_back = len(data["workspaces"]) - len(open_spaces)
     if data["workspaces"]:
-        body += ["", _wrap(
-            f"{len(open_spaces)} separate working copy(ies) of a project are still "
-            f"checked out for these agents; "
-            f"{len(data['workspaces']) - len(open_spaces)} were handed back.", indent="")]
+        body += ["", _wrap(_upper(
+            f"{_count(len(open_spaces), 'separate working copy', 'separate working copies')} "
+            f"of a project {'is' if len(open_spaces) == 1 else 'are'} still checked out for "
+            f"these agents, and {_count(handed_back, 'other was', 'others were')} "
+            "handed back."), indent="")]
 
     if running:
         body += ["", _wrap(
-            f"Still out: {len(running)} agent(s). Stopping now means their work is left "
-            "where it stands, on its own copy, and can be picked up again.", indent="")]
+            f"Still out: {_count(len(running), 'agent', 'agents')}. Stopping now leaves "
+            "their work where it stands, on its own copy, and it can be picked up again.",
+            indent="")]
 
     return "\n".join(head + body)
 
