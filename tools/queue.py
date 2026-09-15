@@ -13,15 +13,14 @@ Swap it for something with real queries when the volume earns that.
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import sys
-import uuid
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import jsonstore
 
 KINDS = ("finding", "escalation", "report", "failure")
 URGENCIES = ("low", "normal", "high")
@@ -30,13 +29,7 @@ URGENCY_RANK = {name: index for index, name in enumerate(URGENCIES)}
 
 
 def queue_dir() -> Path:
-    return Path(os.environ.get("HEATER_QUEUE_DIR") or REPO / "queue")
-
-
-def now() -> str:
-    # Microseconds, not seconds: two items filed in the same second must still
-    # sort in arrival order, both in `pending` and in the on-disk filenames.
-    return datetime.now(timezone.utc).isoformat(timespec="microseconds")
+    return jsonstore.resolve_dir("HEATER_QUEUE_DIR", "queue")
 
 
 def add(kind: str, summary: str, *, project: str = "", path: str = "",
@@ -50,8 +43,8 @@ def add(kind: str, summary: str, *, project: str = "", path: str = "",
         raise ValueError("summary must not be empty")
 
     item = {
-        "id": uuid.uuid4().hex[:12],
-        "created": now(),
+        "id": jsonstore.new_id(),
+        "created": jsonstore.now(),
         "kind": kind,
         "urgency": urgency,
         "project": project,
@@ -65,32 +58,15 @@ def add(kind: str, summary: str, *, project: str = "", path: str = "",
 
 
 def item_path(item: dict[str, Any]) -> Path:
-    stamp = item["created"].replace(":", "").replace("-", "")
-    return queue_dir() / f"{stamp}-{item['id']}.json"
+    return queue_dir() / jsonstore.filename(item)
 
 
 def write(item: dict[str, Any]) -> Path:
-    """Write atomically, so a reader never sees a half-written item."""
-    directory = queue_dir()
-    directory.mkdir(parents=True, exist_ok=True)
-    target = item_path(item)
-    temporary = target.with_suffix(".json.tmp")
-    temporary.write_text(json.dumps(item, indent=2) + "\n", encoding="utf-8")
-    temporary.replace(target)
-    return target
+    return jsonstore.write(queue_dir(), item)
 
 
 def load_all() -> list[dict[str, Any]]:
-    """Every readable item, newest last. A corrupt file is skipped, not fatal."""
-    items = []
-    for path in sorted(queue_dir().glob("*.json")):
-        try:
-            parsed = json.loads(path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            continue
-        if isinstance(parsed, dict) and parsed.get("id"):
-            items.append(parsed)
-    return items
+    return jsonstore.load(queue_dir())
 
 
 def pending() -> list[dict[str, Any]]:
@@ -104,7 +80,7 @@ def pending() -> list[dict[str, Any]]:
 
 def mark_delivered(items: list[dict[str, Any]]) -> None:
     """Stamp items as delivered so the next turn does not wake the stoker again."""
-    stamp = now()
+    stamp = jsonstore.now()
     for item in items:
         item["delivered_at"] = stamp
         write(item)

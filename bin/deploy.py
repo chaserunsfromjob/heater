@@ -21,10 +21,26 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 CLAUDE_HOME = Path.home() / ".claude"
 
-# target on this machine -> file in this repo
-LINKS: dict[Path, Path] = {
-    CLAUDE_HOME / "CLAUDE.md": REPO / "rules" / "global.md",
-}
+def links() -> dict[Path, Path]:
+    """target on this machine -> file or directory in this repo.
+
+    Agents and skills are discovered rather than listed, so adding one is a
+    matter of adding the file. Each is linked individually: linking the whole
+    ~/.claude/agents directory would displace anything else the operator keeps
+    there.
+    """
+    table: dict[Path, Path] = {
+        CLAUDE_HOME / "CLAUDE.md": REPO / "rules" / "global.md",
+    }
+    for agent in sorted((REPO / "agents").glob("*.md")):
+        table[CLAUDE_HOME / "agents" / agent.name] = agent
+    for skill in sorted((REPO / "skills").iterdir() if (REPO / "skills").exists() else []):
+        if (skill / "SKILL.md").is_file():
+            table[CLAUDE_HOME / "skills" / skill.name] = skill
+    return table
+
+
+LINKS: dict[Path, Path] = links()
 
 SETTINGS = CLAUDE_HOME / "settings.json"
 HOOK_DIR = REPO / "hooks"
@@ -133,7 +149,8 @@ def main(argv: list[str]) -> int:
     args = parser.parse_args(argv[1:])
 
     drifted = 0
-    for target, source in LINKS.items():
+    table = links()
+    for target, source in table.items():
         drift = describe(target, source)
         if args.check:
             if drift:
@@ -154,7 +171,7 @@ def main(argv: list[str]) -> int:
         if drifted:
             print(f"\ndeploy: {drifted} target(s) drifted; run bin/deploy.py", file=sys.stderr)
             return 1
-        print(f"deploy: {len(LINKS) + 1} target(s) in sync")
+        print(f"deploy: {len(table) + 1} target(s) in sync")
     return 0
 
 

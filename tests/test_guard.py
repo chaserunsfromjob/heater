@@ -14,6 +14,7 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "hooks"))
@@ -113,10 +114,95 @@ class TestWarnsWithoutBlocking(unittest.TestCase):
     def test_amend(self):
         self.assertWarned("git commit --amend -m 'fix'")
 
-    def test_undispatched_git_write_warns(self):
-        decision, message = verdict("git commit -m 'hand written'", None)
-        self.assertEqual(decision, "allow", "the guard must not lock the operator out before step 6")
+class TestStokerRouting(unittest.TestCase):
+    """Opinion 2 wants a denial. Until step 6 there is no stoker to route through,
+    so the warning is switched off rather than fired at something nobody can act on."""
+
+    def test_silent_while_routing_is_unenforced(self):
+        with mock.patch.object(pre_tool_use, "ENFORCE_STOKER_ROUTING", False):
+            decision, _ = verdict("git commit -m 'hand written'", None)
+        self.assertIsNone(decision, "an unactionable warning on every commit is noise")
+
+    def test_warns_once_enforcement_is_switched_on(self):
+        with mock.patch.object(pre_tool_use, "ENFORCE_STOKER_ROUTING", True):
+            decision, message = verdict("git commit -m 'hand written'", None)
+        self.assertEqual(decision, "allow", "step 6 makes this a warning, not a block")
         self.assertIn("stoker", message)
+
+    def test_a_dispatched_session_is_silent_either_way(self):
+        with mock.patch.object(pre_tool_use, "ENFORCE_STOKER_ROUTING", True):
+            decision, _ = verdict("git commit -m 'dispatched'", "worker")
+        self.assertIsNone(decision)
+
+
+class TestReviewerIsJudgeOnly(unittest.TestCase):
+    """Bash is a write tool, so the tool allowlist cannot make a reviewer judge-only.
+    The guard does it instead."""
+
+    def assertReviewerDenied(self, command: str):
+        decision, message = verdict(command, "reviewer")
+        self.assertEqual(decision, "deny", f"a reviewer must not be able to run {command!r}")
+        self.assertIn("judges only", message)
+
+    def assertReviewerAllowed(self, command: str):
+        decision, _ = verdict(command, "reviewer")
+        self.assertIsNone(decision, f"a reviewer must be able to run {command!r} to prove the change works")
+
+    def test_cannot_commit(self):
+        self.assertReviewerDenied("git commit -m 'sneaky'")
+
+    def test_cannot_stage(self):
+        self.assertReviewerDenied("git add src/x.py")
+
+    def test_cannot_delete_files(self):
+        self.assertReviewerDenied("rm -f src/x.py")
+
+    def test_cannot_edit_in_place(self):
+        self.assertReviewerDenied("sed -i 's/a/b/' src/x.py")
+
+    def test_cannot_redirect_into_a_file(self):
+        self.assertReviewerDenied("cat a.py > b.py")
+
+    def test_can_run_the_suite(self):
+        self.assertReviewerAllowed("python3 -m unittest discover -s tests")
+
+    def test_can_run_the_gate(self):
+        self.assertReviewerAllowed("bash bin/gate.sh")
+
+    def test_can_discard_stderr(self):
+        self.assertReviewerAllowed("pytest 2>&1 | tail -20")
+
+    def test_can_silence_output(self):
+        self.assertReviewerAllowed("ls >/dev/null")
+
+    def test_can_search(self):
+        self.assertReviewerAllowed("grep -rn 'def handle' hooks/")
+
+    def test_write_tool_is_denied(self):
+        decision = pre_tool_use.handle({"tool_name": "Write", "tool_input": {"file_path": "/tmp/x.py"}})
+        self.assertEqual(decision["hookSpecificOutput"]["permissionDecision"], "deny")
+
+    def test_edit_tool_is_denied(self):
+        decision = pre_tool_use.handle({"tool_name": "Edit", "tool_input": {"file_path": "/tmp/x.py"}})
+        self.assertEqual(decision["hookSpecificOutput"]["permissionDecision"], "deny")
+
+    def test_read_tool_is_allowed(self):
+        self.assertEqual(pre_tool_use.handle({"tool_name": "Read", "tool_input": {"file_path": "/tmp/x.py"}}), {})
+
+    def setUp(self):
+        self.previous = os.environ.get("HEATER_ROLE")
+        os.environ["HEATER_ROLE"] = "reviewer"
+
+    def tearDown(self):
+        if self.previous is None:
+            os.environ.pop("HEATER_ROLE", None)
+        else:
+            os.environ["HEATER_ROLE"] = self.previous
+
+    def test_a_fixer_may_still_write(self):
+        os.environ["HEATER_ROLE"] = "fixer"
+        decision = pre_tool_use.handle({"tool_name": "Write", "tool_input": {"file_path": "/tmp/x.py"}})
+        self.assertEqual(decision, {}, "the lockdown must apply to reviewers only")
 
 
 class TestAllowsOrdinaryWork(unittest.TestCase):

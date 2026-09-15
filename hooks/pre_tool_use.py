@@ -18,7 +18,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from heater_hook import allow, deny, is_dispatched, log, run, warn  # noqa: E402
+from heater_hook import allow, deny, is_dispatched, log, role, run, warn  # noqa: E402
 
 RULES = "rules/global.md"
 
@@ -77,6 +77,25 @@ WARN_PATTERNS: list[tuple[re.Pattern[str], str]] = [
 # Git subcommands that change a repository's recorded state.
 GIT_WRITE = re.compile(r"\bgit\s+(?:commit|push|merge|rebase|tag|cherry-pick|revert|am)\b")
 
+# Opinion 2 calls an unrouted repo write a defect, which argues for a denial.
+# The stoker does not exist until step 6, so nothing can set the dispatch marker
+# yet and every hand-written commit would carry a warning nobody can act on.
+# Step 6 flips this to True and the warning becomes the denial opinion 2 asks for.
+ENFORCE_STOKER_ROUTING = False
+
+# A reviewer judges and never writes. Enforced here rather than by the agent's
+# tool list, because Bash is a write tool and a reviewer needs it to run tests.
+REVIEWER_WRITE_TOOLS = ("Edit", "Write", "NotebookEdit")
+REVIEWER_SHELL_WRITES = (
+    (re.compile(r"\bgit\s+(?:add|commit|push|merge|rebase|reset|restore|stash|cherry-pick|revert|tag|am|apply)\b"),
+     "a reviewer may not change the repository"),
+    (re.compile(r"\bsed\s+-i\b|\b(?:rm|mv|cp|touch|mkdir|rmdir|chmod|chown|ln|truncate|dd|tee)\s"),
+     "a reviewer may not change files"),
+    (re.compile(r"(?<![0-9])>>?\s*(?!&|/dev/null)[\w./~$-]"),
+     "a reviewer may not redirect output into a file"),
+)
+REVIEWER_RULE = "Dispatch a fresh reviewer that judges only and never writes."
+
 STOKER_WARNING = (
     "Route every change to a repository through the stoker. "
     "This session carries no dispatch marker, so this write is an unrouted change."
@@ -102,9 +121,21 @@ def check_command(command: str) -> dict[str, Any]:
         if pattern.search(command):
             return warn(cited(rule))
 
-    if GIT_WRITE.search(command) and not is_dispatched():
+    if ENFORCE_STOKER_ROUTING and GIT_WRITE.search(command) and not is_dispatched():
         return warn(cited(STOKER_WARNING))
 
+    return allow()
+
+
+def check_reviewer(tool_name: str, command: str) -> dict[str, Any]:
+    """A reviewer proves the change runs and changes nothing while doing it."""
+    if tool_name in REVIEWER_WRITE_TOOLS:
+        return deny(cited(f"{REVIEWER_RULE} {tool_name} is a write tool."))
+    if tool_name != "Bash":
+        return allow()
+    for pattern, why in REVIEWER_SHELL_WRITES:
+        if pattern.search(command):
+            return deny(cited(f"{REVIEWER_RULE} Refused because {why}."))
     return allow()
 
 
@@ -122,10 +153,16 @@ def handle(payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(tool_input, dict):
         return allow()
 
+    command = str(tool_input.get("command") or "")
+
     if tool_name == "Bash":
-        decision = check_command(str(tool_input.get("command") or ""))
+        decision = check_command(command)
     else:
         decision = check_path(tool_name, str(tool_input.get("file_path") or ""))
+
+    # The reviewer lockdown is additive: it can only turn an allow into a deny.
+    if not decision.get("hookSpecificOutput", {}).get("permissionDecision") == "deny" and role() == "reviewer":
+        decision = check_reviewer(tool_name, command) or decision
 
     verdict = decision.get("hookSpecificOutput", {}).get("permissionDecision")
     if verdict:

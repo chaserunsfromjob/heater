@@ -20,6 +20,10 @@ from that.
 | `hooks/pre_tool_use.py` | The guard. Denies the destructive spellings it is certain about, warns on the rest, never blocks ordinary work. |
 | `hooks/stop.py` | The one channel to the stoker. Wakes it with the queue at a turn boundary. |
 | `queue/` | Notes waiting for the stoker, one JSON file each. |
+| `agents/reviewer.md` | The judge. No write tools, and the guard enforces it through Bash too. |
+| `agents/fixer.md` | Applies findings. Never passes its own work. |
+| `skills/adversarial-review/SKILL.md` | The per-change gate: lens routing, the round loop, when review ends. |
+| `store/` | Every review round and every suite run, as written. |
 | `HANDOVER.md` | What the next session cannot look up for itself. Rewritten, never appended to. |
 | `skills/handover/SKILL.md` | The procedure for ending a session safely. |
 
@@ -34,6 +38,8 @@ bin/deploy.py            # link ~/.claude files and register the hooks on this m
 bin/deploy.py --check    # report drift without changing anything
 bin/queue.py add --kind escalation --summary "..."   # file a note for the stoker
 bin/queue.py list        # what the stoker will be woken with
+bin/store.py review --change X --round 1 --lens default --verdict fail   # record a round
+bin/store.py query --days 7    # is review eating the week? stamped with when it ran
 bin/handover.py          # is this session safe to clear? exit 0 means yes
 tools/style_lint.py      # check rule files on their own
 python3 -m unittest discover -s tests
@@ -61,9 +67,11 @@ complete.
       check that proves a session is safe to end. Brought forward because the
       operator clears context often, and clearing is only safe once the reasons
       are written down.
-- [ ] **3. One adversarial-review skill**, with a judge-only reviewer agent and a
-      fixer agent.
-- [ ] **4. A review-rounds store** the skill writes to, and one query over it.
+- [x] **3. One adversarial-review skill**, with a judge-only reviewer agent and a
+      fixer agent. Judge-only is enforced by the guard, not by the tool list,
+      because Bash is a write tool and a reviewer needs it to run tests.
+- [x] **4. A review-rounds store** the skill writes to, and one query over it,
+      plus a suite-run store beside it.
 - [ ] **5. The findings inbox**, with dismiss and promote.
 - [ ] **6. The stoker**: its role file, its SessionStart loader, its dispatch
       command. This is where the guard's stoker warning becomes a denial.

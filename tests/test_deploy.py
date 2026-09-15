@@ -20,15 +20,32 @@ import deploy  # noqa: E402
 
 class TestLinkTable(unittest.TestCase):
     def test_every_source_exists(self):
-        missing = [str(src) for src in deploy.LINKS.values() if not src.exists()]
+        missing = [str(src) for src in deploy.links().values() if not src.exists()]
         self.assertEqual(missing, [], "deploy would link to a file that is not in the repo")
 
     def test_every_source_is_inside_the_repo(self):
-        for source in deploy.LINKS.values():
+        for source in deploy.links().values():
             self.assertTrue(source.resolve().is_relative_to(deploy.REPO), f"{source} escapes the repo")
 
     def test_no_two_targets_share_a_source_path(self):
-        self.assertEqual(len(set(deploy.LINKS)), len(deploy.LINKS))
+        table = deploy.links()
+        self.assertEqual(len(set(table)), len(table))
+
+    def test_every_agent_is_discovered(self):
+        targets = {t.name for t in deploy.links()}
+        for agent in (deploy.REPO / "agents").glob("*.md"):
+            self.assertIn(agent.name, targets, f"{agent.name} would not reach a machine")
+
+    def test_every_skill_is_discovered(self):
+        targets = {t.name for t in deploy.links()}
+        for skill in (deploy.REPO / "skills").iterdir():
+            if (skill / "SKILL.md").is_file():
+                self.assertIn(skill.name, targets, f"skill {skill.name} would not reach a machine")
+
+    def test_agents_and_skills_are_linked_individually(self):
+        """Linking ~/.claude/agents wholesale would displace the operator's own."""
+        for target in deploy.links():
+            self.assertNotIn(target.name, ("agents", "skills"))
 
 
 class TestDeployBehaviour(unittest.TestCase):
