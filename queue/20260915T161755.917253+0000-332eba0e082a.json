@@ -7,7 +7,7 @@
   "path": "tools/bearings.py",
   "origin": "worker",
   "summary": "bearings machine() still prints the machine-level 'hook registration out of date' line for a stoker session whose repo .claude/settings.json already covers those hooks",
-  "delivered_at": null,
+  "delivered_at": "2026-09-15T16:29:00.867974+00:00",
   "resolution": {
     "action": "dismissed",
     "at": "2026-09-15T16:28:26.716883+00:00",
