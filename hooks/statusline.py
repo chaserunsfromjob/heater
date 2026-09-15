@@ -4,6 +4,11 @@
 Hooks are never told the context window size or usage, so this records it for
 them. Rendering is the visible job; recording is the one that matters.
 
+It records two separate things. How full this session's context window is, which
+decides when to hand over, goes to context.json. How much of the plan's five-hour
+and seven-day windows is spent, which decides how much the stoker may start, goes
+to usage.json. Only the status-line payload carries the second one.
+
 Runs on every render, so it stays cheap and never raises.
 """
 
@@ -16,6 +21,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
 import context  # noqa: E402
+import usage  # noqa: E402
 
 BAR_WIDTH = 10
 
@@ -48,6 +54,9 @@ def main() -> int:
         payload = payload if isinstance(payload, dict) else {}
     except (json.JSONDecodeError, OSError):
         payload = {}
+    # Recorded before the render, and swallowing its own failures, so that a
+    # payload the renderer chokes on still leaves the usage reading behind.
+    usage.record(payload)
     try:
         used = context.record(payload)
         print(render(payload, used))

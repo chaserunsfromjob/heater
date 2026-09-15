@@ -23,7 +23,8 @@ from that.
 | `hooks/session_start.py` | Loads the right role's rules from an environment marker, and reports machine drift. |
 | `hooks/post_tool_use.py` | A heartbeat, so a watcher can tell a quiet worker from a dead one. |
 | `hooks/session_end.py` | Records how a session ended and what fleet state it left unsynced. |
-| `hooks/statusline.py` | The status line. Records the exact context window size, which the transcript does not carry. |
+| `hooks/statusline.py` | The status line. Records the exact context window size and the plan's usage windows, neither of which the transcript carries. |
+| `tools/usage.py` | How much of the plan is spent, and how much that still allows the stoker to start. |
 | `hooks/pre_compact.py` | Backstop. Marks a session whose memory was summarised before a handover. |
 | `roles/stoker.md` | The stoker's own rules. Loaded for any session opened in this repository, and by `HEATER_ROLE=stoker` anywhere else. |
 | `roles/worker.md` | Standing instructions wrapped around every dispatched brief. |
@@ -79,6 +80,53 @@ whatever else the operator has configured there.
 Every hook fails open. A hook that raises, gets malformed input, or cannot reach
 the queue exits 0 and changes nothing, because a guard that blocks every tool
 call is a fleet halt.
+
+## Tapering as the plan's limits approach
+
+A Claude.ai subscription meters two clocks. One covers the last five hours and
+refills several times a day. The other covers the last seven days, and when it
+runs out everything stops until it resets. The seven-day one is the one that
+hurts, so it is the one the fleet steers by.
+
+Claude Code tells the status line how full both clocks are. `hooks/statusline.py`
+writes that reading to `~/.heater/usage.json` every time the status line renders:
+
+```json
+{"five_hour": {"used_percentage": 18.0, "resets_at": 1789560000},
+ "seven_day": {"used_percentage": 42.0, "resets_at": 1789824000},
+ "recorded_at": "2026-09-15T21:30:00+00:00"}
+```
+
+`resets_at` is a moment in time written the way computers write it — the number
+of seconds since the start of 1970. `bin/bearings.py` prints it as a date, and
+prints how many days of the week are left, so nobody has to read the number.
+
+From those two percentages `bin/bearings.py` works out a **band**: one word for
+how much the fleet may start right now. `tools/usage.py` defines the four bands
+and the percentages that trigger them. The band appears at the top of every
+`bin/bearings.py` run, and at the top of every wake message once it is anything
+other than `OPEN`. Bearings exits 1 — its way of saying "something needs your
+attention" — when the band is `NOTHING_NEW`, when no reading has been written
+yet, or when the last reading is more than six hours old.
+
+The reading only exists on a Pro or Max subscription, and only once an
+interactive session has had a reply back from the model. With an API key, or
+before the first reply, there is no reading and bearings says so instead of
+guessing.
+
+To move a threshold, set the matching environment variable to a percentage. The
+name is the band, then the window:
+
+| Variable | Moves |
+| --- | --- |
+| `HEATER_TAPER_NOTHING_NEW_SEVEN_DAY` | Weekly percentage at which nothing new may start |
+| `HEATER_TAPER_NOTHING_NEW_FIVE_HOUR` | Five-hour percentage for the same band |
+| `HEATER_TAPER_REVIEWS_ONLY_SEVEN_DAY` | Weekly percentage at which only reviews and landings run |
+| `HEATER_TAPER_REVIEWS_ONLY_FIVE_HOUR` | Five-hour percentage for the same band |
+| `HEATER_TAPER_TOP_OF_LIST_SEVEN_DAY` | Weekly percentage at which only the top task runs |
+| `HEATER_TAPER_TOP_OF_LIST_FIVE_HOUR` | Five-hour percentage for the same band |
+
+Anything that is not a number is ignored, and the built-in figure is used.
 
 ## Build order
 

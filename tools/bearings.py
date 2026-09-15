@@ -25,6 +25,7 @@ import inbox
 import jsonstore
 import queue
 import store
+import usage
 import worktrees
 from heater_hook import heartbeat_dir
 
@@ -41,6 +42,19 @@ def git(*args: str) -> str:
     except (subprocess.SubprocessError, OSError):
         return ""
     return done.stdout.strip() if done.returncode == 0 else ""
+
+
+def plan_usage() -> tuple[list[str], bool]:
+    """How much of the plan is spent, and what that leaves room to start.
+
+    First, because it bounds everything below it: there is no point ranking
+    tasks before knowing how many may be started at all.
+    """
+    reading = usage.read()
+    needs = (usage.band(reading) == usage.NOTHING_NEW
+             or usage.missing(reading)
+             or usage.stale(reading))
+    return usage.lines(reading), needs
 
 
 def fleet() -> tuple[list[str], bool]:
@@ -138,6 +152,7 @@ def section(title: str, lines: list[str]) -> str:
 def report() -> tuple[str, bool]:
     blocks, attention = [], False
     for title, (lines, needs) in (
+        ("Plan usage", plan_usage()),
         ("Fleet", fleet()),
         ("Dispatches out", out()),
         ("Heartbeats", heartbeats()),

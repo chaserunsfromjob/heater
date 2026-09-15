@@ -67,6 +67,7 @@ conflicts with this one.
 
 - Record the cost and change size of every session and every review round.
 - Escalate a change that exceeds its cost budget instead of continuing.
+- Read the usage band from `bin/bearings.py` before every dispatch, and dispatch only what the band allows.
 
 ## Talking to the operator
 

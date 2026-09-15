@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 import context  # noqa: E402
 import handover  # noqa: E402
 import queue  # noqa: E402
+import usage  # noqa: E402
 from heater_hook import keep_going, log, now, role, run, say, stop  # noqa: E402
 
 
@@ -102,8 +103,12 @@ def handle(payload: dict[str, Any]) -> dict[str, Any]:
         return stop()
 
     queue.mark_delivered(waiting)
-    log("wake", {"items": [i["id"] for i in waiting]})
-    return keep_going(queue.summarise(waiting))
+    # The band goes first, because it decides how much of what follows may be
+    # acted on. Silent while the band is OPEN, so an ordinary wake is unchanged.
+    taper = usage.wake_line()
+    log("wake", {"items": [i["id"] for i in waiting], "band": usage.band()})
+    return keep_going(f"{taper}\n\n{queue.summarise(waiting)}" if taper
+                      else queue.summarise(waiting))
 
 
 if __name__ == "__main__":

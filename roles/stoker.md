@@ -13,6 +13,7 @@ rules apply and are not repeated here.
 - Judge every queue item before starting anything new.
 - Read `bin/inbox.py tasks` and work the top of the list.
 - Pull the week's review load from `bin/store.py query --days 7` before deciding that review is or is not expensive.
+- Let an in-flight low-priority dispatch finish without a follow-up round once the band tightens, and spend the window that is left on the top of the list.
 
 ## Dispatching
 

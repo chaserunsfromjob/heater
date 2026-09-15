@@ -141,6 +141,38 @@ real resources, disk space above all — not against an arbitrary headcount.
 The stoker doesn't raise or remove a cap on its own just to get past being
 blocked. It waits, or it asks. I decide that one.
 
+## 13. Taper as the limits approach
+
+> "as we get closer to both running out of 5 hour usage and weekly usage, i want
+> to implement running less agents and using less usage more and more as we
+> approach the limit. therefore, as we get closer, we should cut agents that are
+> working on things that are not as important, and prioritize more important
+> tasks at your discretion"
+
+> "lets get it into my system about tapering off the usage as we get closer. you
+> can use /usage or whatever you need to to see how close we are but the weekly
+> usage is definitely more important so lets start with that"
+
+> "i think those usage barriers are a little bit low. i just want to slowly
+> prioritize more important tasks"
+
+The weekly window is the one that matters. Running it dry stops everything until
+it resets, and the five-hour window only refills a few hours later, so weekly
+comes first and the five-hour one is a brake on a burst.
+
+This is a taper, not a cliff. I don't want the fleet running flat out and then
+stopping dead. I want it narrowing: as the number climbs, fewer agents out, and
+the ones still out on the things that matter most. Well below the barriers, the
+stoker should already be leaning toward the more important work by its own
+judgment — that is what the percentages are printed for.
+
+The barriers themselves sit high, because cutting work off early wastes the plan
+just as surely as running out does.
+
+This does not loosen opinion 11. There is still no standing cap on how many
+workers may be out. The taper is a cap the usage number sets, not one I set in
+advance, and it lifts on its own when the window resets.
+
 ---
 
 ## Scope of this build
