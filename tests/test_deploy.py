@@ -13,7 +13,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
 import deploy  # noqa: E402
 
@@ -139,10 +139,25 @@ class TestHookRegistration(unittest.TestCase):
         merged = deploy.merge_hooks({"PreToolUse": [foreign]})
         self.assertIn(foreign, merged["PreToolUse"])
 
-    def test_preserves_a_foreign_event(self):
+    def test_preserves_an_event_we_do_not_register(self):
+        foreign = {"hooks": [{"type": "command", "command": "/elsewhere/notify.sh"}]}
+        merged = deploy.merge_hooks({"Notification": [foreign]})
+        self.assertEqual(merged["Notification"], [foreign])
+
+    def test_preserves_a_foreign_hook_on_an_event_we_do_register(self):
         foreign = {"hooks": [{"type": "command", "command": "/elsewhere/start.sh"}]}
         merged = deploy.merge_hooks({"SessionStart": [foreign]})
-        self.assertEqual(merged["SessionStart"], [foreign])
+        self.assertIn(foreign, merged["SessionStart"])
+        self.assertEqual(len(merged["SessionStart"]), 2, "ours is added beside theirs, not instead of it")
+
+    def test_registers_every_hook_script_in_the_repo(self):
+        """A hook file nobody registers never runs, and fails silently."""
+        registered = {Path(h["command"]).name
+                      for groups in deploy.hook_groups().values()
+                      for g in groups for h in g["hooks"]}
+        on_disk = {p.name for p in (deploy.REPO / "hooks").glob("*.py")
+                   if p.name != "heater_hook.py"}
+        self.assertEqual(on_disk - registered, set(), "unregistered hook script")
 
     def test_is_idempotent(self):
         once = deploy.merge_hooks({})

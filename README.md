@@ -19,9 +19,15 @@ from that.
 | `rules/project.template.md` | Starting point for a per-project rules file, which wins where it conflicts with the global one. |
 | `hooks/pre_tool_use.py` | The guard. Denies the destructive spellings it is certain about, warns on the rest, never blocks ordinary work. |
 | `hooks/stop.py` | The one channel to the stoker. Wakes it with the queue at a turn boundary. |
+| `hooks/session_start.py` | Loads the right role's rules from an environment marker, and reports machine drift. |
+| `hooks/post_tool_use.py` | A heartbeat, so a watcher can tell a quiet worker from a dead one. |
+| `hooks/session_end.py` | Records how a session ended and what fleet state it left unsynced. |
+| `roles/stoker.md` | The stoker's own rules. Loaded by `HEATER_ROLE=stoker`. |
+| `roles/worker.md` | Standing instructions wrapped around every dispatched brief. |
 | `queue/` | Notes waiting for the stoker, one JSON file each. |
 | `agents/reviewer.md` | The judge. No write tools, and the guard enforces it through Bash too. |
 | `agents/fixer.md` | Applies findings. Never passes its own work. |
+| `agents/worker.md` | Carries out one dispatched brief, pushes a branch, reports. |
 | `skills/adversarial-review/SKILL.md` | The per-change gate: lens routing, the round loop, when review ends. |
 | `store/` | Every review round and every suite run, as written. |
 | `inbox/` | The ranked task list, and the lifecycle over filed findings. |
@@ -43,10 +49,17 @@ bin/store.py review --change X --round 1 --lens default --verdict fail   # recor
 bin/store.py query --days 7    # is review eating the week? stamped with when it ran
 bin/inbox.py check --summary "..."   # already judged? exit 1 means do not file
 bin/inbox.py list / dismiss <id> --reason / promote <id> --score 70 / tasks
+bin/bearings.py          # where everything stands, in one read. exit 1 means something waits
+bin/dispatch.py open --task "..." --done-when "..."   # record a dispatch, print the brief
+bin/dispatch.py list / close <id> --outcome pushed
 bin/handover.py          # is this session safe to clear? exit 0 means yes
 tools/style_lint.py      # check rule files on their own
 python3 -m unittest discover -s tests
 ```
+
+All logic lives in `tools/`; `bin/` holds only entry points. Nothing in `bin/` is
+imported, because a module there sharing a name with one in `tools/` shadows it
+on the import path.
 
 Deploy uses symlinks so a machine cannot drift between pulls. Anything already
 sitting at a target path is moved to `<name>.pre-heater`, never deleted.
@@ -78,8 +91,9 @@ complete.
 - [x] **5. The findings inbox**, with dismiss and promote. Findings live in the
       queue store rather than a second directory, so one finding has one record.
       The dismissal reason is what `check` uses to refuse a refile.
-- [ ] **6. The stoker**: its role file, its SessionStart loader, its dispatch
-      command. This is where the guard's stoker warning becomes a denial.
+- [x] **6. The stoker**: its role file, the SessionStart loader that reads
+      `HEATER_ROLE`, dispatch records with composed briefs, the heartbeat, and
+      `bearings`. This is the step that switched routing enforcement on.
 - [ ] **7. The worktree pool**, once one worker at a time is no longer enough.
 
 ## Credit

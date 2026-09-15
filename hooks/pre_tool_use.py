@@ -77,11 +77,11 @@ WARN_PATTERNS: list[tuple[re.Pattern[str], str]] = [
 # Git subcommands that change a repository's recorded state.
 GIT_WRITE = re.compile(r"\bgit\s+(?:commit|push|merge|rebase|tag|cherry-pick|revert|am)\b")
 
-# Opinion 2 calls an unrouted repo write a defect, which argues for a denial.
-# The stoker does not exist until step 6, so nothing can set the dispatch marker
-# yet and every hand-written commit would carry a warning nobody can act on.
-# Step 6 flips this to True and the warning becomes the denial opinion 2 asks for.
-ENFORCE_STOKER_ROUTING = False
+# Opinion 2 calls an unrouted repo write a defect. The stoker exists as of step 6,
+# so a session can carry a dispatch marker and the warning is now actionable.
+# It stays a warning rather than a denial: the operator still works by hand in the
+# fleet repository itself, and locking that out would cost more than it protects.
+ENFORCE_STOKER_ROUTING = True
 
 # A reviewer judges and never writes. Enforced here rather than by the agent's
 # tool list, because Bash is a write tool and a reviewer needs it to run tests.

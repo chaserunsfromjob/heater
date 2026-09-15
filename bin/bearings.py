@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Entry point for fleet deployment. All logic lives in tools/deploy.py.
+"""Entry point for the bearings read. All logic lives in tools/bearings.py.
 
 bin/ holds only entry points. Nothing here is ever imported, because a module in
 bin/ with the same name as one in tools/ shadows it on the import path.
@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
-import deploy  # noqa: E402
+import bearings  # noqa: E402
 
 if __name__ == "__main__":
-    raise SystemExit(deploy.main(sys.argv))
+    raise SystemExit(bearings.main())

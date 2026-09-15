@@ -14,12 +14,19 @@ follows is only what you cannot look up.
 
 ## Start here
 
-Steps 1 through 5 plus handover are landed, pushed, and green: 194 tests,
+Steps 1 through 6 plus handover are landed, pushed, and green: 229 tests,
 `bin/gate.sh` passes. Nothing is half-finished. No pull request is open and the
 operator has not asked for one.
 
-**The next action is step 6, the stoker.** It is the step that makes the rest
-run unattended, and the step that flips `ENFORCE_STOKER_ROUTING` to `True`.
+**Step 7, the worktree pool, is deliberately not next.** It waits until one
+worker at a time is genuinely not enough. Building it now would be building step
+seven to make step one feel complete.
+
+**Nothing in this system has run unattended yet.** Every piece is unit-tested and
+no stoker session has ever dispatched a real worker. The first live run is the
+real test, and the likely failures are in the seams: whether `HEATER_ROLE`
+actually reaches a dispatched agent's session, and whether the Stop hook's wake
+behaves the way the unit tests assume.
 
 **Branches.** `main` is canonical and is now GitHub's default. The stale
 `claude/artifact-system-continuation-ko9236` still exists on GitHub pointing at
@@ -131,6 +138,21 @@ against either would suppress something real. Tests pin all three cases.
 **The task cap deletes, and a test asserts no file is left behind.** The
 tempting failure is to move a dropped task somewhere quieter and call that
 deleted. Opinion 5 means deleted.
+
+**`ENFORCE_STOKER_ROUTING` is now `True`.** Step 6 flipped it, as planned. It
+stays a warning rather than a denial: the operator works by hand in the fleet
+repository itself, and denying that would cost more than it protects.
+
+**All logic lives in `tools/`, and `bin/` holds only entry points.** This is not
+tidiness. `bin/dispatch.py` and `tools/dispatch.py` shared a name, and whichever
+directory came first on the import path won — `bearings` imported the CLI shim
+instead of the module and failed with a missing attribute. Never put importable
+logic in `bin/`.
+
+**`SessionEnd` records what is unsynced rather than committing it.** It shares a
+1.5 second budget with every other SessionEnd hook and cannot block termination,
+so a push cut off halfway could not even be reported. The write belongs to a
+session that can supervise it.
 
 ## A tension already resolved — do not re-litigate
 

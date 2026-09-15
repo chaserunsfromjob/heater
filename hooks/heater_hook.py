@@ -43,6 +43,15 @@ def log_dir() -> Path:
     return Path(os.environ.get("HEATER_LOG_DIR") or Path.home() / ".heater" / "logs")
 
 
+def heartbeat_dir() -> Path:
+    return log_dir().parent / "heartbeat"
+
+
+def context(text: str, event: str) -> dict[str, Any]:
+    """Inject text into the session as a system reminder."""
+    return {"hookSpecificOutput": {"hookEventName": event, "additionalContext": text}}
+
+
 def log(event: str, payload: dict[str, Any]) -> None:
     """Append one JSONL record. Never raises: logging is not worth a wedged session."""
     try:

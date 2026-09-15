@@ -15,7 +15,7 @@ from pathlib import Path
 from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "bin"))
+sys.path.insert(0, str(ROOT / "tools"))
 
 import handover  # noqa: E402
 
