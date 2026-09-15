@@ -7,7 +7,7 @@
   "path": "tools/dispatch.py:126",
   "origin": "",
   "summary": "tools/dispatch.py reviewed() returns True when ANY recorded round passed, not the latest, so reconcile landed the design dispatch 36e2ae4be45b into pokerbot main at 659c6b7 on a stale round-4 pass after rounds 5-7 had failed and before round 8 ran; the landing rule needs the LATEST round to be a pass (and wording-only), and reconcile must say which round it landed on",
-  "delivered_at": null,
+  "delivered_at": "2026-09-15T21:52:11.491402+00:00",
   "resolution": {
     "action": "promoted",
     "at": "2026-09-15T21:51:15.743408+00:00",

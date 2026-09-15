@@ -1,0 +1,16 @@
+{
+  "id": "af95ca72f51a",
+  "created": "2026-09-15T22:01:56.203646+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "",
+  "origin": "",
+  "summary": "Autosave hook committed two mid-edit snapshots of RESOURCES_SOLVERS.md on worker/048795519f43 (9bea6bb..b36fa5b), so the branch history holds half-applied review fixes; path /Users/chasethompson/.heater/worktrees/pokerbot/85f4140c6fae",
+  "delivered_at": null,
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-15T22:02:41.020344+00:00",
+    "reason": "Intentional: autosave exists so a worker's partial work survives a lost worktree (three workers were lost today). Snapshots are history, not defects; the landing merge carries the final state, and reviewers judge the branch tip against main, not commit by commit."
+  }
+}
