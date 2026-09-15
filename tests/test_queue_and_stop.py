@@ -15,6 +15,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
@@ -25,16 +26,33 @@ import stop as stop_hook  # noqa: E402
 
 
 class QueueCase(unittest.TestCase):
+    """A queue of its own and no context reading at all.
+
+    The queue directory is redirected so the suite never touches the operator's
+    real queue. The state directory is redirected at an empty directory for the
+    same reason: with no reading recorded there, the context is QUIET, and the
+    Stop hook's handover branch stays out of the way. Reading the live snapshot
+    instead made identical code pass in a clean worktree and fail in a checkout
+    that happened to be further through its session.
+    """
+
+    MANAGED = ("HEATER_QUEUE_DIR", "HEATER_STATE_DIR",
+               "HEATER_HANDOVER_AT", "HEATER_HANDOVER_CEILING")
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        self.previous = os.environ.get("HEATER_QUEUE_DIR")
+        self.previous = {key: os.environ.get(key) for key in self.MANAGED}
         os.environ["HEATER_QUEUE_DIR"] = self.tmp.name
+        os.environ["HEATER_STATE_DIR"] = str(Path(self.tmp.name) / "state")
+        for key in ("HEATER_HANDOVER_AT", "HEATER_HANDOVER_CEILING"):
+            os.environ.pop(key, None)
 
     def tearDown(self):
-        if self.previous is None:
-            os.environ.pop("HEATER_QUEUE_DIR", None)
-        else:
-            os.environ["HEATER_QUEUE_DIR"] = self.previous
+        for key, value in self.previous.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
         self.tmp.cleanup()
 
     def set_role(self, role: str | None):
@@ -104,6 +122,25 @@ class TestQueue(QueueCase):
 
 
 class TestStopHook(QueueCase):
+    def setUp(self):
+        super().setUp()
+        # These two ask git and bin/handover.py about the checkout the suite is
+        # running in, so what they answer is a property of the machine rather
+        # than of the code under test. Pinned to "nothing outstanding" here;
+        # what the hook does when they say otherwise is test_handover_trigger.py.
+        for name in ("in_flight", "problems"):
+            patch = mock.patch.object(stop_hook.handover, name, return_value=[])
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    def test_the_fixture_reads_no_live_session_state(self):
+        """What the hook decides here must be a property of the code, not of the
+        machine. Without this isolation the module passed in a clean worktree and
+        failed in a checkout with uncommitted files, on byte-identical code, which
+        made the gate useless as a landing signal."""
+        self.assertIsNone(stop_hook.context.used(None), "a live reading leaked in")
+        self.assertIsNone(stop_hook.handover_decision(), "handover must stay out of the way")
+
     def test_wakes_the_stoker_when_something_waits(self):
         queue.add("escalation", "needs a product call", urgency="high")
         self.set_role("stoker")
@@ -158,8 +195,19 @@ class TestStopHook(QueueCase):
 
 
 class TestStopFailsOpen(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+
     def run_hook(self, stdin: str, role: str = "stoker") -> subprocess.CompletedProcess:
-        env = {**os.environ, "HEATER_ROLE": role, "HEATER_QUEUE_DIR": "/nonexistent/path/for/queue"}
+        # A subprocess cannot be patched, so the isolation is all environment:
+        # an empty state directory means no context reading, which means QUIET,
+        # which means the hook never consults the live checkout for a handover.
+        env = {key: value for key, value in os.environ.items()
+               if key not in ("HEATER_HANDOVER_AT", "HEATER_HANDOVER_CEILING")}
+        env.update({"HEATER_ROLE": role,
+                    "HEATER_QUEUE_DIR": "/nonexistent/path/for/queue",
+                    "HEATER_STATE_DIR": self.tmp.name})
         return subprocess.run(
             [sys.executable, str(ROOT / "hooks" / "stop.py")],
             input=stdin, capture_output=True, text=True, timeout=20, env=env,
