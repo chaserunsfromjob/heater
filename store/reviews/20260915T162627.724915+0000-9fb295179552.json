@@ -1,0 +1,17 @@
+{
+  "id": "9fb295179552",
+  "created": "2026-09-15T16:26:27.724915+00:00",
+  "change": "09b1a35bb181",
+  "project": "heater",
+  "round": 1,
+  "lens": "default",
+  "verdict": "pass",
+  "findings": 0,
+  "wording_only": false,
+  "files": 5,
+  "insertions": 143,
+  "deletions": 5,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "reviewer a55db60eee5b905ff: PASS, no findings against the reviewed code; mutation-checked, tested worktree path-independence, other-project cwd, stale/missing project settings, and absent payload. 3 off-task observations: F1 filed finding 332eba0e082a duplicates already-promoted parent finding 64ee15ded3fb and has origin=stoker when a worker filed it (recommend dismiss + fix origin, bearings.machine() intentionally still reports true machine drift). F2 real pre-existing bug: drifted[:6] truncates before the settings line, which is appended last, so 6+ symlink-drift lines silently drop the hooks/statusLine warning (to file, not in scope for this branch). F3 optional: third settings_drift() message (mismatched status line) untested under suppression, resting on an unstated Claude Code precedence assumption that is load-bearing for automatic handover."
+}

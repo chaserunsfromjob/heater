@@ -1,0 +1,12 @@
+{
+  "id": "008bb33eb022",
+  "created": "2026-09-15T16:27:04.706766+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "hooks/session_start.py",
+  "origin": "stoker",
+  "summary": "drift_note()'s drifted list is truncated to drifted[:6] before the machine hook-registration/status-line line is appended (it's added last), so a session with 6 or more symlink-drift lines (CLAUDE.md, agents/*, skills/*) silently drops the settings-line warning, making a covered and an uncovered machine indistinguishable in the rendered note. Pre-existing, not introduced by the project-settings suppression fix in task d8d5dec3ef4e. Fix by ordering the settings line first, or raising/removing the cap.",
+  "delivered_at": null,
+  "resolution": null
+}

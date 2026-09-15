@@ -1,0 +1,12 @@
+{
+  "id": "1d862441ef3d",
+  "created": "2026-09-15T16:27:11.264592+00:00",
+  "kind": "finding",
+  "urgency": "low",
+  "project": "heater",
+  "path": "tests/test_stoker.py",
+  "origin": "stoker",
+  "summary": "TestMachineDriftNote (added by task d8d5dec3ef4e) pins suppression of the 'hook registration out of date' and 'no status line' messages, but not the third settings_drift() message ('a status line is configured that is not this repository's'). Suppressing it rests on an unstated assumption that Claude Code's project-level statusLine takes precedence over a user-level one, which is load-bearing for automatic handover. Add a third case pinning that message's suppression, and state the precedence assumption in drift_note()'s docstring.",
+  "delivered_at": null,
+  "resolution": null
+}
