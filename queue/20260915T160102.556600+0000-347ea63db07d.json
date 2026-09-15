@@ -4,9 +4,9 @@
   "kind": "finding",
   "urgency": "normal",
   "project": "heater",
-  "path": "",
-  "origin": "",
-  "summary": "hooks/session_end.py unlinks heartbeat_dir()/f'{session_id}.json' with the raw session id (no SAFE_ID sanitising as in post_tool_use.py), so a crafted session id could delete a file outside the heartbeat directory",
+  "path": "hooks/session_end.py",
+  "origin": "worker",
+  "summary": "hooks/session_end.py unlinks heartbeat_dir()/f'{session_id}.json' with the raw session id, while hooks/post_tool_use.py writes the beat under SAFE_ID.sub('_', session_id)[:64] — no sanitising or truncation on the delete side, so a crafted or >64-char session id could both (a) leave an un-retirable beat under the sanitised name (write/delete name mismatch) and (b) delete a file outside the heartbeat directory",
   "delivered_at": null,
   "resolution": null
 }
