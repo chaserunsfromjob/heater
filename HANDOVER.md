@@ -1,8 +1,8 @@
 # Handover
 
-<!-- handover-commit: 7c5f6e8 -->
+<!-- handover-commit: ea4aba1 -->
 
-Written at `7c5f6e8` on `main`. Verify with
+Written at `ea4aba1` on `main`. Verify with
 `bin/handover.py`. A snapshot, not a log — rewrite it, do not append.
 
 Read `README.md` for what is built and what is next, `OPINIONS.md` for the
@@ -14,19 +14,21 @@ follows is only what you cannot look up.
 
 ## Start here
 
-Steps 1 through 6 plus handover are landed, pushed, and green: 229 tests,
-`bin/gate.sh` passes. Nothing is half-finished. No pull request is open and the
+**All seven steps plus handover are landed, pushed, and green: 255 tests,
+`bin/gate.sh` passes.** Nothing is half-finished. No pull request is open and the
 operator has not asked for one.
 
-**Step 7, the worktree pool, is deliberately not next.** It waits until one
-worker at a time is genuinely not enough. Building it now would be building step
-seven to make step one feel complete.
+**The next action is not building. It is the first real run.** Nothing here has
+ever run unattended: every piece is unit-tested and no stoker session has
+dispatched a real worker. The likely failures are in the seams, not the units —
+whether `HEATER_ROLE` actually reaches a dispatched agent's session, and whether
+the Stop hook's wake behaves the way the unit tests assume. Do not build more
+until one dispatch has gone out and come back.
 
-**Nothing in this system has run unattended yet.** Every piece is unit-tested and
-no stoker session has ever dispatched a real worker. The first live run is the
-real test, and the likely failures are in the seams: whether `HEATER_ROLE`
-actually reaches a dispatched agent's session, and whether the Stop hook's wake
-behaves the way the unit tests assume.
+**Two things only the operator can do**, both still outstanding: delete the stale
+`claude/artifact-system-continuation-ko9236` branch on GitHub, and run
+`bin/deploy.py` on a real machine. Until the second one happens none of this is
+live for them.
 
 **Branches.** `main` is canonical and is now GitHub's default. The stale
 `claude/artifact-system-continuation-ko9236` still exists on GitHub pointing at
@@ -149,6 +151,25 @@ directory came first on the import path won — `bearings` imported the CLI shim
 instead of the module and failed with a missing attribute. Never put importable
 logic in `bin/`.
 
+**Worktree slots are leased on demand, not provisioned.** The operator corrected
+an earlier plan here and was right: asking them whether a pool is needed is
+exactly the decision opinion 1 says the system should make for itself. So
+`dispatch.needs_its_own_checkout` decides — first worker on a project uses its
+checkout, second one gets its own. There is no pool to set up and no setting to
+turn on.
+
+**A slot holding unpushed work is never destroyed, by any route.** Close,
+release, and reclaim all refuse, and close records the reason on the dispatch
+rather than swallowing it. `--force` exists for a human who has looked.
+
+**`unpushed()` measures against the lease's recorded `base_sha`, never against
+"has any commits".** The first implementation asked whether the branch had any
+commits when no remote was configured. That is true of every fresh checkout the
+instant it is created, because it inherits the base history — so every slot
+would have been permanently un-releasable and the pool would have jammed after
+three dispatches. It passed a manual demo and failed the tests. Do not
+"simplify" this check.
+
 **`SessionEnd` records what is unsynced rather than committing it.** It shares a
 1.5 second budget with every other SessionEnd hook and cannot block termination,
 so a push cut off halfway could not even be reported. The write belongs to a
@@ -187,6 +208,10 @@ the conversation when they are present and asking. Leave it settled.
   query instead. It failed without erroring, which is the dangerous kind.
 - `tools/jsonstore.py` is shared by the queue and both stores. A change to its
   atomic write or its skip-corrupt behaviour touches all three.
+- `tests/test_worktrees.py` runs against a real git repository in a temporary
+  directory, not a mock, and is the slowest file in the suite by far. That is
+  deliberate: the failures that matter there are git's behaviour, and a mock
+  would have agreed with the bug described above.
 - `tools/textmatch.py` is shared by the rule linter and the findings inbox, at
   two different thresholds: 0.85 for rules, 0.75 for findings. The lower one is
   deliberate, because findings are free text written in a hurry and the same
