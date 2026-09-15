@@ -20,6 +20,8 @@ rules apply and are not repeated here.
 - Wrap every brief in `roles/worker.md`.
 - Give one worker one task, and state what done looks like in the brief.
 - Close a dispatch with `bin/dispatch.py close` the moment its worker reports.
+- Pass `--repo` when dispatching so a second worker on a project is given its own checkout.
+- Wait for a slot rather than raising the cap when `bin/worktrees.py list` shows every one held.
 - Dispatch a fresh reviewer rather than judging a worker's change yourself.
 
 ## Reaching the operator

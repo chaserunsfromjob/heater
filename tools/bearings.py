@@ -25,6 +25,7 @@ import inbox
 import jsonstore
 import queue
 import store
+import worktrees
 from heater_hook import heartbeat_dir
 
 REPO = jsonstore.REPO
@@ -81,6 +82,18 @@ def heartbeats() -> tuple[list[str], bool]:
     return lines, attention
 
 
+def slots() -> tuple[list[str], bool]:
+    """Leases are created on demand, so a slot showing here means real concurrency."""
+    held = worktrees.active()
+    lines = []
+    for record in held:
+        age = worktrees.age_minutes(record)
+        stamp = f"{age:.0f}m ago" if age is not None else "age unknown"
+        stale = "  <- abandoned?" if age is not None and age > worktrees.STALE_MINUTES else ""
+        lines.append(f"  {record['project']}  {record['branch']}  {stamp}{stale}")
+    return lines, any("abandoned" in l for l in lines)
+
+
 def review_load() -> list[str]:
     result = store.query(days=7)["reviews"]
     return [
@@ -116,6 +129,7 @@ def report() -> tuple[str, bool]:
         ("Fleet", fleet()),
         ("Dispatches out", out()),
         ("Heartbeats", heartbeats()),
+        ("Worktree slots", slots()),
         ("This machine", machine()),
         ("Fleet repository", repository()),
     ):

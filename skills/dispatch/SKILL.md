@@ -18,11 +18,22 @@ arrived in the queue.
 ## Sending it
 
 ```sh
-bin/dispatch.py open --task "..." --project api --done-when "..." --task-id <id>
+bin/dispatch.py open --task "..." --project api --done-when "..." \
+  --task-id <id> --repo /path/to/project
 ```
 
 This records the dispatch and prints the brief, already wrapped in
 `roles/worker.md`. Hand that brief to the `worker` agent exactly as printed.
+
+Pass `--repo` and the checkout is decided for you. The first worker on a project
+uses the project's own directory. A second worker while the first is still out
+would trample it, so it is given its own checkout on its own branch, and the
+brief tells it where to work. Nobody provisions anything, and nobody is asked
+whether a pool is needed.
+
+Slots are capped per project. When every slot is held, the dispatch is refused
+rather than queued: wait for a worker to push, and do not raise the cap to get
+past it.
 
 One worker, one task. Two tasks in one brief produce a change nobody can review,
 because the diff stops matching any single intent.
@@ -49,3 +60,7 @@ bin/dispatch.py close <id> --outcome pushed --note "..."
 Outcomes are `pushed`, `escalated`, `failed`, `abandoned`. Close it even when it
 failed — an open record means a worker is still owed a reply, and one left open
 makes every later bearings read wrong.
+
+Closing gives the slot back. It refuses while the branch still holds work that
+exists nowhere else, and records why on the dispatch instead of destroying it.
+Push the branch, then close again.

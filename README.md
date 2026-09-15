@@ -52,6 +52,7 @@ bin/inbox.py list / dismiss <id> --reason / promote <id> --score 70 / tasks
 bin/bearings.py          # where everything stands, in one read. exit 1 means something waits
 bin/dispatch.py open --task "..." --done-when "..."   # record a dispatch, print the brief
 bin/dispatch.py list / close <id> --outcome pushed
+bin/worktrees.py list / reclaim    # checkouts leased to workers, created on demand
 bin/handover.py          # is this session safe to clear? exit 0 means yes
 tools/style_lint.py      # check rule files on their own
 python3 -m unittest discover -s tests
@@ -94,7 +95,10 @@ complete.
 - [x] **6. The stoker**: its role file, the SessionStart loader that reads
       `HEATER_ROLE`, dispatch records with composed briefs, the heartbeat, and
       `bearings`. This is the step that switched routing enforcement on.
-- [ ] **7. The worktree pool**, once one worker at a time is no longer enough.
+- [x] **7. Worktree slots**, leased on demand rather than provisioned. The first
+      worker on a project uses its checkout; a second one while the first is out
+      is given its own, automatically. Capped per project, and a slot holding
+      unpushed work is never reclaimed.
 
 ## Credit
 

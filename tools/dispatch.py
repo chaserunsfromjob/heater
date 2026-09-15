@@ -24,6 +24,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import jsonstore
+import worktrees
 
 OUTCOMES = ("pushed", "escalated", "failed", "abandoned")
 REPO = jsonstore.REPO
@@ -45,6 +46,10 @@ def compose_brief(record: dict[str, Any]) -> str:
         header.append(f"Project: {record['project']}")
     if record.get("task_id"):
         header.append(f"Task: {record['task_id']}")
+    if record.get("workdir"):
+        header.append(f"Work in: {record['workdir']}")
+    if record.get("branch"):
+        header.append(f"On branch: {record['branch']} (already checked out for you)")
     parts = ["\n".join(header), "## Your task", record["task"]]
     if record.get("done_when"):
         parts += ["## Done when", record["done_when"]]
@@ -56,15 +61,32 @@ def compose_brief(record: dict[str, Any]) -> str:
     return "\n\n".join(parts)
 
 
+def needs_its_own_checkout(project: str) -> bool:
+    """True once somebody else is already working this project.
+
+    Nobody decides this. The first worker uses the project's own checkout; the
+    second onwards would trample it, so each gets a slot of its own.
+    """
+    return any(d.get("project") == project for d in live())
+
+
 def open_dispatch(task: str, *, project: str = "", done_when: str = "",
-                  task_id: str = "", agent: str = "worker") -> dict[str, Any]:
+                  task_id: str = "", agent: str = "worker",
+                  repo: str = "") -> dict[str, Any]:
     if not task.strip():
         raise ValueError("a dispatch needs a task")
     record = {
         "id": jsonstore.new_id(), "created": jsonstore.now(), "task": task.strip(),
         "project": project, "done_when": done_when.strip(), "task_id": task_id,
-        "agent": agent, "closed_at": None, "outcome": None, "note": "",
+        "agent": agent, "repo": repo, "workdir": repo, "lease_id": "", "branch": "",
+        "closed_at": None, "outcome": None, "note": "",
     }
+
+    if repo and needs_its_own_checkout(project or Path(repo).name):
+        held = worktrees.lease(Path(repo), project or Path(repo).name,
+                               f"worker/{record['id']}", dispatch_id=record["id"])
+        record.update(lease_id=held["id"], workdir=held["path"], branch=held["branch"])
+
     jsonstore.write(dispatches_dir(), record)
     return record
 
@@ -79,6 +101,15 @@ def close_dispatch(dispatch_id: str, outcome: str, note: str = "") -> dict[str, 
         raise ValueError(f"{dispatch_id} was already closed as {record['outcome']}")
     record.update(closed_at=jsonstore.now(), outcome=outcome, note=note.strip())
     jsonstore.write(dispatches_dir(), record)
+
+    # Giving the slot back is part of closing, not a separate chore somebody
+    # remembers. Release refuses while the branch still holds unpushed work.
+    if record.get("lease_id"):
+        try:
+            worktrees.release(record["lease_id"], f"dispatch {outcome}")
+        except (RuntimeError, ValueError) as error:
+            record["note"] = (record["note"] + f" [slot held: {error}]").strip()
+            jsonstore.write(dispatches_dir(), record)
     return record
 
 
@@ -118,6 +149,7 @@ def main(argv: list[str]) -> int:
     start.add_argument("--done-when", default="")
     start.add_argument("--task-id", default="", help="the inbox task this serves, if any")
     start.add_argument("--agent", default="worker")
+    start.add_argument("--repo", default="", help="the project checkout; a slot is leased automatically if one is needed")
 
     sub.add_parser("list", help="dispatches still out")
 
@@ -130,7 +162,7 @@ def main(argv: list[str]) -> int:
 
     if args.action == "open":
         record = open_dispatch(args.task, project=args.project, done_when=args.done_when,
-                               task_id=args.task_id, agent=args.agent)
+                               task_id=args.task_id, agent=args.agent, repo=args.repo)
         print(f"# dispatch {record['id']} recorded; hand the brief below to the {record['agent']} agent\n")
         print(compose_brief(record))
     elif args.action == "list":
