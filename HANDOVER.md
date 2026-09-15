@@ -1,8 +1,8 @@
 # Handover
 
-<!-- handover-commit: 28587b7 -->
+<!-- handover-commit: 9242a44 -->
 
-Written at `28587b7` on `main`. Verify with `bin/handover.py`. A snapshot, not
+Written at `9242a44` on `main`. Verify with `bin/handover.py`. A snapshot, not
 a log — rewrite it, do not append.
 
 Read `README.md` for what is built and what is next, `OPINIONS.md` for the
@@ -12,90 +12,72 @@ up.
 
 ---
 
-## Where things stand
+## Why this handover exists
 
-The stoker's own machinery (dispatch, review, disk-based worker limits, gate
-reliability) is solid and landed. The live work is on a second project,
-**pokerbot** (`/Users/chasethompson/pokerbot`), a class-project no-limit
-hold'em bot. It is a plain local git repo with **no GitHub remote** — that's
-normal there, not a bug; don't expect `git push` to do anything in it.
+The operator is closing the laptop mid-flight. Every agent below dies with the
+sleep (their network calls fail on wake). Their **on-disk work survives** in
+the worktrees; the job on reopening is to re-dispatch each unfinished round
+from what is on disk, not from scratch. Run `bin/bearings.py`, then
+`bin/dispatch.py list`, then check each worktree's `git status` and
+`git log -3` before dispatching anything.
 
-The operator's firm requirements for pokerbot, stated directly, not to be
-lost among sub-tasks: **the bot must work at every table size from 2 to 9
-players, use true no-limit bet sizing, and play exploitatively based on
-specific opponents' identities** (their app shows stable, unchangeable
-player names, confirmed by the operator). Everything else is in service of
-those three.
+## Operator positions stated this session, not yet in any rule file
 
-## Five dispatches were in flight when this session ended
+All recorded verbatim as ranked tasks (`bin/inbox.py tasks`: 96243ce4163a,
+f2f8237946ac, 4fd636640f0a, 65bba741bf40) — dispatch them as ONE brief once
+`36e2ae4be45b` lands, since all touch `pokerbot/CLAUDE.md`:
 
-Check each with `bin/dispatch.py list` / `bin/worktrees.py list`, or resume
-the named agent directly if it's still alive in this session's agent list.
+- Mandate: "just do whatever you think is best ... beating real players by a
+  lot, 2-9 players, exploitative play. i dont care how you do it."
+- No multi-day computing; a playable bot in hours on one laptop.
+- Private, never distributed (so GPL and paid tools are fine).
+- Plays mostly 6-handed, then 8/9 "treated the same".
+- Fleet-level: opinion 12 (handoff needs nothing from the operator) is on
+  branch `worker/46e285e1bfd0`, not yet on main.
 
-1. **`aebf85e3a420`** — vendored `fedden/poker_ai` into `vendor/poker_ai/`.
-   Worker done, findings judged. A reviewer (`ad7b07069378f5c65`) was
-   mid-review, not yet reported. **The load-bearing finding**: moving off
-   the 20-card short deck to standard 52 cards is *not* a config flag — it's
-   blocked by `clustering/card_combos.py` materializing every hole+board
-   combo in memory (≈147 GiB at the river, ~6 months at the measured rate).
-   Read `vendor/poker_ai/REFERENCE_NOTES.md` before scoping any 52-card work.
-2. **`36e2ae4be45b`** — `OPPONENT_MODEL_DESIGN.md` + `CLAUDE.md`. Round 4
-   passed with zero substantive findings, only wording. The fixer applied
-   all 7 (commit `c74e72f`). **Round 5 review is running now**
-   (`a84592e74df9ee79f`), not yet reported. If it comes back clean or
-   wording-only, land it — this is the second consecutive wording-only
-   round the review-ends rule asks for; don't spin a further round
-   chasing commas.
-3. **`2602cb34ab4d`** — researching whether a different engine handles true
-   no-limit + 2-9 players better than `poker_ai` (writing
-   `ENGINE_ALTERNATIVES.md`). Directly answers the 52-card blocker above.
-4. **`ba8300646017`** — researching how table size and bet-sizing should
-   change the opponent model (`TABLE_SIZE_AND_SIZING_NOTES.md`).
-5. **`c86285d6c580`** — researching how to actually measure whether the bot
-   is good (`EVALUATION_STRATEGY.md`), since we have no evaluation strategy
-   beyond hand-ranking correctness.
+## State of every change (all pokerbot unless noted; pokerbot has no remote)
 
-**Trap:** dispatches 2–5 above were all told *not* to touch `CLAUDE.md` or
-`OPPONENT_MODEL_DESIGN.md`, writing separate new files instead, specifically
-because #2 was mid-edit on those same files. Don't dispatch anything else
-that touches either file until #2 lands.
+| Change | Branch / checkout | Where it is |
+| --- | --- | --- |
+| Vendoring `aebf85e3a420` | `0f748212fb4c` | Round 4 review (default + environment) was running. Rounds 1-3 recorded fail (r3 had only two small leftovers, fixed in 3ba7e8c). If r4 is wording-only → land it. |
+| Opponent-model design `36e2ae4be45b` | `4c952047cdd3` | Round-6 fixer was running: applying 6 findings AND writing `tools/check_design_numbers.py` + `tests/test_design_numbers.py` so every derived number is machine-checked. Six rounds so far, each finding new arithmetic drift — if round 7 fails on substance, **escalate the cost to the operator** rather than spin round 8. |
+| Engine alternatives `7f09949cb56f` | `92e2a2c459ef` | Round-1 fixer was running: commit the research bot under `research/engine_alternatives/`, state betting mode per speed row, drop or bound the +3.87 bb/hand figure (it was noise: ±25 at n=300), scope the "no offline training" claim, and reframe the forefront-rule carve-out as a decision for the reconciliation step. |
+| Table-size notes `984aa6810a05` | `8b0b4064141f` | Round-2 review was running (fix ace10ce applied 11 findings). |
+| Evaluation strategy `45e49ce81e40` | `9fd7bd8ad257` | Round-1 fixer was running with the stoker's decisions on Q1/Q3/Q4 and the operator's answer to Q2 (6-max first, 8/9 one band). |
+| Bots research `14d64950c0bc` | `b1f72dd635fa` | Committed 60c6835; round-1 review was running (verification-heavy: NoRegrets is the lead candidate). |
+| Solvers research `048795519f43` | `85f4140c6fae` | Worker was running; check for a commit. |
+| Exploitation research `76bbf2823a53` | `41a874aea055` | Worker was running; check for a commit. |
+| Automatic handoff (heater) `46e285e1bfd0` | scratchpad worktree at `/private/tmp/claude-501/-Users-chasethompson-heater/60db9bfd-fa3a-4035-aa37-91a8741fa698/scratchpad/review-46e285e1bfd0`; branch on origin | Round-2 fixer was running (6 findings, the big one: Ctrl-C during the 2 s grace crashed the supervisor). Dispatch is already CLOSED (closing released its lease — a mistake to avoid: close only after landing), so `reconcile` will not land it; merge from trunk yourself after a wording-only round. The scratchpad worktree may be gone after a reboot: `git worktree prune`, then re-add from `origin/worker/46e285e1bfd0`. |
 
-## Queued, not yet dispatched
+## The decision waiting at the end of the research
 
-Task `96243ce4163a` (score 50, top of the list once #2 above lands): record
-the three firm requirements above explicitly in `pokerbot/CLAUDE.md`.
-Deliberately held back to avoid a same-file conflict with dispatch #2.
+Two documents disagree on how the bot gets its poker judgment:
+ENGINE_ALTERNATIVES.md says compute each decision at play time with OpenSpiel
+(needs a recorded carve-out to pokerbot's forefront rule, because a rollout
+chooser is action-choosing code we wrote); RESOURCES_BOTS.md says adopt
+NoRegrets (2–6 player Pluribus-style, its own code chooses, claims a
+blueprint in ~1 h on 16 cores — unverified on a Mac). Neither has passed
+review. **Do not pick by instinct**: once engine, bots, solvers and
+exploitation have all landed, dispatch one worker to reconcile them into a
+plan with measured numbers (a half-day NoRegrets spike on this Mac is the
+obvious first measurement), and record the forefront-rule decision in
+pokerbot/CLAUDE.md as part of that.
 
-Full list: `bin/inbox.py tasks`. Next after that one: the fixed-limit
-betting + table-size scoping task (`23127556e5db`, score 45) — don't start
-it blind; read `ENGINE_ALTERNATIVES.md` first once #3 reports, since the
-52-card blocker may mean the right move is a different engine, not patching
-this one further.
+## Traps
 
-## Decisions this session made that aren't obvious from the files alone
+- `bin/dispatch.py close --outcome pushed` releases the lease and deletes
+  the worktree. For pokerbot branches that is fine (the branch stays in the
+  local repo) but findings a worker filed from inside a heater worktree are
+  lost with it (task d67cffad749a). Close pokerbot research dispatches only
+  via `reconcile`/`land` after review.
+- `bin/store.py review` refuses `--verdict pass` when findings are
+  substantive; record such rounds as fail.
+- Reviewers judging TABLE_SIZE_AND_SIZING_NOTES.md must read the CURRENT
+  companion design doc in `4c952047cdd3`; round 1 judged a stale copy.
+- Workers of type `worker`/`fixer`/`reviewer` have no WebFetch; `curl` and
+  `git clone` work. Use `general-purpose` for web research.
+- `caffeinate -dims` is running to stop idle sleep; lid-close still sleeps.
 
-- **Opinion 11** (no fixed worker-count cap) was the operator's direct
-  instruction, recorded verbatim in `OPINIONS.md`. The old `MAX_SLOTS`
-  headcount is gone entirely from `tools/worktrees.py`; leasing is now
-  purely a disk-space check (5 GiB floor). Don't reintroduce a headcount.
-- The opponent-model review's recurring failure mode across three rounds
-  was "fix the instance a reviewer named, not the general class." Round 4
-  finally fixed the class (wrote the live-field-vs-population distinction
-  into `CLAUDE.md` itself). If a fifth round finds another *instance* of
-  the same pattern, that's a sign the class-level fix still has a gap —
-  don't just patch the instance again.
-- The `treys` ground-truth fixture (`tests/ground_truth/`) is **not**
-  independent of `poker_ai`'s own evaluator — both descend from `deuces`,
-  same encoding. Task `b4b61d9860b7` covers replacing it with something
-  from a genuinely different algorithm family; `phevaluator` worked well as
-  a cross-check for a reviewer earlier this session.
-- Dispatched workers/reviewers for pokerbot tasks still run
-  `bin/queue.py`/`bin/inbox.py` from `/Users/chasethompson/heater` — that's
-  where the tooling lives; pokerbot has no inbox of its own. Keep saying so
-  in briefs.
+## Nothing is blocked on the operator
 
-## Nothing is currently blocked on the operator
-
-They know all five dispatches were running and that a review loop closed
-out (the gate-flakiness bug, the disk-redesign). No open question is
-waiting on them right now.
+They know the research is the focus and that the engine decision is coming.
