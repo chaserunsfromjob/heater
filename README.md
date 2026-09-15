@@ -51,7 +51,8 @@ bin/inbox.py check --summary "..."   # already judged? exit 1 means do not file
 bin/inbox.py list / dismiss <id> --reason / promote <id> --score 70 / tasks
 bin/bearings.py          # where everything stands, in one read. exit 1 means something waits
 bin/dispatch.py open --task "..." --done-when "..."   # record a dispatch, print the brief
-bin/dispatch.py list / close <id> --outcome pushed
+bin/dispatch.py land <id> --gate "..."   # merge back, delete the checkout, free the slot
+bin/dispatch.py list / close <id> --outcome failed
 bin/worktrees.py list / reclaim    # checkouts leased to workers, created on demand
 bin/handover.py          # is this session safe to clear? exit 0 means yes
 tools/style_lint.py      # check rule files on their own
@@ -97,8 +98,9 @@ complete.
       `bearings`. This is the step that switched routing enforcement on.
 - [x] **7. Worktree slots**, leased on demand rather than provisioned. The first
       worker on a project uses its checkout; a second one while the first is out
-      is given its own, automatically. Capped per project, and a slot holding
-      unpushed work is never reclaimed.
+      is given its own, automatically. Capped per project. Landing merges the
+      work back, deletes the branch and the checkout, and frees the slot in one
+      step; a slot holding work that exists nowhere else is never destroyed.
 
 ## Credit
 

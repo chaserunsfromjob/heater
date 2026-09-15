@@ -47,20 +47,40 @@ blocked, and a question mid-task costs a turn without changing the outcome.
 
 ## When it reports
 
-1. Read the report. The worker has pushed a branch; it has not merged.
+1. Read the report. The worker has committed on its branch; it has not merged.
 2. Run the adversarial-review loop against the change. Never judge it yourself,
    and never accept the worker's own assessment that it is ready.
-3. Take the merge once review passes, the suite is green, and the gate exits 0.
-4. Close the record:
+3. Record each round with `bin/store.py review --change <dispatch-id>`. Landing
+   reads the store for a pass, so an unrecorded round did not happen.
+4. Land it:
 
 ```sh
-bin/dispatch.py close <id> --outcome pushed --note "..."
+bin/dispatch.py land <id> --gate "<the project's gate command>"
 ```
 
-Outcomes are `pushed`, `escalated`, `failed`, `abandoned`. Close it even when it
-failed — an open record means a worker is still owed a reply, and one left open
-makes every later bearings read wrong.
+Landing does the whole end of the cycle in one step: it merges the branch back
+into the branch it was cut from, deletes the spent branch, removes the extra
+checkout, frees the slot, and closes the dispatch as `landed`. A merge that
+leaves the checkout behind and a checkout deleted before its merge are both ways
+to lose work, so neither half happens alone.
 
-Closing gives the slot back. It refuses while the branch still holds work that
-exists nowhere else, and records why on the dispatch instead of destroying it.
-Push the branch, then close again.
+It refuses, changing nothing, when there is no recorded review pass, when the
+worker left uncommitted changes, when the gate does not exit 0, when the main
+checkout is dirty or on the wrong branch, or when the merge conflicts. A
+conflicting merge is aborted rather than left half-applied for someone to find.
+
+`--skip-review` exists for a human who has read the change themselves. It is not
+for getting past a review the loop has not finished.
+
+## When it did not work out
+
+```sh
+bin/dispatch.py close <id> --outcome failed --note "..."
+```
+
+Outcomes are `landed`, `pushed`, `escalated`, `failed`, `abandoned`. Close it
+even when it failed — an open record means a worker is still owed a reply, and
+one left open makes every later bearings read wrong.
+
+Closing frees the slot too, and refuses while the branch holds work that exists
+nowhere else, recording why on the dispatch instead of destroying it.

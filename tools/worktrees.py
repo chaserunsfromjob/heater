@@ -106,10 +106,13 @@ def lease(repo: Path, project: str, branch: str, *, dispatch_id: str = "",
     # The commit this slot started from. Without it there is no way to tell a
     # fresh checkout from one carrying real work: both have commits in them.
     code, base_sha = git(repo, "rev-parse", base)
+    branch_code, base_branch = git(repo, "rev-parse", "--abbrev-ref", "HEAD")
     record = {
         "id": jsonstore.new_id(), "created": jsonstore.now(),
         "project": project or repo.name, "repo": str(repo), "branch": branch,
         "dispatch_id": dispatch_id, "base_sha": base_sha if code == 0 else "",
+        # The branch this slot was cut from, and the one its work lands back into.
+        "base_branch": base_branch if branch_code == 0 else "",
         "path": "", "released_at": None, "released_how": "",
     }
     path = worktree_root() / slug(record["project"]) / record["id"]
@@ -124,13 +127,23 @@ def lease(repo: Path, project: str, branch: str, *, dispatch_id: str = "",
     return record
 
 
-def unpushed(record: dict[str, Any]) -> bool:
+def contained_by(path: Path, ref: str) -> bool:
+    """True when this checkout's commits are already reachable from `ref`."""
+    code, _ = git(path, "merge-base", "--is-ancestor", "HEAD", ref)
+    return code == 0
+
+
+def work_at_risk(record: dict[str, Any]) -> bool:
     """True when this slot holds work that exists nowhere else.
+
+    Three ways work is safe, and all three must be checked or the pool jams:
+    merged into the branch it was cut from, pushed to a remote, or simply never
+    started. Asking only "was it pushed" refuses to release a slot whose work
+    has already landed, which is the normal end of a dispatch.
 
     Measured against the commit the slot started from, never against "has any
     commits at all". A fresh checkout inherits the whole history of its base, so
-    counting commits would mark every empty slot as holding work and jam the
-    pool permanently.
+    counting commits marks every empty slot as holding work.
     """
     path = Path(record.get("path", ""))
     if not path.exists():
@@ -140,10 +153,13 @@ def unpushed(record: dict[str, Any]) -> bool:
     if code == 0 and output.strip():
         return True
 
-    # Pushed work lives on the remote, so only what is ahead of it is at risk.
-    code, output = git(path, "log", "--oneline", f"origin/{record['branch']}..HEAD")
-    if code == 0:
-        return bool(output.strip())
+    # Landed: its commits are already in the branch it will merge back into.
+    if (trunk := record.get("base_branch")) and contained_by(path, trunk):
+        return False
+
+    # Pushed: its commits are on the remote.
+    if contained_by(path, f"origin/{record['branch']}"):
+        return False
 
     base = record.get("base_sha")
     if not base:
@@ -153,6 +169,10 @@ def unpushed(record: dict[str, Any]) -> bool:
     return code == 0 and bool(output.strip())
 
 
+# Kept as the old name so nothing that imports it breaks silently.
+unpushed = work_at_risk
+
+
 def release(lease_id: str, how: str = "released", *, force: bool = False) -> dict[str, Any]:
     """Give a slot back. Refuses while the branch holds work nobody else has."""
     record = next((l for l in jsonstore.load(leases_dir()) if l["id"] == lease_id), None)
@@ -160,10 +180,10 @@ def release(lease_id: str, how: str = "released", *, force: bool = False) -> dic
         raise ValueError(f"no lease with id {lease_id!r}")
     if record.get("released_at"):
         return record
-    if not force and unpushed(record):
+    if not force and work_at_risk(record):
         raise RuntimeError(
-            f"{lease_id} still holds unpushed work on {record['branch']}; "
-            "push it before releasing the slot")
+            f"{lease_id} still holds work on {record['branch']} that exists nowhere else; "
+            "land it or push it before releasing the slot")
 
     path = Path(record.get("path", ""))
     if path.exists():
@@ -186,7 +206,7 @@ def reclaim(project: str = "") -> list[dict[str, Any]]:
             taken.append(release(record["id"], "worktree gone", force=True))
             continue
         age = age_minutes(record)
-        if age is not None and age > STALE_MINUTES and not unpushed(record):
+        if age is not None and age > STALE_MINUTES and not work_at_risk(record):
             taken.append(release(record["id"], f"abandoned after {age:.0f}m"))
     return taken
 

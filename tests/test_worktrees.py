@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
 import dispatch  # noqa: E402
+import store  # noqa: E402
 import worktrees  # noqa: E402
 
 
@@ -28,7 +29,8 @@ def run(*args: str, cwd: Path) -> None:
 
 
 class WorktreeCase(unittest.TestCase):
-    ENV = ("HEATER_LEASES_DIR", "HEATER_WORKTREE_ROOT", "HEATER_DISPATCHES_DIR")
+    ENV = ("HEATER_LEASES_DIR", "HEATER_WORKTREE_ROOT", "HEATER_DISPATCHES_DIR",
+           "HEATER_REVIEWS_DIR", "HEATER_SUITES_DIR")
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -37,6 +39,8 @@ class WorktreeCase(unittest.TestCase):
         os.environ["HEATER_LEASES_DIR"] = str(self.root / "leases")
         os.environ["HEATER_WORKTREE_ROOT"] = str(self.root / "trees")
         os.environ["HEATER_DISPATCHES_DIR"] = str(self.root / "dispatches")
+        os.environ["HEATER_REVIEWS_DIR"] = str(self.root / "reviews")
+        os.environ["HEATER_SUITES_DIR"] = str(self.root / "suites")
 
         self.repo = self.root / "proj"
         self.repo.mkdir()
@@ -221,6 +225,153 @@ class TestDispatchLeasesAutomatically(WorktreeCase):
         third = dispatch.open_dispatch("three", project="api", repo=str(self.repo))
         self.assertTrue(third["lease_id"])
         self.assertEqual(len(worktrees.active("api")), 1)
+
+
+class TestLanding(WorktreeCase):
+    """The end of a dispatch: the work merges back and the extra checkout goes."""
+
+    def second_worker(self, task: str = "add a feature"):
+        dispatch.open_dispatch("first task", project="api", repo=str(self.repo))
+        return dispatch.open_dispatch(task, project="api", repo=str(self.repo))
+
+    def do_work(self, record: dict, name: str = "feature.txt", body: str = "new\n"):
+        path = Path(record["workdir"])
+        (path / name).write_text(body)
+        run("git", "add", "-A", cwd=path)
+        run("git", "commit", "-qm", f"add {name}", cwd=path)
+
+    def pass_review(self, record: dict):
+        store.record_review(record["id"], 1, "default", "pass", cost_usd=0.1)
+
+    def test_work_reaches_the_main_checkout(self):
+        record = self.second_worker()
+        self.do_work(record)
+        self.pass_review(record)
+        dispatch.land(record["id"])
+        self.assertTrue((self.repo / "feature.txt").is_file(),
+                        "the whole point is that the work comes back")
+
+    def test_the_extra_checkout_is_removed(self):
+        record = self.second_worker()
+        self.do_work(record)
+        self.pass_review(record)
+        workdir = Path(record["workdir"])
+        dispatch.land(record["id"])
+        self.assertFalse(workdir.exists())
+
+    def test_the_slot_is_freed(self):
+        record = self.second_worker()
+        self.do_work(record)
+        self.pass_review(record)
+        dispatch.land(record["id"])
+        self.assertEqual(worktrees.active("api"), [])
+
+    def test_the_dispatch_closes_as_landed(self):
+        record = self.second_worker()
+        self.do_work(record)
+        self.pass_review(record)
+        self.assertEqual(dispatch.land(record["id"])["outcome"], "landed")
+
+    def test_the_branch_is_deleted_after_landing(self):
+        record = self.second_worker()
+        self.do_work(record)
+        self.pass_review(record)
+        branch = record["branch"]
+        dispatch.land(record["id"])
+        done = subprocess.run(["git", "-C", str(self.repo), "branch", "--list", branch],
+                              capture_output=True, text=True, timeout=30)
+        self.assertEqual(done.stdout.strip(), "", "a spent branch is deleted without asking")
+
+    def test_landing_without_a_review_pass_is_refused(self):
+        record = self.second_worker()
+        self.do_work(record)
+        with self.assertRaises(dispatch.NotReadyToLand):
+            dispatch.land(record["id"])
+        self.assertTrue(Path(record["workdir"]).exists(), "a refusal must change nothing")
+
+    def test_a_failed_review_does_not_count_as_a_pass(self):
+        record = self.second_worker()
+        self.do_work(record)
+        store.record_review(record["id"], 1, "default", "fail", findings=2)
+        with self.assertRaises(dispatch.NotReadyToLand):
+            dispatch.land(record["id"])
+
+    def test_uncommitted_work_blocks_landing(self):
+        record = self.second_worker()
+        self.do_work(record)
+        self.pass_review(record)
+        (Path(record["workdir"]) / "half.txt").write_text("unfinished\n")
+        with self.assertRaises(dispatch.NotReadyToLand):
+            dispatch.land(record["id"])
+
+    def test_a_failing_gate_blocks_landing(self):
+        record = self.second_worker()
+        self.do_work(record)
+        self.pass_review(record)
+        with self.assertRaises(dispatch.NotReadyToLand):
+            dispatch.land(record["id"], gate="exit 3")
+        self.assertTrue(Path(record["workdir"]).exists())
+
+    def test_a_passing_gate_allows_landing(self):
+        record = self.second_worker()
+        self.do_work(record)
+        self.pass_review(record)
+        dispatch.land(record["id"], gate="true")
+        self.assertTrue((self.repo / "feature.txt").is_file())
+
+    def test_a_dirty_main_checkout_blocks_landing(self):
+        record = self.second_worker()
+        self.do_work(record)
+        self.pass_review(record)
+        (self.repo / "operator-wip.txt").write_text("mine\n")
+        with self.assertRaises(dispatch.NotReadyToLand):
+            dispatch.land(record["id"])
+        self.assertTrue((self.repo / "operator-wip.txt").is_file(),
+                        "the operator's own work must be untouched")
+
+    def test_a_conflict_is_aborted_and_leaves_nothing_behind(self):
+        record = self.second_worker()
+        self.do_work(record, "a.txt", "worker version\n")
+        self.pass_review(record)
+        (self.repo / "a.txt").write_text("operator version\n")
+        run("git", "add", "-A", cwd=self.repo)
+        run("git", "commit", "-qm", "operator edit", cwd=self.repo)
+
+        with self.assertRaises(dispatch.NotReadyToLand):
+            dispatch.land(record["id"])
+        done = subprocess.run(["git", "-C", str(self.repo), "status", "--porcelain"],
+                              capture_output=True, text=True, timeout=30)
+        self.assertEqual(done.stdout.strip(), "",
+                         "a failed merge must be aborted, not left half-applied")
+        self.assertEqual((self.repo / "a.txt").read_text(), "operator version\n")
+        self.assertTrue(Path(record["workdir"]).exists(), "the worker's slot survives a refusal")
+
+    def test_landing_twice_is_refused(self):
+        record = self.second_worker()
+        self.do_work(record)
+        self.pass_review(record)
+        dispatch.land(record["id"])
+        with self.assertRaises(dispatch.NotReadyToLand):
+            dispatch.land(record["id"])
+
+    def test_a_worker_in_the_main_checkout_lands_without_merging(self):
+        record = dispatch.open_dispatch("only worker", project="api", repo=str(self.repo))
+        self.pass_review(record)
+        self.assertEqual(dispatch.land(record["id"])["outcome"], "landed")
+
+    def test_skip_review_is_available_for_a_human_who_has_looked(self):
+        record = self.second_worker()
+        self.do_work(record)
+        dispatch.land(record["id"], skip_review=True)
+        self.assertTrue((self.repo / "feature.txt").is_file())
+
+    def test_a_landed_slot_can_be_reused(self):
+        record = self.second_worker()
+        self.do_work(record)
+        self.pass_review(record)
+        dispatch.land(record["id"])
+        again = dispatch.open_dispatch("next task", project="api", repo=str(self.repo))
+        self.assertTrue(again["lease_id"])
 
 
 if __name__ == "__main__":
