@@ -234,5 +234,30 @@ class TestRoutingIsNowEnforced(unittest.TestCase):
         self.assertTrue(pre_tool_use.ENFORCE_STOKER_ROUTING)
 
 
+class TestStokerLauncher(unittest.TestCase):
+    """The operator is not a programmer. The launcher is the whole interface,
+    so a broken one is a broken system, not a broken convenience."""
+
+    script = ROOT / "bin" / "stoker.sh"
+
+    def test_it_exists_and_runs(self):
+        import os
+        self.assertTrue(self.script.is_file(), f"{self.script} is missing")
+        self.assertTrue(os.access(self.script, os.X_OK), f"{self.script} is not executable")
+
+    def test_it_sets_the_role_the_session_start_hook_reads(self):
+        self.assertIn("HEATER_ROLE=stoker", self.script.read_text(encoding="utf-8"))
+
+    def test_the_role_it_sets_has_a_rules_file(self):
+        self.assertTrue((ROOT / "roles" / "stoker.md").is_file())
+
+    def test_it_enters_the_repo_so_the_session_starts_in_the_right_folder(self):
+        self.assertIn('cd "$(dirname "$0")/.."', self.script.read_text(encoding="utf-8"))
+
+    def test_it_is_syntactically_valid_shell(self):
+        done = subprocess.run(["bash", "-n", str(self.script)], capture_output=True, text=True)
+        self.assertEqual(done.returncode, 0, done.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()

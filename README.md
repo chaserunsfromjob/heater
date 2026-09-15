@@ -24,7 +24,7 @@ from that.
 | `hooks/session_end.py` | Records how a session ended and what fleet state it left unsynced. |
 | `hooks/statusline.py` | The status line. Records the exact context window size, which the transcript does not carry. |
 | `hooks/pre_compact.py` | Backstop. Marks a session whose memory was summarised before a handover. |
-| `roles/stoker.md` | The stoker's own rules. Loaded by `HEATER_ROLE=stoker`. |
+| `roles/stoker.md` | The stoker's own rules. Loaded by `HEATER_ROLE=stoker`, which `bin/stoker.sh` sets. |
 | `roles/worker.md` | Standing instructions wrapped around every dispatched brief. |
 | `queue/` | Notes waiting for the stoker, one JSON file each. |
 | `agents/reviewer.md` | The judge. No write tools, and the guard enforces it through Bash too. |
@@ -42,6 +42,7 @@ A rule is one imperative bullet under fifty words, stated in exactly one place.
 ## Commands
 
 ```sh
+bin/stoker.sh            # open the stoker: the one session the operator talks to
 bin/gate.sh              # the landing gate: style + suite. Exit 0 or it does not land.
 bin/deploy.py            # link ~/.claude files and register the hooks on this machine
 bin/deploy.py --check    # report drift without changing anything
