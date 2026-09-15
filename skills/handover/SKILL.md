@@ -10,6 +10,32 @@ procedure writes the rest down, then proves the session is safe to end.
 
 Run `bin/handover.py` to check. Exit 0 means safe to clear.
 
+## It starts on its own
+
+Nobody watches a percentage. The status line records how full the context window
+is, the Stop hook reads that, and past the threshold it refuses to let the turn
+end quietly and says to hand over now. Work this instruction before anything
+else: it names exactly what is outstanding.
+
+Hooks are never told the context size, so the status line is the only source.
+`bin/deploy.py --check` reports a missing or foreign status line as drift,
+because without it this never fires.
+
+The threshold is 55%, well below the point where the conversation is summarised
+automatically. Set `HEATER_HANDOVER_AT` to move it. Later is worse than it
+sounds: automatic summarising keeps whatever it judges important, and nobody
+chooses what it drops.
+
+Reaching compaction means this failed. The `PreCompact` hook leaves a mark, and
+the next session is told its memory was edited by a machine and to write a
+handover immediately.
+
+## The one part that is not automatic
+
+Nothing can clear the conversation for you. Hook output cannot send input into a
+session, so the last step is a person typing `/clear`. Everything before it —
+noticing, writing, committing, pushing, verifying — happens without being asked.
+
 ## What the next session can look up, and must not be told again
 
 - What the code does. It reads the code.

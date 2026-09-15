@@ -118,6 +118,11 @@ def stop() -> dict[str, Any]:
     return {}
 
 
+def say(message: str) -> dict[str, Any]:
+    """Let the turn end, but put a message in front of the operator."""
+    return {"systemMessage": message}
+
+
 def keep_going(reason: str) -> dict[str, Any]:
     return {
         "hookSpecificOutput": {

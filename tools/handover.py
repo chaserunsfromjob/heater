@@ -95,6 +95,12 @@ CHECKS = [
 ]
 
 
+def problems(quick: bool = True) -> list[str]:
+    """Every reason this session is not safe to end, named. Empty means safe."""
+    checks = list(CHECKS) + ([] if quick else [("suite green", check_gate)])
+    return [f"{name}: {problem}" for name, check in checks if (problem := check())]
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--quick", action="store_true", help="skip the suite; check git state only")

@@ -150,14 +150,19 @@ class TestHookRegistration(unittest.TestCase):
         self.assertIn(foreign, merged["SessionStart"])
         self.assertEqual(len(merged["SessionStart"]), 2, "ours is added beside theirs, not instead of it")
 
-    def test_registers_every_hook_script_in_the_repo(self):
-        """A hook file nobody registers never runs, and fails silently."""
-        registered = {Path(h["command"]).name
-                      for groups in deploy.hook_groups().values()
-                      for g in groups for h in g["hooks"]}
+    def test_every_script_in_hooks_is_wired_in_somewhere(self):
+        """A script nobody registers never runs, and fails silently.
+
+        Not all of them are hooks: statusline.py is wired in as the statusLine
+        setting, because only a status line is told how full the context is.
+        """
+        wired = {Path(h["command"]).name
+                 for groups in deploy.hook_groups().values()
+                 for g in groups for h in g["hooks"]}
+        wired.add(Path(deploy.status_line()["command"]).name)
         on_disk = {p.name for p in (deploy.REPO / "hooks").glob("*.py")
                    if p.name != "heater_hook.py"}
-        self.assertEqual(on_disk - registered, set(), "unregistered hook script")
+        self.assertEqual(on_disk - wired, set(), "unwired script in hooks/")
 
     def test_is_idempotent(self):
         once = deploy.merge_hooks({})

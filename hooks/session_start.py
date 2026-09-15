@@ -19,7 +19,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
+import context as context_state  # noqa: E402
 from heater_hook import REPO, context, log, role, run, stop  # noqa: E402
+
+
+def compaction_note() -> str:
+    """Tell a session that came through compaction that its memory was edited."""
+    state = context_state.read()
+    if not state.get("compacted_at"):
+        return ""
+    context_state.write(compacted_at=None, compacted_trigger=None)
+    return ("This session was compacted before a handover was written, so part of its "
+            "memory was summarised by a machine rather than chosen. Write HANDOVER.md "
+            "now, from the repository and the commit history, before anything else.")
 
 
 def role_rules(name: str) -> str:
@@ -64,6 +76,7 @@ def handle(payload: dict[str, Any]) -> dict[str, Any]:
     if rules:
         parts.append(f"You are running as **{name}**. These rules apply on top of "
                      f"the global rules already in your context.\n\n{rules}")
+    parts.append(compaction_note())
     if name == "stoker":
         parts.append(waiting_note())
     parts.append(drift_note())

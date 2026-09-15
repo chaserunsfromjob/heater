@@ -63,11 +63,20 @@ def hook_groups() -> dict[str, list[dict]]:
         "SessionStart": [{
             "hooks": [{"type": "command", "command": str(HOOK_DIR / "session_start.py"), "timeout": 10}],
         }],
+        "PreCompact": [{
+            "hooks": [{"type": "command", "command": str(HOOK_DIR / "pre_compact.py"), "timeout": 5}],
+        }],
         # SessionEnd hooks share a 1.5s budget unless a longer timeout raises it.
         "SessionEnd": [{
             "hooks": [{"type": "command", "command": str(HOOK_DIR / "session_end.py"), "timeout": 5}],
         }],
     }
+
+
+def status_line() -> dict:
+    """The status line is the only thing told how full the context window is, so
+    it is what makes automatic handover possible. Hooks are never told."""
+    return {"type": "command", "command": str(HOOK_DIR / "statusline.py"), "padding": 0}
 
 
 def is_ours(group: dict) -> bool:
@@ -107,12 +116,25 @@ def settings_drift() -> str | None:
         return "not deployed"
     if current.get("hooks") != merge_hooks(current.get("hooks") or {}):
         return "hook registration out of date"
+    existing = current.get("statusLine") or {}
+    if not existing:
+        return "no status line, so nothing can see context usage and handover cannot fire"
+    if not str(existing.get("command", "")).startswith(str(HOOK_DIR)):
+        return ("a status line is configured that is not this repository's, so context usage "
+                "is invisible and automatic handover will never fire; replace it or merge it "
+                "with hooks/statusline.py")
     return None
 
 
 def deploy_settings() -> str:
     current = read_settings()
     updated = {**current, "hooks": merge_hooks(current.get("hooks") or {})}
+
+    # Never replace an operator's own status line. Deploy reports it as drift
+    # instead, because silently taking it over is worse than saying so.
+    existing = current.get("statusLine") or {}
+    if not existing or str(existing.get("command", "")).startswith(str(HOOK_DIR)):
+        updated["statusLine"] = status_line()
     if updated == current and SETTINGS.exists():
         return "already correct"
     SETTINGS.parent.mkdir(parents=True, exist_ok=True)

@@ -22,6 +22,8 @@ from that.
 | `hooks/session_start.py` | Loads the right role's rules from an environment marker, and reports machine drift. |
 | `hooks/post_tool_use.py` | A heartbeat, so a watcher can tell a quiet worker from a dead one. |
 | `hooks/session_end.py` | Records how a session ended and what fleet state it left unsynced. |
+| `hooks/statusline.py` | The status line, and the only thing told how full the context window is. |
+| `hooks/pre_compact.py` | Backstop. Marks a session whose memory was summarised before a handover. |
 | `roles/stoker.md` | The stoker's own rules. Loaded by `HEATER_ROLE=stoker`. |
 | `roles/worker.md` | Standing instructions wrapped around every dispatched brief. |
 | `queue/` | Notes waiting for the stoker, one JSON file each. |
@@ -57,6 +59,7 @@ bin/dispatch.py land <id> --gate "..."   # the same, for one dispatch
 bin/dispatch.py list / close <id> --outcome failed
 bin/worktrees.py list / reclaim    # checkouts leased to workers, created on demand
 bin/handover.py          # is this session safe to clear? exit 0 means yes
+                         # handover fires by itself at 55% context; HEATER_HANDOVER_AT moves it
 tools/style_lint.py      # check rule files on their own
 python3 -m unittest discover -s tests
 ```

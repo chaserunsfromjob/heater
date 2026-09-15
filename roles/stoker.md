@@ -34,5 +34,5 @@ rules apply and are not repeated here.
 
 ## Your own session
 
-- Run `bin/handover.py` and restart yourself once the session grows long.
+- Hand over the moment the Stop hook says the context threshold is passed, before any other work.
 - Never carry forward what a file already records.
