@@ -1,0 +1,18 @@
+{
+  "id": "14d64950c0bc",
+  "created": "2026-09-15T19:48:31.518530+00:00",
+  "task": "Write RESOURCES_BOTS.md: ready-made poker BOTS, bot frameworks and pre-trained strategies we could adopt instead of building. Cover at least: OpenHoldem/OpenPPL (open-source bot framework with table scraping and profile-based exploitative logic), dickreuter/Poker (Python bot with screen scraping and Monte Carlo equity that plays on real clients), Slumbot (strong open HUNL bot with a public play API and released strategy), open DeepStack/Pluribus reimplementations (DeepHoldem, Supremus, pluribus-poker-AI and others -- check which are real and what they ship), RLCard's pre-trained no-limit hold'em models, PokerSnowie and any other commercial bot/advisor with a pre-trained strategy, and anything that captures table state from a screen (the operator plays on an app that shows stable player names). For each: does it PLAY today, at what table sizes, no-limit or not, and could its decisions be adjusted per opponent. Research, not code. Verify EVERY resource is real by actually visiting it (repo page, docs, pricing page): record URL, what it is, last activity date, licence, price if paid, whether it runs on macOS/Python, and whether it is a real working thing or an abandoned demo. For each, rate against the operator's requirements: (a) 2-9 players, (b) true no-limit sizing, (c) exploiting specific opponents by identity, (d) reachable in HOURS on one laptop -- no multi-day computing, (e) the project is private and never distributed, so paid tools and GPL code are both acceptable. End with a ranked shortlist and a one-paragraph recommendation of what to adopt first. A separate worker is already surveying poker ENGINES (OpenSpiel, RLCard, PyPokerEngine, PokerKit, clubs, PokerRL) for ENGINE_ALTERNATIVES.md; do not duplicate that, cite it as 'see ENGINE_ALTERNATIVES.md' and go wider. Do not touch OPPONENT_MODEL_DESIGN.md, CLAUDE.md, or any existing file; write only your one new file. Run fleet tooling from /Users/chasethompson/heater (bin/inbox.py check, bin/queue.py add). pokerbot has no GitHub remote: commit on your branch, nothing to push.",
+  "project": "pokerbot",
+  "done_when": "RESOURCES_BOTS.md committed on the branch with at least 8 verified resources, each rated on the five criteria, ending with a ranked shortlist and one recommendation",
+  "task_id": "",
+  "agent": "general-purpose",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/b1f72dd635fa",
+  "lease_id": "b1f72dd635fa",
+  "branch": "worker/14d64950c0bc",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

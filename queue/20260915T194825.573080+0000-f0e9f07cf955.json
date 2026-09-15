@@ -1,0 +1,17 @@
+{
+  "id": "f0e9f07cf955",
+  "created": "2026-09-15T19:48:25.573080+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "",
+  "path": "",
+  "origin": "",
+  "summary": "pokerbot/README.md lists no design documents; EVALUATION_STRATEGY.md and OPPONENT_MODEL_DESIGN.md are unreferenced from it",
+  "delivered_at": "2026-09-15T19:51:36.022590+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-15T19:50:26.543742+00:00",
+    "score": 15,
+    "task_id": "8a7b9e92e77c"
+  }
+}

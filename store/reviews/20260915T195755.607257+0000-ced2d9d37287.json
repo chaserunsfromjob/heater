@@ -1,0 +1,17 @@
+{
+  "id": "ced2d9d37287",
+  "created": "2026-09-15T19:57:55.607257+00:00",
+  "change": "36e2ae4be45b",
+  "project": "",
+  "round": 6,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 6,
+  "wording_only": false,
+  "files": 2,
+  "insertions": 1590,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": ""
+}

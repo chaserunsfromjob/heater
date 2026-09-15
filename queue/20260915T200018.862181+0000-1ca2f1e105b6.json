@@ -1,0 +1,17 @@
+{
+  "id": "1ca2f1e105b6",
+  "created": "2026-09-15T20:00:18.862181+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "",
+  "path": "",
+  "origin": "",
+  "summary": "Record in pokerbot/CLAUDE.md with the firm requirements (dispatch with tasks 96243ce4163a, f2f8237946ac, 4fd636640f0a as one brief): the operator's table-size priority, verbatim 2026-09-15: 'i will be playing mostly 6 player tables, followed by 8 or 9 player tables which can honestly be treated the same, they are so close' -- 6-max first, 8/9 as one band, every size 2-9 still required. pokerbot/CLAUDE.md",
+  "delivered_at": "2026-09-15T20:00:22.554990+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-15T20:00:18.899650+00:00",
+    "score": 50,
+    "task_id": "65bba741bf40"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "048795519f43",
+  "created": "2026-09-15T19:48:31.609263+00:00",
+  "task": "Write RESOURCES_SOLVERS.md: SOLVERS, equity calculators and paid services that could supply the bot's poker judgment at decision time or as precomputed strategy, so no multi-day solve is needed. Cover at least: open-source real-time solvers (TexasSolver, wasm-postflop/postflop-solver in Rust, any CFR solver that solves a postflop spot in seconds on a laptop), fast hand evaluators and equity calculators (OMPEval, phevaluator/PokerHandEvaluator, poker-eval, pokerstove, Python bindings), multiway-capable solvers open or paid (MonkerSolver, PioSOLVER, GTO+, Simple Postflop -- note which handle 3+ players and their prices), precomputed-strategy services (GTO Wizard, DeepSolver, Odin, HoldemResources, any with an API or exportable ranges), and preflop range charts/solutions freely available for 2-9 handed no-limit. For each: does it produce a decision for an arbitrary N-player no-limit spot, how fast, and can it be called from Python. Research, not code. Verify EVERY resource is real by actually visiting it (repo page, docs, pricing page): record URL, what it is, last activity date, licence, price if paid, whether it runs on macOS/Python, and whether it is a real working thing or an abandoned demo. For each, rate against the operator's requirements: (a) 2-9 players, (b) true no-limit sizing, (c) exploiting specific opponents by identity, (d) reachable in HOURS on one laptop -- no multi-day computing, (e) the project is private and never distributed, so paid tools and GPL code are both acceptable. End with a ranked shortlist and a one-paragraph recommendation of what to adopt first. A separate worker is already surveying poker ENGINES (OpenSpiel, RLCard, PyPokerEngine, PokerKit, clubs, PokerRL) for ENGINE_ALTERNATIVES.md; do not duplicate that, cite it as 'see ENGINE_ALTERNATIVES.md' and go wider. Do not touch OPPONENT_MODEL_DESIGN.md, CLAUDE.md, or any existing file; write only your one new file. Run fleet tooling from /Users/chasethompson/heater (bin/inbox.py check, bin/queue.py add). pokerbot has no GitHub remote: commit on your branch, nothing to push.",
+  "project": "pokerbot",
+  "done_when": "RESOURCES_SOLVERS.md committed on the branch with at least 8 verified resources, each rated on the five criteria, speed measured or quoted, ending with a ranked shortlist and one recommendation",
+  "task_id": "",
+  "agent": "general-purpose",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/85f4140c6fae",
+  "lease_id": "85f4140c6fae",
+  "branch": "worker/048795519f43",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}
