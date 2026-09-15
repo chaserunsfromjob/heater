@@ -109,9 +109,9 @@ STOKER_WARNING = (
 SESSION_CREATE_TOOL = re.compile(r"(?:\A|__)create_session\Z", re.I)
 
 SESSION_CREATE_RULE = (
-    "Never open a successor session from a session that is ending; the operator opens it "
-    "from the project. A session created from inside another arrives with no checkout, so it "
-    "is filed under no project and cannot be found."
+    "Never open a successor session from inside a session; bin/stoker.sh ends the spent "
+    "session and opens the next one. A session created from inside another arrives with no "
+    "checkout, so it is filed under no project and cannot be found."
 )
 
 

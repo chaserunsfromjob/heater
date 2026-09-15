@@ -24,6 +24,7 @@ sys.path.insert(0, str(ROOT / "hooks"))
 import context  # noqa: E402
 import deploy  # noqa: E402
 import statusline  # noqa: E402
+import stoker  # noqa: E402
 import stop as stop_hook  # noqa: E402
 
 
@@ -280,7 +281,43 @@ class TestStopTrigger(StateCase):
         with self.busy(), self.outstanding():
             decision = stop_hook.handover_decision()
         self.assertNotIn("hookSpecificOutput", decision)
-        self.assertIn("/clear", decision["systemMessage"])
+        self.assertIn("bin/stoker.sh", decision["systemMessage"])
+
+    def test_the_ready_message_asks_the_operator_for_nothing(self):
+        """Opinion 12: the handoff needs nothing from the operator."""
+        self.at(30)
+        with self.busy(), self.outstanding():
+            decision = stop_hook.handover_decision()
+        self.assertNotIn("/clear", decision["systemMessage"])
+
+    def test_a_ready_handover_marks_the_session_done(self):
+        """The marker is the signal the supervisor is watching for."""
+        self.at(30)
+        with self.busy(), self.outstanding():
+            stop_hook.handover_decision(None, "stoker")
+        self.assertTrue(stoker.marker_path().exists())
+
+    def test_it_marks_the_session_done_only_once(self):
+        self.at(30)
+        with self.busy(), self.outstanding():
+            stop_hook.handover_decision(None, "stoker")
+            first = stoker.marker_path().read_text(encoding="utf-8")
+            stop_hook.handover_decision(None, "stoker")
+        self.assertEqual(stoker.marker_path().read_text(encoding="utf-8"), first)
+
+    def test_it_never_ends_a_session_that_is_not_the_stoker(self):
+        """A worker's session is a dispatch, not something to replace."""
+        self.at(30)
+        with self.busy(), self.outstanding():
+            decision = stop_hook.handover_decision(None, "worker")
+        self.assertFalse(stoker.marker_path().exists())
+        self.assertNotIn("bin/stoker.sh", decision["systemMessage"])
+
+    def test_an_unfinished_handover_is_never_marked_done(self):
+        self.at(90)
+        with self.busy(), self.outstanding("working tree clean: uncommitted changes"):
+            stop_hook.handover_decision(None, "stoker")
+        self.assertFalse(stoker.marker_path().exists())
 
     def test_handover_outranks_the_queue(self):
         """Picking up new work past the ceiling only makes the note harder to write."""

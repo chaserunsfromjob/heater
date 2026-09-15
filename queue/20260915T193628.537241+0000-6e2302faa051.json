@@ -1,0 +1,12 @@
+{
+  "id": "6e2302faa051",
+  "created": "2026-09-15T19:36:28.537241+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "",
+  "path": "tools/stoker.py",
+  "origin": "",
+  "summary": "bearings does not show stoker supervisor launches or restarts, which tools/stoker.py now logs as stoker_launch, stoker_restart, stoker_stalled and stoker_exit in ~/.heater/logs/hooks.jsonl. A handoff that happened while the operator was away leaves no trace they can see.",
+  "delivered_at": null,
+  "resolution": null
+}

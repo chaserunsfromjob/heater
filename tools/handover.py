@@ -148,9 +148,11 @@ def main(argv: list[str]) -> int:
         print(f"handover: NOT safe to clear, {len(problems)} problem(s) above", file=sys.stderr)
         return 1
     print("handover: safe to clear")
-    # Said here because this is the moment it is acted on, and getting it wrong
-    # is invisible: the successor opens, works, and is filed under no project.
-    print("next session: the operator opens it from the project, not this session")
+    # Said here because this is the moment it is acted on. The session does not
+    # open its own successor: one created from inside another arrives with no
+    # checkout and is filed under no project. bin/stoker.sh opens it instead,
+    # from outside, in this same folder, with nothing for the operator to type.
+    print("next session: bin/stoker.sh ends this session and opens it, with nothing to type")
     return 0
 
 

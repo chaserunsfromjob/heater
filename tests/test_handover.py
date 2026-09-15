@@ -139,9 +139,14 @@ class TestRunsEndToEnd(unittest.TestCase):
 
 
 class TestItSaysWhoOpensTheNext(unittest.TestCase):
-    def test_the_pass_message_names_the_operator(self):
+    def test_the_pass_message_names_the_supervisor(self):
         source = (ROOT / "tools" / "handover.py").read_text(encoding="utf-8")
-        self.assertIn("the operator opens it from the project", source)
+        self.assertIn("bin/stoker.sh ends this session and opens it", source)
+
+    def test_it_never_asks_the_operator_to_type_anything(self):
+        """Opinion 12: the handoff needs nothing from the operator."""
+        printed = (ROOT / "tools" / "handover.py").read_text(encoding="utf-8")
+        self.assertNotIn("/clear", printed)
 
 
 if __name__ == "__main__":

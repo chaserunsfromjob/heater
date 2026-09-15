@@ -141,6 +141,19 @@ real resources, disk space above all — not against an arbitrary headcount.
 The stoker doesn't raise or remove a cap on its own just to get past being
 blocked. It waits, or it asks. I decide that one.
 
+## 12. The handoff needs nothing from me
+
+"i want the handoff to happen without me having to do anything so figure out how
+to do that"
+
+"the rule shouldnt say that. no rule should say that i would have to do anything
+manually as a part of the handoff"
+
+A session filling up and being replaced by a fresh one is the system's own
+housekeeping. It is not a thing I asked for and not a thing I should be typing
+for. Work out how to do it without me, and if a rule says otherwise, the rule is
+what changes.
+
 ---
 
 ## Scope of this build

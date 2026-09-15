@@ -10,9 +10,11 @@ from __future__ import annotations
 
 import json
 import os
+import signal
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -25,6 +27,7 @@ import bearings  # noqa: E402
 import deploy  # noqa: E402
 import dispatch  # noqa: E402
 import session_start  # noqa: E402
+import stoker  # noqa: E402
 
 
 class StoreCase(unittest.TestCase):
@@ -399,12 +402,15 @@ class TestStokerLauncher(unittest.TestCase):
     script = ROOT / "bin" / "stoker.sh"
 
     def test_it_exists_and_runs(self):
-        import os
         self.assertTrue(self.script.is_file(), f"{self.script} is missing")
         self.assertTrue(os.access(self.script, os.X_OK), f"{self.script} is not executable")
 
+    def test_it_is_only_an_entry_point(self):
+        """bin/ holds entry points; a module there shadows one in tools/."""
+        self.assertIn("exec python3 tools/stoker.py", self.script.read_text(encoding="utf-8"))
+
     def test_it_sets_the_role_the_session_start_hook_reads(self):
-        self.assertIn("HEATER_ROLE=stoker", self.script.read_text(encoding="utf-8"))
+        self.assertEqual(stoker.child_env()["HEATER_ROLE"], "stoker")
 
     def test_the_role_it_sets_has_a_rules_file(self):
         self.assertTrue((ROOT / "roles" / "stoker.md").is_file())
@@ -412,12 +418,23 @@ class TestStokerLauncher(unittest.TestCase):
     def test_it_starts_under_remote_control(self):
         """Remote Control is what lets the operator talk to the stoker from the
         app without the stoker giving up the machine it governs."""
-        self.assertIn("--remote-control", self.script.read_text(encoding="utf-8"))
+        self.assertIn("--remote-control", stoker.command())
 
     def test_it_names_the_session_so_it_can_be_found_in_the_app(self):
         """An unnamed session lands in the list as a generated hostname phrase,
         which is not a thing the operator can pick out."""
-        self.assertIn("heater stoker", self.script.read_text(encoding="utf-8"))
+        self.assertIn("heater stoker", stoker.command())
+
+    def test_the_session_name_can_be_overridden(self):
+        with mock.patch.dict(os.environ, {"HEATER_SESSION_NAME": "other"}):
+            self.assertIn("other", stoker.command())
+            self.assertNotIn("heater stoker", stoker.command())
+
+    def test_every_launch_carries_an_opening_instruction(self):
+        """A fresh interactive session sits idle forever with nobody to type."""
+        self.assertIn(stoker.INITIAL_PROMPT, stoker.command())
+        self.assertIn("bearings", stoker.INITIAL_PROMPT)
+        self.assertIn("HANDOVER.md", stoker.INITIAL_PROMPT)
 
     def test_it_enters_the_repo_so_the_session_starts_in_the_right_folder(self):
         self.assertIn('cd "$(dirname "$0")/.."', self.script.read_text(encoding="utf-8"))
@@ -425,6 +442,189 @@ class TestStokerLauncher(unittest.TestCase):
     def test_it_is_syntactically_valid_shell(self):
         done = subprocess.run(["bash", "-n", str(self.script)], capture_output=True, text=True)
         self.assertEqual(done.returncode, 0, done.stderr)
+
+
+STUB_CLAUDE = '''#!/usr/bin/env python3
+"""Stands in for `claude`. Records how it was launched, then waits to be ended."""
+import json, os, sys, time
+from pathlib import Path
+
+log = Path(os.environ["STUB_LOG"])
+state = Path(os.environ["HEATER_STATE_DIR"])
+seen = len(log.read_text().splitlines()) if log.exists() else 0
+with log.open("a") as handle:
+    handle.write(json.dumps({
+        "launch": seen + 1,
+        "argv": sys.argv[1:],
+        "role": os.environ.get("HEATER_ROLE"),
+        "cwd": os.getcwd(),
+        "marker_present": (state / "handover-complete").exists(),
+    }) + "\\n")
+
+mode = os.environ.get("STUB_MODE", "sleep")
+if mode == "exit" or (mode == "handoff" and seen >= 1):
+    sys.exit(int(os.environ.get("STUB_EXIT", "0")))
+time.sleep(60)
+'''
+
+
+class TestStokerSupervisor(unittest.TestCase):
+    """The handoff has to cost the operator nothing, so the supervisor is the
+    thing that must not need watching. Every test here runs it for real against
+    a stub `claude`, because what matters is process behaviour, not intent."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        root = Path(self.tmp.name)
+        self.state = root / "state"
+        self.state.mkdir()
+        self.log = root / "launches.jsonl"
+        self.binaries = root / "bin"
+        self.binaries.mkdir()
+        stub = self.binaries / "claude"
+        stub.write_text(STUB_CLAUDE, encoding="utf-8")
+        stub.chmod(0o755)
+
+    def marker(self) -> Path:
+        return self.state / "handover-complete"
+
+    def environment(self, **extra: str) -> dict[str, str]:
+        return {**os.environ,
+                "PATH": f"{self.binaries}{os.pathsep}{os.environ.get('PATH', '')}",
+                "HEATER_STATE_DIR": str(self.state),
+                "HEATER_LOG_DIR": str(Path(self.tmp.name) / "logs"),
+                "STUB_LOG": str(self.log),
+                "HEATER_STOKER_POLL": "0.05",
+                "HEATER_STOKER_PAUSE": "0.05",
+                "HEATER_STOKER_GRACE": "5",
+                **extra}
+
+    def launches(self) -> list[dict]:
+        if not self.log.exists():
+            return []
+        return [json.loads(line) for line in self.log.read_text().splitlines() if line.strip()]
+
+    def supervisor(self, **extra: str) -> subprocess.Popen:
+        return subprocess.Popen([sys.executable, str(ROOT / "tools" / "stoker.py")],
+                                env=self.environment(**extra), stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE, text=True)
+
+    def run_supervisor(self, timeout: int = 60, **extra: str):
+        done = self.supervisor(**extra)
+        try:
+            out, err = done.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            done.kill()
+            out, err = done.communicate()
+            self.fail(f"the supervisor never exited\nstdout: {out}\nstderr: {err}")
+        return done.returncode, out, err
+
+    def wait_for_launches(self, count: int, process: subprocess.Popen, timeout: float = 30.0):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if len(self.launches()) >= count:
+                return self.launches()
+            if process.poll() is not None and len(self.launches()) < count:
+                break
+            time.sleep(0.05)
+        process.kill()
+        self.fail(f"only {len(self.launches())} launch(es) after waiting for {count}")
+
+    def test_the_launch_carries_the_role_the_name_and_a_prompt(self):
+        code, _, err = self.run_supervisor(STUB_MODE="exit", HEATER_STOKER_MIN_LIFETIME="0")
+        self.assertEqual(code, 0, err)
+        record = self.launches()[0]
+        self.assertEqual(record["role"], "stoker")
+        self.assertIn("--remote-control", record["argv"])
+        self.assertIn("heater stoker", record["argv"])
+        self.assertIn(stoker.INITIAL_PROMPT, record["argv"])
+        self.assertEqual(Path(record["cwd"]).resolve(), ROOT.resolve())
+
+    def test_the_marker_ends_the_session_and_a_fresh_one_follows(self):
+        """This is the handoff. Nobody types anything for it to happen."""
+        running = self.supervisor(STUB_MODE="handoff", HEATER_STOKER_MIN_LIFETIME="0")
+        self.wait_for_launches(1, running)
+        self.marker().write_text("2026-01-01T00:00:00+00:00\n", encoding="utf-8")
+        records = self.wait_for_launches(2, running)
+        running.communicate(timeout=30)
+        self.assertEqual(len(records), 2)
+        self.assertFalse(records[1]["marker_present"],
+                         "the marker must be gone, or the new session dies on its first poll")
+        self.assertFalse(self.marker().exists())
+
+    def test_a_stale_marker_does_not_kill_the_next_session(self):
+        self.marker().write_text("left behind\n", encoding="utf-8")
+        code, _, err = self.run_supervisor(STUB_MODE="exit", HEATER_STOKER_MIN_LIFETIME="0")
+        self.assertEqual(code, 0, err)
+        self.assertEqual(len(self.launches()), 1)
+        self.assertFalse(self.launches()[0]["marker_present"])
+
+    def test_the_session_ending_by_itself_ends_the_supervisor(self):
+        """/exit and Ctrl-C have to still stop the stoker."""
+        code, _, _ = self.run_supervisor(STUB_MODE="exit", STUB_EXIT="7",
+                                         HEATER_STOKER_MIN_LIFETIME="0")
+        self.assertEqual(code, 7, "the supervisor exits with the session's own code")
+        self.assertEqual(len(self.launches()), 1, "it must not reopen a session the operator ended")
+
+    def test_three_instant_deaths_stop_it(self):
+        """A claude that cannot start at all must not spin forever."""
+        code, _, err = self.run_supervisor(STUB_MODE="exit", STUB_EXIT="9",
+                                           HEATER_STOKER_MIN_LIFETIME="30")
+        self.assertEqual(len(self.launches()), 3)
+        self.assertEqual(code, 9)
+        self.assertIn("3 times in a row", err)
+        for jargon in ("SIGTERM", "exit code", "subprocess", "marker"):
+            self.assertNotIn(jargon, err, "the operator reads this; keep it in plain words")
+
+    def test_stopping_the_supervisor_takes_the_session_with_it(self):
+        """Closing the terminal must not leave a session running with nobody watching."""
+        running = self.supervisor(STUB_MODE="sleep", HEATER_STOKER_MIN_LIFETIME="30")
+        self.wait_for_launches(1, running)
+        os.kill(running.pid, signal.SIGTERM)
+        try:
+            running.communicate(timeout=30)
+        except subprocess.TimeoutExpired:
+            running.kill()
+            self.fail("the supervisor ignored SIGTERM")
+        self.assertEqual(len(self.launches()), 1, "it must not reopen after being stopped")
+
+    def test_a_missing_claude_says_so_rather_than_tracebacking(self):
+        done = subprocess.run([sys.executable, str(ROOT / "tools" / "stoker.py")],
+                              env={**self.environment(), "PATH": str(Path(self.tmp.name) / "empty")},
+                              capture_output=True, text=True, timeout=60)
+        self.assertNotEqual(done.returncode, 0)
+        self.assertNotIn("Traceback", done.stderr)
+        self.assertIn("Claude", done.stderr)
+
+
+class TestHandoverMarker(unittest.TestCase):
+    """The marker is the whole signal between the hook and the supervisor."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        patch = mock.patch.dict(os.environ, {"HEATER_STATE_DIR": self.tmp.name})
+        patch.start()
+        self.addCleanup(patch.stop)
+
+    def test_it_lives_beside_the_other_session_state(self):
+        self.assertEqual(stoker.marker_path().parent, Path(self.tmp.name))
+
+    def test_marking_writes_it_once(self):
+        self.assertTrue(stoker.mark_complete("first"))
+        self.assertFalse(stoker.mark_complete("second"), "the marker's existence is the guard")
+        self.assertIn("first", stoker.marker_path().read_text(encoding="utf-8"))
+
+    def test_clearing_a_marker_that_is_not_there_is_not_an_error(self):
+        stoker.clear_marker()
+        stoker.clear_marker()
+        self.assertFalse(stoker.marker_path().exists())
+
+    def test_an_unwritable_state_directory_never_raises(self):
+        with mock.patch.dict(os.environ, {"HEATER_STATE_DIR": "/proc/nope"}):
+            self.assertFalse(stoker.mark_complete("x"))
+            stoker.clear_marker()
 
 
 if __name__ == "__main__":

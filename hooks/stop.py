@@ -7,6 +7,11 @@ wake delivered as one message at a turn boundary. Nothing reaches the stoker
 mid-turn, and there is no listener.
 
 Only the stoker is woken. A worker's turn ends normally.
+
+It is also where a stoker session ends. Once the handover is written, current
+and pushed, this leaves the marker that `tools/stoker.py` is watching for, and
+the supervisor ends this session and opens the next one. Nothing here can end a
+session itself, and nothing is asked of the operator.
 """
 
 from __future__ import annotations
@@ -21,10 +26,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 import context  # noqa: E402
 import handover  # noqa: E402
 import queue  # noqa: E402
+import stoker  # noqa: E402
 from heater_hook import keep_going, log, now, role, run, say, stop  # noqa: E402
 
 
-def handover_decision(transcript: str | None = None) -> dict[str, Any] | None:
+def handover_decision(transcript: str | None = None,
+                      session_role: str | None = None) -> dict[str, Any] | None:
     """Past the arming mark, handing over outranks starting anything new.
 
     Armed is not the same as due. Cutting a session off mid-task costs the work
@@ -71,15 +78,28 @@ def handover_decision(transcript: str | None = None) -> dict[str, Any] | None:
             f"{preamble}\n\nOutstanding:\n{listed}\n\n"
             "Follow skills/handover/SKILL.md. Rewrite HANDOVER.md with only what the next "
             "session cannot look up, stamp it with the commit it describes, commit, push, "
-            "and run bin/handover.py until every line reads ok. Then tell the operator to clear."
+            "and run bin/handover.py until every line reads ok. The session ends by itself "
+            "once it does."
         )
 
     if not context.announced():
         context.mark_announced(now())
         log("handover_ready", {"used_percentage": used})
+
+    # Nothing here can end the session, and nothing can type into one. The mark
+    # is the whole signal: the supervisor that launched this `claude` is
+    # watching for it, and ends this session and opens the next one when it
+    # appears. Only the stoker is handed over this way, and only once — the
+    # marker's own existence is what makes it once.
+    if (session_role if session_role is not None else role()) != "stoker":
+        return say(f"Context {used:.0f}% — handover is written, current and pushed.")
+
+    if stoker.mark_complete(now()):
+        log("handover_complete", {"used_percentage": used})
     return say(
-        f"Context {used:.0f}% — handover is written, current and pushed. "
-        "Clear now with /clear; the next session starts from HANDOVER.md."
+        f"Context {used:.0f}% — handover is written, current and pushed. This session is "
+        "ending now and bin/stoker.sh is opening the next one from HANDOVER.md. "
+        "Nothing to type."
     )
 
 
@@ -91,7 +111,7 @@ def handle(payload: dict[str, Any]) -> dict[str, Any]:
 
     # Context pressure outranks the queue: picking up new work now only makes
     # the handover harder to write.
-    if (decision := handover_decision(payload.get("transcript_path"))) is not None:
+    if (decision := handover_decision(payload.get("transcript_path"), role(payload))) is not None:
         return decision
 
     if role(payload) != "stoker":

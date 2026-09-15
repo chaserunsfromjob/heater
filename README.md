@@ -43,7 +43,9 @@ A rule is one imperative bullet under fifty words, stated in exactly one place.
 ## Commands
 
 ```sh
-bin/stoker.sh            # open the stoker on this machine, reachable from the Claude app
+bin/stoker.sh            # run the stoker on this machine, reachable from the Claude app.
+                         # Stays running: ends a session that has handed over and
+                         # opens the next one itself. /exit or Ctrl-C stops it.
 bin/gate.sh              # the landing gate: style + suite. Exit 0 or it does not land.
 bin/deploy.py            # link ~/.claude files and register the hooks on this machine
 bin/deploy.py --check    # report drift without changing anything
@@ -60,9 +62,11 @@ bin/dispatch.py reconcile --gate "..."   # consolidate everything finished, then
 bin/dispatch.py land <id> --gate "..."   # the same, for one dispatch
 bin/dispatch.py list / close <id> --outcome failed
 bin/worktrees.py list / reclaim    # checkouts leased to workers, created on demand
-bin/handover.py          # is this session safe to clear? exit 0 means yes
+bin/handover.py          # is this session safe to end? exit 0 means yes
                          # handover arms itself at 30% context and is forced at 45%;
-                         # HEATER_HANDOVER_AT and HEATER_HANDOVER_CEILING move them
+                         # HEATER_HANDOVER_AT and HEATER_HANDOVER_CEILING move them.
+                         # Once it reads ok, the Stop hook marks the session done and
+                         # bin/stoker.sh replaces it. The operator types nothing.
 tools/style_lint.py      # check rule files on their own
 python3 -m unittest discover -s tests
 ```

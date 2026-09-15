@@ -297,7 +297,8 @@ class TestSuccessorSessions(unittest.TestCase):
 
     def test_the_denial_says_who_opens_the_next_one(self):
         reason = self.decide("mcp__x__create_session")["hookSpecificOutput"]["permissionDecisionReason"]
-        self.assertIn("operator opens it", reason)
+        self.assertIn("bin/stoker.sh", reason)
+        self.assertIn("no checkout", reason)
 
     def test_it_leaves_other_session_tools_alone(self):
         """Denying on suspicion is the failure mode the guard exists to avoid."""

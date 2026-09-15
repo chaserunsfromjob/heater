@@ -53,11 +53,21 @@ Reaching compaction means this failed. The `PreCompact` hook leaves a mark, and
 the next session is told its memory was edited by a machine and to write a
 handover immediately.
 
-## The one part that is not automatic
+## The end of it is automatic too
 
-Nothing can clear the conversation for you. Hook output cannot send input into a
-session, so the last step is a person typing `/clear`. Everything before it —
-noticing, writing, committing, pushing, verifying — happens without being asked.
+Nothing can clear the conversation from inside it: hook output cannot send input
+into a session, and nothing may type into a terminal. So the ending happens one
+level up. `bin/stoker.sh` is not a launcher that exits; it supervises. It starts
+`claude` as its child and watches for a marker file.
+
+Once the Stop hook has proved the handover is written, current and pushed, it
+leaves that marker. The supervisor sees it, ends this session, removes the
+marker, and starts a fresh session in the same folder, with the same role and
+the same Remote Control name. The operator types nothing at any point, and the
+new session opens on `HANDOVER.md`.
+
+Stopping the stoker is still the operator's: `/exit` or Ctrl-C ends the session
+without a marker, and the supervisor exits with it rather than reopening.
 
 ## A handed-over session is spent
 
@@ -67,24 +77,26 @@ has already said goodbye, and invites a second session editing the same files.
 
 So archive it as the last act, where the session can be archived: a session
 running in the cloud has an archive action, which turns it read-only and
-releases its container. A session in a terminal has no equivalent, and there
-`/clear` is the end of it.
+releases its container. A terminal session under `bin/stoker.sh` has no
+equivalent and needs none: the supervisor ends the process, which is the end of
+it.
 
 Archive only after the handover commit is pushed. An archived session cannot go
 back and finish.
 
 ## Do not open the next session from this one
 
-It is tempting to seed a successor before archiving, so the work looks
-continuous. Do not. A session created from inside another one arrives with no
-checkout: the repository is named on its record, but nothing is on its disk, so
-it is never filed under the project and never appears where the operator looks
-for it. It also starts by re-cloning, which is work the operator watches instead
-of the work they asked for.
+The successor is opened from outside, by the supervisor, never from in here. It
+is tempting to seed one before archiving, so the work looks continuous. Do not.
+A session created from inside another one arrives with no checkout: the
+repository is named on its record, but nothing is on its disk, so it is never
+filed under the project and never appears where the operator looks for it. It
+also starts by re-cloning, which is work the operator watches instead of the
+work they asked for.
 
-The operator opens the next one themselves, from the project. That is a
-keystroke they were already making, and it is the difference between a session
-that lands in the right place and one that has to be found.
+The guard denies the session-creating tool for that reason, and the denial
+stands whatever the handoff costs in continuity. Leave the successor to
+`bin/stoker.sh`, which opens it in this same folder, with this same checkout.
 
 ## What the next session can look up, and must not be told again
 
@@ -113,9 +125,10 @@ applies to handover notes as much as to rules.
 3. Write `HANDOVER.md` from the second list above, and nothing from the first.
 4. Stamp it with the commit it describes, so a later reader can tell it is stale.
 5. Run `bin/handover.py`. Fix whatever it names.
-6. Commit the handover and push it. Only then clear.
+6. Commit the handover and push it. The next turn's Stop hook sees a clean
+   check, leaves the marker, and the session ends on its own from there.
 7. Archive the session, if this session can be archived. Do not open the next
-   one from here; say where the operator opens it.
+   one from here; `bin/stoker.sh` opens it.
 
 ## Writing it
 

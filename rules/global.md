@@ -38,7 +38,7 @@ conflicts with this one.
 
 ## Sessions
 
-- Never open a successor session from a session that is ending; the operator opens it from the project.
+- Never open a successor session from inside a session; `bin/stoker.sh` ends the spent session and opens the next one, with nothing for the operator to type.
 - Archive a session once its handover note is pushed, never before.
 
 ## Escalation
