@@ -7,7 +7,7 @@
   "path": "tools/store.py:101",
   "origin": "",
   "summary": "bin/store.py query counts a change as landed when ANY round passed (tools/store.py:101), the same stale-pass reading just removed from the landing path in tools/dispatp.py; the operator-facing landed count should rest on the latest round, or better on the dispatch store's outcome=landed",
-  "delivered_at": null,
+  "delivered_at": "2026-09-15T22:09:08.682918+00:00",
   "resolution": {
     "action": "promoted",
     "at": "2026-09-15T22:08:43.844655+00:00",
