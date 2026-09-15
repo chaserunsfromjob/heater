@@ -1,0 +1,10 @@
+{
+  "id": "d8d5dec3ef4e",
+  "created": "2026-09-15T16:07:29.947859+00:00",
+  "score": 20,
+  "title": "session_start drift_note reports machine hook drift even when the project's own committed settings already cover it",
+  "source_finding": "64ee15ded3fb",
+  "project": "",
+  "path": "",
+  "done_at": null
+}

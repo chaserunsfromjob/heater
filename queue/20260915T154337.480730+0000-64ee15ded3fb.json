@@ -7,6 +7,11 @@
   "path": "",
   "origin": "",
   "summary": "bearings reports machine drift in a cloud session where the committed .claude/settings.json already registers the hooks; hooks/session_start.py drift_note has the same noise",
-  "delivered_at": null,
-  "resolution": null
+  "delivered_at": "2026-09-15T16:10:15.851623+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-15T16:07:29.948454+00:00",
+    "score": 20,
+    "task_id": "d8d5dec3ef4e"
+  }
 }

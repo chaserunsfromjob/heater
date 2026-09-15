@@ -1,0 +1,17 @@
+{
+  "id": "a9ef7fedc22a",
+  "created": "2026-09-15T15:58:24.143349+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "",
+  "origin": "",
+  "summary": "stale heartbeat ~/.heater/heartbeat/unknown.json (session 'unknown', role/tool/cwd null, at 2026-09-15T04:49:50Z) \u2014 bearings flags it dead with no dispatch to match",
+  "delivered_at": "2026-09-15T16:10:15.851610+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-15T15:58:56.813975+00:00",
+    "score": 25,
+    "task_id": "dbe6b0d8781e"
+  }
+}

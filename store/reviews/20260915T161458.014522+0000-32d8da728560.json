@@ -1,0 +1,17 @@
+{
+  "id": "32d8da728560",
+  "created": "2026-09-15T16:14:58.014522+00:00",
+  "change": "837c714321ea",
+  "project": "heater",
+  "round": 1,
+  "lens": "default",
+  "verdict": "pass",
+  "findings": 0,
+  "wording_only": false,
+  "files": 3,
+  "insertions": 30,
+  "deletions": 1,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "reviewer ad92fb5dd81b31bb0: PASS, no findings against the reviewed code. 4 off-task observations noted: F1 landing note (branch is behind current main; land via merge not fast-forward/reset; verified clean merge + green gate at 380 tests). F2 filed finding 347ea63db07d missing path/origin fields (to fix as stoker writes). F3 new finding to file: orphan-beat class survives for session ids with chars outside [A-Za-z0-9_-] or >64 chars, since write path sanitizes/truncates but session_end delete does not. F4 soft note, no action."
+}

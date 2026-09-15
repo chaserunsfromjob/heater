@@ -1,0 +1,10 @@
+{
+  "id": "dbe6b0d8781e",
+  "created": "2026-09-15T15:58:56.813488+00:00",
+  "score": 25,
+  "title": "post_tool_use heartbeat: don't write a permanent 'unknown.json' when session_id is missing",
+  "source_finding": "a9ef7fedc22a",
+  "project": "heater",
+  "path": "",
+  "done_at": null
+}

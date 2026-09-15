@@ -1,0 +1,18 @@
+{
+  "id": "837c714321ea",
+  "created": "2026-09-15T15:59:35.043953+00:00",
+  "task": "In hooks/post_tool_use.py, the heartbeat write falls back to a literal 'unknown' session id whenever payload.get('session_id') is empty/missing, and then writes that heartbeat to disk. That file (~/.heater/heartbeat/unknown.json) is never cleaned up and never updates again unless another sessionless hook call happens, so bin/bearings.py permanently reports it as a dead/quiet heartbeat with no matching dispatch \u2014 a standing false alarm. Fix so a missing session_id does not produce a permanent stale heartbeat entry: e.g. skip writing the heartbeat file entirely when session_id is absent, rather than falling back to a fixed 'unknown' name. Update or add a test pinning the new behavior (see tests around hooks/post_tool_use.py and tools/bearings.py heartbeat handling). Then delete the existing stale ~/.heater/heartbeat/unknown.json file left over from this bug.",
+  "project": "heater",
+  "done_when": "bin/gate.sh passes, a test pins the no-heartbeat-on-missing-session-id behavior, and the stale unknown.json is gone",
+  "task_id": "dbe6b0d8781e",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/heater",
+  "workdir": "/Users/chasethompson/.heater/worktrees/heater/b4042c2543f5",
+  "lease_id": "b4042c2543f5",
+  "branch": "worker/837c714321ea",
+  "run_id": "",
+  "part": "",
+  "closed_at": "2026-09-15T16:02:36.789265+00:00",
+  "outcome": "pushed",
+  "note": "branch worker/837c714321ea, commit 0149a25; committed locally in the leased worktree, remote push failed (git auth not configured in worker sandbox) but branch is ready to land [slot held: b4042c2543f5 still holds work on worker/837c714321ea that exists nowhere else; land it or push it before releasing the slot]"
+}

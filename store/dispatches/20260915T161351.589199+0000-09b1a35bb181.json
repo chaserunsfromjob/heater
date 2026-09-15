@@ -1,0 +1,18 @@
+{
+  "id": "09b1a35bb181",
+  "created": "2026-09-15T16:13:51.589199+00:00",
+  "task": "hooks/session_start.py drift_note() calls tools/deploy.py settings_drift(), which always checks the machine-level ~/.claude/settings.json hook registration, even for a session running inside a repo (this one, heater) whose own committed .claude/.claude/settings.json (tools/deploy.py PROJECT_SETTINGS, built by write_project_settings()/project_settings()) already registers the same hooks with portable ${CLAUDE_PROJECT_DIR} paths. When that project-level file already matches what deploy would install, the machine-level 'hook registration out of date' / 'no status line' lines in drift_note() are noise: the hooks are demonstrably already active for this session (this hook itself just ran), so telling the operator 'this machine is out of sync' is misleading and trains the stoker to distrust a true drift signal later. Fix drift_note()/settings_drift() so the hooks/statusLine portion of the machine-drift check is skipped (or reported differently) when the current repo's own PROJECT_SETTINGS file already matches project_settings() \u2014 while still reporting real drift when it does not match, and still reporting the other drift the checks cover (CLAUDE.md, agents/, skills/ symlinks at the machine level), since those are not covered by project settings and remain genuine machine-level concerns. Read tools/deploy.py and hooks/session_start.py in full before changing either.",
+  "project": "heater",
+  "done_when": "bin/gate.sh passes; a test pins that a session running inside a repo whose own PROJECT_SETTINGS already matches project_settings() gets no hook-registration/status-line drift line from drift_note(), while a session on a machine whose PROJECT_SETTINGS is missing or stale still gets the warning, and the CLAUDE.md/agents/skills link-drift lines are unaffected by this change",
+  "task_id": "d8d5dec3ef4e",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/heater",
+  "workdir": "/Users/chasethompson/.heater/worktrees/heater/981f32d1424b",
+  "lease_id": "981f32d1424b",
+  "branch": "worker/09b1a35bb181",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}
