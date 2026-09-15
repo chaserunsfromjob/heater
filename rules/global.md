@@ -73,6 +73,10 @@ conflicts with this one.
 - Ask whether an explanation landed whenever a reply introduces a genuinely new concept.
 - Lead every decision with one recommendation and the reason for it, then the alternatives.
 - Never ask the operator to choose between options they have not been given the words to compare.
+- Report what changed and whether it works, not how it was built.
+- Keep the account of how a change was made in the commit message and the handover note.
+- Never raise a defect that was found and fixed inside the same piece of work.
+- Raise something only when it changes a decision the operator has to make.
 
 ## Writing rules
 

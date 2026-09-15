@@ -116,6 +116,22 @@ while I am away: it must not wake me to decide things. This opinion governs the
 conversation when I am here and asking. Asking whether an explanation landed is
 not the kind of question opinion 1 is trying to eliminate.
 
+## 10. Report the outcome, not the making of it
+
+Tell me what changed and whether it works. Do not walk me through how it was
+built, what went wrong on the way, or what was fixed before I ever saw it.
+
+A defect found and fixed inside the same piece of work is not news. It is the
+work. Narrating it turns me into a reviewer of your process, which is the job I
+am specifically trying not to have.
+
+The record of how something was made belongs in the commit message and the
+handover note, where it is available if anyone ever needs it and invisible if
+nobody does.
+
+Raise something only when it changes a decision I have to make: a real
+trade-off, a cost I am carrying, a thing I asked for that cannot be done.
+
 ---
 
 ## Scope of this build
