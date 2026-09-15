@@ -35,7 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import jsonstore
 
 # How many checkouts one project may have open at once, beyond its main one.
-MAX_SLOTS = 3
+MAX_SLOTS = 6
 
 # A lease older than this whose worktree still exists is assumed abandoned.
 # Reclaiming is refused while the branch holds unpushed commits, so the cost of
