@@ -109,12 +109,29 @@ def handover_decision(transcript: str | None = None,
             "outstanding, so this session can be closed whenever you like."
         )
 
-    if stoker.mark_complete(now(), token, session_id):
-        log("handover_complete", {"used_percentage": used, "supervised": True})
+    # Saying the session is ending is a promise only the mark can keep, so it is
+    # made only once the mark on disk is this session's. It might not be: the
+    # one path can already hold another session's mark, or a mark this one left
+    # earlier, or the write can fail outright on a full or unwritable disk.
+    wrote = stoker.mark_complete(now(), token, session_id)
+    marked = stoker.marker_token()
+    if marked == token:
+        log("handover_complete", {"used_percentage": used, "supervised": True,
+                                  "wrote": wrote})
+        return say(
+            f"Context {used:.0f}% — handover is written, current and pushed. This session is "
+            "ending now and bin/stoker.sh is opening the next one from HANDOVER.md. "
+            "Nothing to type."
+        )
+
+    log("handover_not_marked", {"used_percentage": used, "supervised": True,
+                                "reason": "no mark was written" if marked is None
+                                else "the mark belongs to another session",
+                                "marker_token": marked or None})
     return say(
-        f"Context {used:.0f}% — handover is written, current and pushed. This session is "
-        "ending now and bin/stoker.sh is opening the next one from HANDOVER.md. "
-        "Nothing to type."
+        f"Context {used:.0f}% — handover is written, current and pushed, and nothing is "
+        "outstanding. Nothing is set to replace this session by itself, so close it when "
+        "you like and run bin/stoker.sh to open the next one."
     )
 
 

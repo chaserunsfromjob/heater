@@ -8,7 +8,7 @@ is green, and HANDOVER.md describes the commit that is actually at the tip.
     bin/handover.py           # check, and say what is missing
     bin/handover.py --quick   # skip the suite, check the git state only
 
-Exit 0 means safe to clear.
+Exit 0 means safe to end.
 """
 
 from __future__ import annotations
@@ -145,9 +145,9 @@ def main(argv: list[str]) -> int:
 
     print()
     if problems:
-        print(f"handover: NOT safe to clear, {len(problems)} problem(s) above", file=sys.stderr)
+        print(f"handover: NOT safe to end, {len(problems)} problem(s) above", file=sys.stderr)
         return 1
-    print("handover: safe to clear")
+    print("handover: safe to end")
     # Said here because this is the moment it is acted on. The session does not
     # open its own successor: one created from inside another arrives with no
     # checkout and is filed under no project. bin/stoker.sh opens it instead,

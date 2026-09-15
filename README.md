@@ -64,12 +64,44 @@ bin/dispatch.py list / close <id> --outcome failed
 bin/worktrees.py list / reclaim    # checkouts leased to workers, created on demand
 bin/handover.py          # is this session safe to end? exit 0 means yes
                          # handover arms itself at 30% context and is forced at 45%;
-                         # HEATER_HANDOVER_AT and HEATER_HANDOVER_CEILING move them.
+                         # Settings, just below, is what moves either of those.
                          # Once it reads ok, the Stop hook marks the session done and
                          # bin/stoker.sh replaces it. The operator types nothing.
 tools/style_lint.py      # check rule files on their own
 python3 -m unittest discover -s tests
 ```
+
+### Settings
+
+Every setting below is optional: leave it alone and the number in brackets is
+what runs. Set one by putting it in front of the command, like
+`HEATER_STOKER_PAUSE=5 bin/stoker.sh`.
+
+- How full the context window gets before the session is told to start handing
+  over, as a percentage: `HEATER_HANDOVER_AT` [30].
+- How full it gets before handing over stops being a choice:
+  `HEATER_HANDOVER_CEILING` [45].
+- How often `bin/stoker.sh` looks to see whether the session has finished, in
+  seconds: `HEATER_STOKER_POLL` [0.5].
+- How long it leaves a finished session alone so its closing message can reach
+  the screen, in seconds: `HEATER_STOKER_GRACE` [2].
+- How long it waits for a session to close before closing it the hard way, in
+  seconds: `HEATER_STOKER_KILL_AFTER` [10].
+- How long it waits between one session and the next, in seconds:
+  `HEATER_STOKER_PAUSE` [2].
+- How quickly a session has to end before it counts as one that never started,
+  in seconds: `HEATER_STOKER_MIN_LIFETIME` [30]. Three of those in a row stop
+  the stoker.
+- How many finished sessions it will replace inside the span below before it
+  stops, on the grounds that nothing that fast has work left to do:
+  `HEATER_STOKER_MAX_HANDOFFS` [5].
+- The span that count is measured over, in seconds:
+  `HEATER_STOKER_HANDOFF_WINDOW` [3600, an hour].
+- What the session is called in the Claude app's list: `HEATER_SESSION_NAME`
+  [heater stoker].
+- The identity `bin/stoker.sh` gives the session it opens, so it can tell that
+  session's finish from any other's: `HEATER_STOKER_CHILD` [set per session; not
+  for the operator to set].
 
 All logic lives in `tools/`; `bin/` holds only entry points. Nothing in `bin/` is
 imported, because a module there sharing a name with one in `tools/` shadows it

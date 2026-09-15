@@ -452,9 +452,16 @@ class TestStokerLauncher(unittest.TestCase):
 
 
 STUB_CLAUDE = '''#!/usr/bin/env python3
-"""Stands in for `claude`. Records how it was launched, then waits to be ended."""
-import json, os, sys, time
+"""Stands in for `claude`. Records how it was launched, then waits to be ended.
+
+Ctrl-C is ignored here on purpose, because `claude` ignores it too: one press
+cancels the turn, and the session decides that for itself. A stub that died of
+it would hide a supervisor that leaves its session running.
+"""
+import json, os, signal, sys, time
 from pathlib import Path
+
+signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 log = Path(os.environ["STUB_LOG"])
 state = Path(os.environ["HEATER_STATE_DIR"])
@@ -466,6 +473,7 @@ with log.open("a") as handle:
         "argv": sys.argv[1:],
         "role": os.environ.get("HEATER_ROLE"),
         "token": token,
+        "pid": os.getpid(),
         "cwd": os.getcwd(),
         "marker_present": (state / "handover-complete").exists(),
     }) + "\\n")
@@ -587,12 +595,23 @@ class TestStokerSupervisor(unittest.TestCase):
                          "the marker must be gone, or the new session dies on its first poll")
         self.assertFalse(self.marker().exists())
 
-    def test_a_stale_marker_does_not_kill_the_next_session(self):
+    def test_a_marker_it_did_not_write_survives_the_launch(self):
+        """Deleting it would answer for the supervisor that is waiting on it.
+        It cannot end this supervisor's session either way: no other identity
+        ever matches the one this launch was given."""
+        self.hand_over("some-other-session")
+        code, _, err = self.run_supervisor(STUB_MODE="exit", HEATER_STOKER_MIN_LIFETIME="0")
+        self.assertEqual(code, 0, err)
+        self.assertEqual(len(self.launches()), 1, "it refused to open a session at all")
+        self.assertTrue(self.marker().exists(), "another session's mark is not ours to delete")
+        self.assertTrue(any(e["event"] == "stoker_foreign_marker" for e in self.hook_events()),
+                        "it must say it saw a mark it was leaving alone")
+
+    def test_an_unreadable_marker_does_not_kill_the_next_session(self):
         self.marker().write_text("left behind\n", encoding="utf-8")
         code, _, err = self.run_supervisor(STUB_MODE="exit", HEATER_STOKER_MIN_LIFETIME="0")
         self.assertEqual(code, 0, err)
         self.assertEqual(len(self.launches()), 1)
-        self.assertFalse(self.launches()[0]["marker_present"])
 
     def test_the_session_ending_by_itself_ends_the_supervisor(self):
         """/exit and Ctrl-C have to still stop the stoker."""
@@ -678,6 +697,76 @@ class TestStokerSupervisor(unittest.TestCase):
         os.kill(running.pid, signal.SIGTERM)
         _, err = running.communicate(timeout=30)
         self.assertNotIn("times in a row", err)
+
+    def test_endless_fast_handoffs_stop_it(self):
+        """Handing over costs a session nothing, so one that opens with nothing
+        to do can hand over again forever. Something has to bound that."""
+        running = self.supervisor(STUB_MODE="mark", HEATER_STOKER_MIN_LIFETIME="0",
+                                  HEATER_STOKER_MAX_HANDOFFS="2")
+        try:
+            _, err = running.communicate(timeout=60)
+        except subprocess.TimeoutExpired:
+            running.kill()
+            self.fail("it kept replacing a session that finished instantly")
+        self.assertNotEqual(running.returncode, 0)
+        self.assertEqual(len(self.launches()), 3, "it stopped at the wrong count")
+        self.assertIn("3 times", err, "the message must name how many it saw")
+        self.assertIn("more than the 2", err, "and how many it expects")
+        self.assertNotIn("Traceback", err)
+        for jargon in ("SIGTERM", "exit code", "subprocess", "marker", "token"):
+            self.assertNotIn(jargon, err, "the operator reads this; keep it in plain words")
+
+    def test_the_handoff_bound_is_a_rate_not_a_total(self):
+        """A stoker that hands over normally runs for weeks. Only handoffs
+        packed into one window are evidence of anything being wrong."""
+        self.assertEqual(stoker.DEFAULT_MAX_HANDOFFS, 5)
+        self.assertEqual(stoker.DEFAULT_HANDOFF_WINDOW, 3600.0)
+        with mock.patch.dict(os.environ, {"HEATER_STOKER_MAX_HANDOFFS": "9",
+                                          "HEATER_STOKER_HANDOFF_WINDOW": "60"}):
+            self.assertEqual(stoker.limits().max_handoffs, 9)
+            self.assertEqual(stoker.limits().handoff_window, 60)
+
+    def alive(self, pid: int) -> bool:
+        try:
+            os.kill(pid, 0)
+        except (ProcessLookupError, PermissionError):
+            return False
+        return True
+
+    def assert_stopped_cleanly(self, running: subprocess.Popen, pid: int):
+        try:
+            _, err = running.communicate(timeout=15)
+        except subprocess.TimeoutExpired:
+            running.kill()
+            self.fail("Ctrl-C did not stop the supervisor")
+        self.assertNotIn("Traceback", err, "the operator pressed a key and got a page of Python")
+        self.assertTrue(self.wait_until(lambda: not self.alive(pid), 10),
+                        "the session outlived the supervisor that was watching it")
+        self.assertEqual(len(self.launches()), 1, "it opened a session after being stopped")
+
+    def test_ctrl_c_while_a_finished_session_is_being_given_its_last_breath(self):
+        """Ctrl-C is the documented way to stop this, and the gap between a
+        session finishing and being closed is no exception to that."""
+        running = self.supervisor(STUB_MODE="sleep", HEATER_STOKER_MIN_LIFETIME="0",
+                                  HEATER_STOKER_GRACE="10")
+        first = self.wait_for_launches(1, running)
+        self.hand_over(first[0]["token"])
+        self.assertTrue(self.wait_until(
+            lambda: any(e["event"] == "handover_marker_seen" for e in self.hook_events()), 20),
+            "the handoff was never noticed, so that gap was never reached")
+        os.kill(running.pid, signal.SIGINT)
+        self.assert_stopped_cleanly(running, first[0]["pid"])
+
+    def test_ctrl_c_during_the_pause_between_sessions(self):
+        running = self.supervisor(STUB_MODE="sleep", HEATER_STOKER_MIN_LIFETIME="0",
+                                  HEATER_STOKER_PAUSE="10")
+        first = self.wait_for_launches(1, running)
+        self.hand_over(first[0]["token"])
+        self.assertTrue(self.wait_until(
+            lambda: any(e["event"] == "stoker_restart" for e in self.hook_events()), 20),
+            "the handoff never finished, so the pause was never reached")
+        os.kill(running.pid, signal.SIGINT)
+        self.assert_stopped_cleanly(running, first[0]["pid"])
 
     def test_a_missing_claude_says_so_rather_than_tracebacking(self):
         done = subprocess.run([sys.executable, str(ROOT / "tools" / "stoker.py")],

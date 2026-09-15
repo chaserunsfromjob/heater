@@ -322,6 +322,33 @@ class TestStopTrigger(StateCase):
         self.assertIn("handover is written, current and pushed", decision["systemMessage"])
         self.assertNotIn("ending now", decision["systemMessage"])
 
+    def test_it_does_not_promise_an_ending_it_cannot_deliver(self):
+        """Another session's mark already holds the one path, so this session's
+        was never written and no supervisor will act on it. Saying it is ending
+        now would leave the operator waiting on something that never comes."""
+        self.at(30)
+        stoker.marker_path().write_text(
+            json.dumps({"at": "earlier", "token": "somebody-else", "session": "s0"}) + "\n",
+            encoding="utf-8")
+        with self.supervised("child-9"), self.busy(), self.outstanding():
+            decision = stop_hook.handover_decision(None, "stoker", "session-42")
+        self.assertNotIn("ending now", decision["systemMessage"])
+        self.assertIn("handover is written, current and pushed", decision["systemMessage"])
+        self.assertIn("bin/stoker.sh", decision["systemMessage"])
+        self.assertEqual(json.loads(stoker.marker_path().read_text())["token"], "somebody-else",
+                         "another session's mark is not ours to overwrite")
+
+    def test_a_mark_that_could_not_be_written_is_not_reported_as_written(self):
+        """A full or read-only disk swallows the write. Nothing is on disk for
+        any supervisor to act on, so nothing is promised."""
+        self.at(30)
+        with self.supervised("child-9"), self.busy(), self.outstanding(), \
+                mock.patch.object(stoker, "mark_complete", return_value=False):
+            decision = stop_hook.handover_decision(None, "stoker", "session-42")
+        self.assertFalse(stoker.marker_path().exists())
+        self.assertNotIn("ending now", decision["systemMessage"])
+        self.assertIn("close it when you like", decision["systemMessage"])
+
     def test_the_session_id_reaches_the_marker_from_the_payload(self):
         self.at(30)
         os.environ["HEATER_ROLE"] = "stoker"

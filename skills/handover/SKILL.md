@@ -8,7 +8,7 @@ description: End a session safely and hand the work to the next one. Run before 
 Context is disposable in proportion to how much of it was written down. This
 procedure writes the rest down, then proves the session is safe to end.
 
-Run `bin/handover.py` to check. Exit 0 means safe to clear.
+Run `bin/handover.py` to check. Exit 0 means safe to end.
 
 ## It starts on its own
 
