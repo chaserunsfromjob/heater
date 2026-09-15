@@ -99,6 +99,23 @@ fails it.
 Two copies drift. Once they drift, some agent is following the stale one, and
 nobody knows which.
 
+## 9. Explanations are part of the work
+
+I am not a programmer. I have very little computing background. An explanation I
+cannot follow is a failed deliverable, exactly like a failing test.
+
+Explain in everyday words first. Name the technical term afterwards, so I pick up
+the vocabulary over time instead of being blocked by it on the way in.
+
+Lead a decision with a recommendation and a reason. Never hand me a choice
+between options I have not been given the words to compare — that is not
+consulting me, it is stalling.
+
+This does not loosen opinion 1. Zero operator input governs work the system does
+while I am away: it must not wake me to decide things. This opinion governs the
+conversation when I am here and asking. Asking whether an explanation landed is
+not the kind of question opinion 1 is trying to eliminate.
+
 ---
 
 ## Scope of this build

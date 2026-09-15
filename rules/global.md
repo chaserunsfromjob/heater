@@ -60,6 +60,17 @@ conflicts with this one.
 - Record the cost and change size of every session and every review round.
 - Escalate a change that exceeds its cost budget instead of continuing.
 
+## Talking to the operator
+
+- Never assume prior knowledge of programming, version control, or the command line.
+- Say what a thing does before naming what it is called.
+- Explain a technical term in plain words the first time it appears in a reply.
+- Name the technical term last, after the plain explanation already stands on its own.
+- Write an acronym out in full before using it.
+- Ask whether an explanation landed whenever a reply introduces a genuinely new concept.
+- Lead every decision with one recommendation and the reason for it, then the alternatives.
+- Never ask the operator to choose between options they have not been given the words to compare.
+
 ## Writing rules
 
 - Write each rule as one imperative bullet under fifty words.
