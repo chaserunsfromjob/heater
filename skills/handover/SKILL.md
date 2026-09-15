@@ -27,8 +27,8 @@ twice and no cost model shows that.
 
 | Context | What happens |
 | --- | --- |
-| Below 25% | Nothing. |
-| 25% to 45% — **armed** | Hand over at the next clean boundary. While work is in flight it says so once, then waits. Finish what you are doing; start nothing new. |
+| Below 30% | Nothing. |
+| 30% to 45% — **armed** | Hand over at the next clean boundary. While work is in flight it says so once, then waits. Finish what you are doing; start nothing new. |
 | Above 45% — **ceiling** | Discretion is over. Park what is in flight, commit it, name it unfinished in the note, and hand over. |
 
 Being mid-task has an objective signature: changes not committed, commits not
@@ -39,9 +39,15 @@ Move either mark with `HEATER_HANDOVER_AT` and `HEATER_HANDOVER_CEILING`. A
 ceiling set below the arming mark is clamped, because that would force a
 handover the instant one is armed.
 
-25% is where cost per turn of real work bottoms out before the curve flattens.
+Cost per turn of real work bottoms out around 25% before the curve flattens.
 Every tool call re-sends the whole conversation, not just every message, so the
 bill grows with context far faster than the message count suggests.
+
+The mark sits at 30% rather than 25% because a session is already near 10%
+before the operator has said anything: the system prompt, the tool definitions
+and `CLAUDE.md` all arrive first. The mark is measured against total usage, so
+that floor is a toll paid before any working room is counted, and 25% left
+about fifteen points of it rather than twenty-five.
 
 Reaching compaction means this failed. The `PreCompact` hook leaves a mark, and
 the next session is told its memory was edited by a machine and to write a
@@ -66,6 +72,19 @@ releases its container. A session in a terminal has no equivalent, and there
 
 Archive only after the handover commit is pushed. An archived session cannot go
 back and finish.
+
+## Do not open the next session from this one
+
+It is tempting to seed a successor before archiving, so the work looks
+continuous. Do not. A session created from inside another one arrives with no
+checkout: the repository is named on its record, but nothing is on its disk, so
+it is never filed under the project and never appears where the operator looks
+for it. It also starts by re-cloning, which is work the operator watches instead
+of the work they asked for.
+
+The operator opens the next one themselves, from the project. That is a
+keystroke they were already making, and it is the difference between a session
+that lands in the right place and one that has to be found.
 
 ## What the next session can look up, and must not be told again
 
@@ -95,7 +114,8 @@ applies to handover notes as much as to rules.
 4. Stamp it with the commit it describes, so a later reader can tell it is stale.
 5. Run `bin/handover.py`. Fix whatever it names.
 6. Commit the handover and push it. Only then clear.
-7. Archive the session, if this session can be archived.
+7. Archive the session, if this session can be archived. Do not open the next
+   one from here; say where the operator opens it.
 
 ## Writing it
 

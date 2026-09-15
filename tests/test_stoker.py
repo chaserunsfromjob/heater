@@ -308,6 +308,12 @@ class TestHandoverArchivesTheSession(unittest.TestCase):
     def test_the_procedure_ends_by_archiving(self):
         self.assertIn("Archive the session", self.skill.read_text(encoding="utf-8"))
 
+    def test_it_forbids_seeding_the_next_session_from_this_one(self):
+        """A seeded successor arrives with no checkout, so it is never filed
+        under the project and the operator cannot find it."""
+        self.assertIn("Do not open the next session from this one",
+                      self.skill.read_text(encoding="utf-8"))
+
     def test_it_archives_only_after_the_push(self):
         text = self.skill.read_text(encoding="utf-8")
         self.assertLess(text.index("Commit the handover and push it"), text.index("Archive the session"))

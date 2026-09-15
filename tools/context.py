@@ -29,10 +29,16 @@ from typing import Any
 # mid-task costs the work done twice, which is worse and invisible in any cost
 # model. So the first mark arms the handover and the second one forces it.
 #
-# 25% is where cost per turn of real work bottoms out before the curve flattens:
-# measured against a real session, it is about a third cheaper per turn than 55%
-# while still leaving roughly a dozen turns, which is a whole focused task.
-DEFAULT_HANDOVER_AT = 25.0
+# 25% was where cost per turn of real work bottoms out before the curve
+# flattens: about a third cheaper per turn than 55%, still leaving roughly a
+# dozen turns.
+#
+# It is 30% because that measurement ignored the floor. A session is already
+# near 10% before the operator has said anything — system prompt, tools, and
+# CLAUDE.md all arrive first — so 25% left about 15 points of usable room, not
+# 25. The mark is against total usage, and the floor is a fixed toll on it, so
+# the floor has to be paid before the budget is counted.
+DEFAULT_HANDOVER_AT = 30.0
 
 # Discretion has to end somewhere, or "still mid-task" becomes a way of never
 # handing over at all. Past this, whatever is in flight gets parked.

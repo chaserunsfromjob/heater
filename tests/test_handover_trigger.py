@@ -55,6 +55,16 @@ class TestThreshold(StateCase):
     def test_default_is_well_below_compaction(self):
         self.assertLess(context.DEFAULT_HANDOVER_AT, 70)
 
+    # A session is already near this before the operator has said anything:
+    # system prompt, tool definitions and CLAUDE.md all arrive first.
+    STARTUP_FLOOR = 10.0
+
+    def test_the_mark_leaves_real_room_above_the_startup_floor(self):
+        """The mark is measured against total usage, so the floor is a toll paid
+        before any working room is counted. 25% left fifteen points, not
+        twenty-five, which is what moved it."""
+        self.assertGreaterEqual(context.DEFAULT_HANDOVER_AT - self.STARTUP_FLOOR, 20.0)
+
     def test_the_ceiling_is_above_the_arming_mark(self):
         self.assertGreater(context.DEFAULT_CEILING, context.DEFAULT_HANDOVER_AT)
 
