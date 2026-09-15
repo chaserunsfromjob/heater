@@ -1,8 +1,8 @@
 # Handover
 
-<!-- handover-commit: 1470d47 -->
+<!-- handover-commit: 08f1673 -->
 
-Written at `1470d47` on `claude/artifact-system-continuation-ko9236`. Verify with
+Written at `08f1673` on `main`. Verify with
 `bin/handover.py`. A snapshot, not a log — rewrite it, do not append.
 
 Read `README.md` for what is built and what is next, `OPINIONS.md` for the
@@ -14,16 +14,21 @@ follows is only what you cannot look up.
 
 ## Start here
 
-Everything through step 2 is landed, pushed, and green: 116 tests, `bin/gate.sh`
-passes. Nothing is half-finished. No pull request is open and the operator has
-not asked for one.
+Steps 1 through 4 plus handover are landed, pushed, and green: 162 tests,
+`bin/gate.sh` passes. Nothing is half-finished. No pull request is open and the
+operator has not asked for one.
 
-**The next action is step 3, the adversarial review loop.** The operator was
-asked whether they wanted to be walked through its decisions first or have it
-built and explained afterwards, and the question went unanswered — they moved on
-to other topics. I recommended building it and explaining after, because the
-choices there are technical rather than matters of their taste. Confirm or
-proceed; do not treat silence as approval of a large design.
+**The next action is step 5, the findings inbox**, then step 6, the stoker.
+
+**Branches.** `main` is the canonical branch and the work happens there. The repo
+was empty at the start, so `claude/artifact-system-continuation-ko9236` became
+GitHub's default by accident; every push goes to both refs to keep them
+identical. **The operator still needs to switch the default branch to `main` in
+GitHub's settings by hand** — no tool in this session can do it. Once they have,
+the old branch can be deleted.
+
+**The operator has not yet run `bin/deploy.py` on a real machine.** Nothing in
+this system is actually live for them until they do.
 
 ## The operator
 
@@ -89,6 +94,29 @@ conflict-avoidance, with eyes open. `queue/README.md` records the intended
 response if conflicts become routine: move to per-machine directories synced by
 the SessionEnd hook, and specifically *not* adopt a database.
 
+**Judge-only is enforced by the guard, not by the reviewer's tool list.** The
+obvious implementation is to leave `Write` and `Edit` out of the agent's `tools`
+allowlist, and that is done — but it is not sufficient, because a reviewer must
+run the suite to prove a change works, which needs Bash, and Bash can write
+anything. So the guard denies writes whenever `HEATER_ROLE=reviewer`. Tests pin
+both directions: commits, staging, `sed -i`, file removal and redirection into a
+file are denied, while running the suite, running the gate, grepping, `2>&1` and
+`>/dev/null` stay open. Widening that allow-list carelessly reopens the hole.
+
+**`ENFORCE_STOKER_ROUTING` in the guard is deliberately `False`.** It is not a
+forgotten debug flag. Nothing can set the dispatch marker until step 6, so the
+warning would fire on every hand-written commit forever and train the operator
+to ignore warnings. **Step 6 flips it to `True`.** Both states are tested.
+
+**A review round cannot be recorded as a pass while substantive findings are
+outstanding.** The store raises rather than accepting it, because the loop lands
+on a pass and a pass carrying real findings would land them too. Wording-only
+findings are the deliberate exception.
+
+**Deploy discovers agents and skills rather than listing them**, and links each
+one individually. Linking the whole `~/.claude/agents` directory would displace
+anything else the operator keeps there.
+
 ## A tension already resolved — do not re-litigate
 
 Opinion 1 says the system must stop needing the operator and must never ask the
@@ -116,6 +144,12 @@ the conversation when they are present and asking. Leave it settled.
   rule covers the rest. Do not widen it into blocking on suspicion.
 - Hook scripts must stay executable. A test asserts this, because a registered
   hook that cannot run fails silently.
+- `bin/store.py`'s subcommands use `dest="action"`, not `dest="command"`. The
+  `suite` subcommand takes a `--command` flag, and sharing the name made argparse
+  overwrite the subcommand itself, so recording a suite run silently ran the
+  query instead. It failed without erroring, which is the dangerous kind.
+- `tools/jsonstore.py` is shared by the queue and both stores. A change to its
+  atomic write or its skip-corrupt behaviour touches all three.
 
 ## Conventions worth knowing before you write anything
 
