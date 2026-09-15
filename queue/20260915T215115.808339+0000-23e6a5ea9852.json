@@ -1,0 +1,17 @@
+{
+  "id": "23e6a5ea9852",
+  "created": "2026-09-15T21:51:15.808339+00:00",
+  "kind": "finding",
+  "urgency": "high",
+  "project": "heater",
+  "path": "tools/usage.py",
+  "origin": "",
+  "summary": "Operator instruction 2026-09-15, verbatim: 'by the time we get to 95% usage in the 5 hour period i want to stop running agents and just get a full debrief of what they have accomplished over the 5 hours in plain english' -- the five-hour top band on branch worker/c79a35661f9c is 98 and must become 95 meaning STOP (no new dispatches, let nothing new start), and the fleet needs a debrief command (bin/debrief.py or bearings --debrief) that writes, from the dispatch/review/lease/queue stores, a plain-English account of what every agent accomplished in the last five hours, which the stoker sends through the queue at that mark; record the words in opinion 13 and fold into the taper change at its next fixer round",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-15T21:51:15.841022+00:00",
+    "score": 72,
+    "task_id": "32cbdf129bdf"
+  }
+}
