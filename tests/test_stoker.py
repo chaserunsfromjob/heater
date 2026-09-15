@@ -15,12 +15,14 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 sys.path.insert(0, str(ROOT / "hooks"))
 
 import bearings  # noqa: E402
+import deploy  # noqa: E402
 import dispatch  # noqa: E402
 import session_start  # noqa: E402
 
@@ -140,6 +142,60 @@ class TestRoleLoader(StoreCase):
         for role_file in (ROOT / "roles").glob("*.md"):
             self.assertTrue(session_start.role_rules(role_file.stem).strip(),
                             f"roles/{role_file.name} would never load")
+
+
+class TestMachineDriftNote(unittest.TestCase):
+    """A session whose own repo registers these hooks must not be told the
+    machine's registration is stale: the hooks are running — this is one of them
+    — so the line is false here, and a false warning teaches the reader to
+    ignore the true one later."""
+
+    HOOKS_STALE = "hook registration out of date"
+    NO_LINE = "no status line, so nothing can see context usage and handover cannot fire"
+
+    def note(self, *, covered: bool, settings: str | None,
+             cwd: str | None = None, links: dict | None = None) -> str:
+        with mock.patch.object(deploy, "project_settings_current", return_value=covered), \
+             mock.patch.object(deploy, "settings_drift", return_value=settings), \
+             mock.patch.object(deploy, "links", return_value=links or {}):
+            return session_start.drift_note({"cwd": cwd or str(ROOT)})
+
+    def stale_link(self) -> dict:
+        return {Path(self.tmp.name) / "CLAUDE.md": ROOT / "rules" / "global.md"}
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_the_committed_project_file_silences_the_registration_line(self):
+        self.assertEqual(self.note(covered=True, settings=self.HOOKS_STALE), "")
+
+    def test_it_silences_the_status_line_warning_too(self):
+        self.assertEqual(self.note(covered=True, settings=self.NO_LINE), "")
+
+    def test_a_missing_or_stale_project_file_still_warns(self):
+        self.assertIn(self.HOOKS_STALE, self.note(covered=False, settings=self.HOOKS_STALE))
+
+    def test_a_missing_status_line_still_warns_without_the_project_file(self):
+        self.assertIn("handover cannot fire", self.note(covered=False, settings=self.NO_LINE))
+
+    def test_a_session_outside_this_repo_still_hears_about_the_machine(self):
+        """Elsewhere the machine's registration is the only thing switching hooks
+        on, so this repo's committed file says nothing about that session."""
+        self.assertIn(self.HOOKS_STALE,
+                      self.note(covered=True, settings=self.HOOKS_STALE, cwd=self.tmp.name))
+
+    def test_link_drift_is_reported_whether_or_not_the_project_file_covers_hooks(self):
+        """CLAUDE.md, agents and skills reach a session only as machine links,
+        which no project settings file can stand in for."""
+        for covered in (True, False):
+            note = self.note(covered=covered, settings=self.HOOKS_STALE, links=self.stale_link())
+            self.assertIn("CLAUDE.md: not deployed", note)
+
+    def test_a_covered_machine_with_no_link_drift_says_nothing_at_all(self):
+        self.assertEqual(self.note(covered=True, settings=None), "")
 
 
 class TestHooksFailOpen(unittest.TestCase):

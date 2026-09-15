@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
 import context as context_state  # noqa: E402
-from heater_hook import REPO, context, log, role, run, stop  # noqa: E402
+from heater_hook import REPO, context, in_fleet_repo, log, role, run, stop  # noqa: E402
 
 
 def compaction_note() -> str:
@@ -39,13 +39,21 @@ def role_rules(name: str) -> str:
     return path.read_text(encoding="utf-8") if path.is_file() else ""
 
 
-def drift_note() -> str:
-    """Deploy drift is a machine's problem, so it is reported here rather than gated."""
+def drift_note(payload: dict[str, Any] | None = None) -> str:
+    """Deploy drift is a machine's problem, so it is reported here rather than gated.
+
+    The machine's hook registration is left out when the repo this session is in
+    registers the same hooks itself, in its own committed settings file: those
+    hooks are demonstrably running, since this is one of them, so calling it
+    drift would teach the reader to ignore the line when it is true. The links —
+    CLAUDE.md, agents, skills — are machine-level only, so they are always said.
+    """
     try:
         import deploy
         drifted = [f"{target}: {reason}" for target, source in deploy.links().items()
                    if (reason := deploy.describe(target, source))]
-        if (settings := deploy.settings_drift()):
+        covered = in_fleet_repo(payload) and deploy.project_settings_current()
+        if not covered and (settings := deploy.settings_drift()):
             drifted.append(f"{deploy.SETTINGS}: {settings}")
     except Exception:
         return ""
@@ -79,7 +87,7 @@ def handle(payload: dict[str, Any]) -> dict[str, Any]:
     parts.append(compaction_note())
     if name == "stoker":
         parts.append(waiting_note())
-    parts.append(drift_note())
+    parts.append(drift_note(payload))
 
     text = "\n\n".join(p for p in parts if p)
     if not text:

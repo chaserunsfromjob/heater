@@ -12,6 +12,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
@@ -216,6 +217,52 @@ class TestProjectSettings(unittest.TestCase):
 
     def test_it_carries_the_status_line(self):
         self.assertIn("statusline.py", self.committed()["statusLine"]["command"])
+
+
+class TestProjectSettingsCurrent(unittest.TestCase):
+    """What the SessionStart hook asks before deciding whether the machine's own
+    hook registration is worth reporting to a session inside this repo."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.path = Path(self.tmp.name) / ".claude" / "settings.json"
+        self.path.parent.mkdir(parents=True)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def write(self, data: dict) -> None:
+        self.path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+    def current(self) -> bool:
+        with mock.patch.object(deploy, "PROJECT_SETTINGS", self.path):
+            return deploy.project_settings_current()
+
+    def test_true_for_the_file_committed_in_this_repo(self):
+        self.assertTrue(deploy.project_settings_current(),
+                        "run bin/deploy.py --write-project-settings")
+
+    def test_false_when_there_is_no_project_file(self):
+        self.assertFalse(self.current())
+
+    def test_false_when_it_is_stale(self):
+        stale = deploy.project_settings()
+        stale["hooks"].pop("SessionStart")
+        self.write(stale)
+        self.assertFalse(self.current())
+
+    def test_false_when_the_status_line_is_missing(self):
+        without = {"hooks": deploy.project_settings()["hooks"]}
+        self.write(without)
+        self.assertFalse(self.current())
+
+    def test_false_when_it_is_not_readable_json(self):
+        self.path.write_text("{ not json", encoding="utf-8")
+        self.assertFalse(self.current())
+
+    def test_true_when_it_matches(self):
+        self.write(deploy.project_settings())
+        self.assertTrue(self.current())
 
 
 if __name__ == "__main__":

@@ -101,6 +101,21 @@ def project_settings() -> dict:
     return {"hooks": hooks, "statusLine": line}
 
 
+def project_settings_current() -> bool:
+    """True when this repo's committed settings file already registers everything
+    a machine install would.
+
+    A session running inside this repo is switched on by that file, whatever the
+    machine's own settings say, so the machine registration is not what decides
+    whether this session has hooks.
+    """
+    try:
+        committed = json.loads(PROJECT_SETTINGS.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    return committed == project_settings()
+
+
 def write_project_settings() -> Path:
     PROJECT_SETTINGS.parent.mkdir(parents=True, exist_ok=True)
     PROJECT_SETTINGS.write_text(json.dumps(project_settings(), indent=2) + "\n", encoding="utf-8")
