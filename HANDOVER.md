@@ -1,8 +1,8 @@
 # Handover
 
-<!-- handover-commit: d2925ba -->
+<!-- handover-commit: 7c5f6e8 -->
 
-Written at `d2925ba` on `main`. Verify with
+Written at `7c5f6e8` on `main`. Verify with
 `bin/handover.py`. A snapshot, not a log — rewrite it, do not append.
 
 Read `README.md` for what is built and what is next, `OPINIONS.md` for the
