@@ -36,16 +36,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import jsonstore
 
-# The real gate: how much room must be left on the volume the checkouts live on
-# before another one is created. A checkout is a second copy of the project's
-# working files plus whatever its build leaves behind, and the fleet halts if the
-# disk fills, so the floor is several checkouts' worth rather than one.
+# The only gate: how much room must be left on the volume the checkouts live on
+# before another one is created. Not a multiple of a checkout's size — it is
+# headroom for the volume as a whole, since a filling disk halts the fleet and
+# everything else on the machine long before the checkouts are what is left.
 MIN_FREE_BYTES = 5 * 1024 ** 3
-
-# A backstop, not the working limit: nothing normal comes near it. It catches a
-# loop opening checkouts faster than the disk check can notice, where each one is
-# small enough that the room left never falls below the floor.
-MAX_SLOTS = 100
 
 GIB = 1024 ** 3
 
@@ -101,8 +96,8 @@ def slug(text: str) -> str:
     return SAFE.sub("-", text).strip("-")[:40] or "project"
 
 
-def free_bytes(path: Path | None = None) -> int:
-    """Room left on the volume the checkouts live on.
+def free_bytes(path: Path | None = None) -> int | None:
+    """Room left on the volume the checkouts live on, or None if it cannot be read.
 
     Walks up to the nearest directory that exists: the worktree root is created
     on demand, and a missing directory is not a reason to answer "no room".
@@ -113,20 +108,32 @@ def free_bytes(path: Path | None = None) -> int:
     try:
         return shutil.disk_usage(probe).free
     except OSError:
-        # Unmeasurable is not the same as full. Refusing here would jam the pool
-        # over a failed stat call; the backstop count still holds.
-        return MIN_FREE_BYTES
+        # Unmeasurable is not the same as full, and it is not a number either:
+        # answering with the floor would put a figure nobody measured into the
+        # refusals store, where every number is supposed to be a real reading.
+        return None
 
 
-def record_refusal(project: str, reason: str, *, free: int, held: int) -> dict[str, Any]:
+def short_of_room(free: int | None) -> bool:
+    """True only when the disk was measured and came back under the floor.
+
+    A failed stat call does not jam the pool: refusing over one would stop every
+    dispatch on the machine for something that is not a shortage.
+    """
+    return free is not None and free < MIN_FREE_BYTES
+
+
+def record_refusal(project: str, reason: str, *, free: int | None, held: int) -> dict[str, Any]:
     """Write down a lease that was refused for lack of room.
 
     Without this, "is the floor too high" is a feeling. With it, it is a query.
+    `measured` says whether `free_bytes` is a reading or a blank.
     """
     record = {
         "id": jsonstore.new_id(), "created": jsonstore.now(),
         "project": project, "reason": reason, "free_bytes": free,
-        "floor_bytes": MIN_FREE_BYTES, "held": held, "max_slots": MAX_SLOTS,
+        "measured": free is not None,
+        "floor_bytes": MIN_FREE_BYTES, "held": held,
     }
     jsonstore.write(refusals_dir(), record)
     return record
@@ -152,22 +159,19 @@ def lease(repo: Path, project: str, branch: str, *, dispatch_id: str = "",
     if not (repo / ".git").exists():
         raise ValueError(f"{repo} is not a git repository")
 
+    # One name for the project throughout: an empty `project` counts and reclaims
+    # across every project at once, while the refusal record says it is this one.
     named = project or repo.name
-    room, held = free_bytes(), len(active(project))
-    if room < MIN_FREE_BYTES or held >= MAX_SLOTS:
-        reclaim(project)
-        room, held = free_bytes(), len(active(project))
-    if room < MIN_FREE_BYTES:
+    room, held = free_bytes(), len(active(named))
+    if short_of_room(room):
+        reclaim(named)
+        room, held = free_bytes(), len(active(named))
+    if short_of_room(room):
         record_refusal(named, "disk", free=room, held=held)
         raise NoSlotAvailable(
             f"{room / GIB:.1f} GiB free where the checkouts live, below the "
-            f"{MIN_FREE_BYTES / GIB:.1f} GiB floor; wait for room or free some, "
-            "rather than starting a checkout that could fill the disk")
-    if held >= MAX_SLOTS:
-        record_refusal(named, "runaway", free=room, held=held)
-        raise NoSlotAvailable(
-            f"{held} checkouts already open for {named}, at the runaway backstop "
-            f"of {MAX_SLOTS}; something is opening them in a loop")
+            f"{MIN_FREE_BYTES / GIB:.1f} GiB floor; free some room, or escalate "
+            "with `bin/queue.py add --kind escalation` if there is none to free")
 
     # The commit this slot started from. Without it there is no way to tell a
     # fresh checkout from one carrying real work: both have commits in them.
@@ -175,7 +179,7 @@ def lease(repo: Path, project: str, branch: str, *, dispatch_id: str = "",
     branch_code, base_branch = git(repo, "rev-parse", "--abbrev-ref", "HEAD")
     record = {
         "id": jsonstore.new_id(), "created": jsonstore.now(),
-        "project": project or repo.name, "repo": str(repo), "branch": branch,
+        "project": named, "repo": str(repo), "branch": branch,
         "dispatch_id": dispatch_id, "base_sha": base_sha if code == 0 else "",
         # The branch this slot was cut from, and the one its work lands back into.
         "base_branch": base_branch if branch_code == 0 else "",
@@ -309,7 +313,9 @@ def autosave(record: dict[str, Any]) -> bool:
 
 
 def render(records: list[dict[str, Any]]) -> str:
-    room = f"{free_bytes() / GIB:.1f} GiB free, floor {MIN_FREE_BYTES / GIB:.1f} GiB"
+    free = free_bytes()
+    reading = f"{free / GIB:.1f} GiB free" if free is not None else "free space unreadable"
+    room = f"{reading}, floor {MIN_FREE_BYTES / GIB:.1f} GiB"
     if not records:
         return f"worktrees: no slots leased ({room})"
     lines = [f"{len(records)} slot(s) leased ({room}):"]

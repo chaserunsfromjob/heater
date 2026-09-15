@@ -138,6 +138,12 @@ class TestRoleLoader(StoreCase):
         text = session_start.handle({"source": "startup"})["hookSpecificOutput"]["additionalContext"]
         self.assertNotIn("# Stoker", text)
 
+    def test_a_refused_lease_has_a_route_other_than_waiting(self):
+        """Below the disk floor with nothing left to reclaim, waiting is stalling:
+        the stoker asks instead, and the queue is how it asks."""
+        text = (ROOT / "roles" / "stoker.md").read_text(encoding="utf-8")
+        self.assertIn("--kind escalation", text)
+
     def test_every_role_file_has_a_loader_path(self):
         for role_file in (ROOT / "roles").glob("*.md"):
             self.assertTrue(session_start.role_rules(role_file.stem).strip(),

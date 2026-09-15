@@ -97,11 +97,13 @@ def slots() -> tuple[list[str], bool]:
 
     free = worktrees.free_bytes()
     floor = worktrees.MIN_FREE_BYTES
-    lines.append(f"  {free / worktrees.GIB:.1f} GiB free where checkouts live "
+    reading = (f"{free / worktrees.GIB:.1f} GiB free" if free is not None
+               else "free space could not be read")
+    lines.append(f"  {reading} where checkouts live "
                  f"(floor {floor / worktrees.GIB:.1f} GiB)")
     refused = worktrees.refusals(days=7)
     lines.append(f"  {len(refused)} lease(s) refused for lack of room in 7 days")
-    return lines, any("abandoned" in l for l in lines) or free < floor
+    return lines, any("abandoned" in l for l in lines) or worktrees.short_of_room(free)
 
 
 def review_load() -> list[str]:

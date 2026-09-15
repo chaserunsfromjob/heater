@@ -75,6 +75,22 @@ class WorktreeCase(unittest.TestCase):
         self.addCleanup(patcher.stop)
         return patcher.start()
 
+    def pretend_free_only_under(self, under: Path, free: int, elsewhere: int) -> mock.Mock:
+        """Answer `free` bytes for `under` and anything inside it, `elsewhere` for
+        every other path.
+
+        Different volumes have to answer differently, or a check that measures
+        the wrong one reads exactly like a check that measures the right one.
+        """
+        def usage(path):
+            probed = Path(path)
+            room = free if probed == under or under in probed.parents else elsewhere
+            return SimpleNamespace(total=room * 4, used=room * 3, free=room)
+
+        patcher = mock.patch.object(worktrees.shutil, "disk_usage", side_effect=usage)
+        self.addCleanup(patcher.stop)
+        return patcher.start()
+
     def checkouts_on_disk(self) -> int:
         trees = Path(os.environ["HEATER_WORKTREE_ROOT"])
         return len([p for p in trees.glob("*/*") if p.is_dir()]) if trees.exists() else 0
@@ -149,13 +165,20 @@ class TestTheDiskIsTheLimit(WorktreeCase):
         self.assertIn("floor", message)
 
     def test_the_room_is_measured_where_the_checkouts_live(self):
-        probe = self.pretend_free(worktrees.MIN_FREE_BYTES * 10)
+        """Measuring some other volume is the failure this has to catch, so only
+        the worktree root is given room and every other path is given none."""
+        root = worktrees.worktree_root()
+        root.mkdir(parents=True, exist_ok=True)
+        probe = self.pretend_free_only_under(root, worktrees.MIN_FREE_BYTES * 10,
+                                             elsewhere=worktrees.MIN_FREE_BYTES // 2)
+
+        # Refused if the reading came from anywhere but the checkouts' own volume.
         worktrees.lease(self.repo, "api", "worker/one")
-        looked_at = [str(call.args[0]) for call in probe.call_args_list]
+
+        looked_at = [Path(call.args[0]) for call in probe.call_args_list]
         self.assertTrue(looked_at, "the disk was never consulted at all")
-        root = str(worktrees.worktree_root())
-        self.assertTrue(any(root.startswith(p) or p.startswith(root) for p in looked_at),
-                        f"measured {looked_at}, none of it near {root}")
+        self.assertTrue(all(p == root or root in p.parents for p in looked_at),
+                        f"measured {looked_at}, not the volume at {root}")
 
     def test_a_volume_that_does_not_exist_yet_is_measured_by_its_parent(self):
         """The worktree root is created on demand, and a missing directory is
@@ -170,6 +193,14 @@ class TestTheDiskIsTheLimit(WorktreeCase):
         held = worktrees.lease(self.repo, "api", "worker/one")
         self.assertTrue(Path(held["path"]).exists(),
                         "a failed stat call is not the same as a full disk")
+
+    def test_an_unmeasurable_disk_is_not_answered_with_a_number(self):
+        """A made-up figure here would be written to the store beside real
+        readings, with nothing to tell them apart."""
+        patcher = mock.patch.object(worktrees.shutil, "disk_usage", side_effect=OSError("no stat"))
+        self.addCleanup(patcher.stop)
+        patcher.start()
+        self.assertIsNone(worktrees.free_bytes())
 
 
 class TestRefusalsAreRecorded(WorktreeCase):
@@ -191,6 +222,25 @@ class TestRefusalsAreRecorded(WorktreeCase):
         self.assertEqual(record["free_bytes"], worktrees.MIN_FREE_BYTES // 2)
         self.assertEqual(record["floor_bytes"], worktrees.MIN_FREE_BYTES)
         self.assertEqual(record["project"], "api")
+        self.assertTrue(record["measured"], "a real reading must say it is one")
+
+    def test_a_reading_that_never_happened_is_recorded_as_none(self):
+        record = worktrees.record_refusal("api", "disk", free=None, held=0)
+        self.assertIsNone(record["free_bytes"])
+        self.assertFalse(record["measured"],
+                         "an unmeasured disk must not be stored as a measurement")
+
+    def test_the_count_is_of_the_project_the_record_names(self):
+        """An unnamed project counted every checkout on the machine and filed the
+        total under this repository."""
+        self.pretend_free(worktrees.MIN_FREE_BYTES * 10)
+        worktrees.lease(self.repo, "api", "worker/api")
+        self.pretend_free(worktrees.MIN_FREE_BYTES // 2)
+        with self.assertRaises(worktrees.NoSlotAvailable):
+            worktrees.lease(self.repo, "", "worker/unnamed")
+        record = worktrees.refusals()[0]
+        self.assertEqual(record["project"], self.repo.name)
+        self.assertEqual(record["held"], 0)
 
     def test_a_lease_that_succeeds_records_nothing(self):
         self.pretend_free(worktrees.MIN_FREE_BYTES * 10)
@@ -201,31 +251,6 @@ class TestRefusalsAreRecorded(WorktreeCase):
         self.refuse()
         self.assertEqual(worktrees.refusals(days=7), worktrees.refusals())
         self.assertEqual(worktrees.refusals(days=0), [])
-
-
-class TestTheRunawayBackstop(WorktreeCase):
-    """Not the working limit: it exists for a loop opening checkouts too small
-    and too fast for the disk check to catch."""
-
-    def test_it_sits_far_above_anything_normal(self):
-        self.assertGreaterEqual(worktrees.MAX_SLOTS, 50)
-
-    def test_it_refuses_a_runaway_even_with_room_to_spare(self):
-        self.pretend_free(worktrees.MIN_FREE_BYTES * 10)
-        with mock.patch.object(worktrees, "MAX_SLOTS", 2):
-            for n in range(2):
-                worktrees.lease(self.repo, "api", f"worker/{n}")
-            with self.assertRaises(worktrees.NoSlotAvailable):
-                worktrees.lease(self.repo, "api", "worker/runaway")
-        self.assertEqual(worktrees.refusals()[0]["reason"], "runaway")
-
-    def test_the_backstop_is_counted_per_project(self):
-        self.pretend_free(worktrees.MIN_FREE_BYTES * 10)
-        with mock.patch.object(worktrees, "MAX_SLOTS", 2):
-            for n in range(2):
-                worktrees.lease(self.repo, "api", f"worker/{n}")
-            other = worktrees.lease(self.repo, "web", "worker/web")
-        self.assertTrue(Path(other["path"]).exists(), "one busy project must not block another")
 
 
 class TestReleasing(WorktreeCase):
