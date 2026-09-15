@@ -7,7 +7,7 @@
   "path": "tools/dispatch.py",
   "origin": "",
   "summary": "reconcile's worktrees.autosave commits a live worker's half-written files while that worker is mid-edit (it committed this fixer's in-progress tree on worker/c79a35661f9c as 'Autosave uncommitted work'), so a branch can carry a commit that never passed a suite; consider skipping autosave for a lease whose dispatch is still open and quiet for less than the stale window",
-  "delivered_at": null,
+  "delivered_at": "2026-09-15T22:15:11.875692+00:00",
   "resolution": {
     "action": "dismissed",
     "at": "2026-09-15T22:14:36.710397+00:00",
