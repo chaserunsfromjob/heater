@@ -22,7 +22,13 @@ SAFE_ID = re.compile(r"[^A-Za-z0-9_-]")
 
 
 def handle(payload: dict[str, Any]) -> dict[str, Any]:
-    session = SAFE_ID.sub("_", str(payload.get("session_id") or "unknown"))[:64]
+    # No session id means nothing can ever clear or refresh this beat: SessionEnd
+    # deletes by session id, so a placeholder name would sit there forever and
+    # read as a dead worker. A beat nobody can retire is worse than no beat.
+    raw = str(payload.get("session_id") or "").strip()
+    if not raw:
+        return stop()
+    session = SAFE_ID.sub("_", raw)[:64]
     directory = heartbeat_dir()
     directory.mkdir(parents=True, exist_ok=True)
     beat = {"at": now(), "session": session, "role": role() or None,
