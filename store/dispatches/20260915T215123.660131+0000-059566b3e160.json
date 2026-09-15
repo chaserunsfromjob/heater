@@ -1,0 +1,18 @@
+{
+  "id": "059566b3e160",
+  "created": "2026-09-15T21:51:23.660131+00:00",
+  "task": "Fix tools/dispatch.py so reconcile and land never land a change on a stale review pass. Today reviewed() (tools/dispatch.py:126) returns True when ANY recorded round for the change has verdict pass. On 2026-09-15 21:49Z that landed the pokerbot design dispatch 36e2ae4be45b into pokerbot main (merge 659c6b7) on a round-4 pass recorded hours earlier, after rounds 5, 6 and 7 had all failed and before round 8 had run. Make reviewed() read the review store, pick the round with the highest round number for that change (tie: latest created), and return True only when that round's verdict is pass. Make reconcile's and land's records and printed reports name the round and its id that the landing rested on. Write the failing test first (tests/ already covers dispatch; follow its style): a change with round 1 pass then round 2 fail must NOT be reviewed; round 1 fail then round 2 pass must be. Do not touch anything else in reconcile (the liveness check is a separate task, f0b91b86f69f).",
+  "project": "heater",
+  "done_when": "reviewed() in tools/dispatch.py is true only when the LATEST recorded round for the change is a pass; a failing test reproduces the stale-pass landing first; reconcile's report names the round it landed on; suite green; bin/gate.sh exit 0; branch pushed",
+  "task_id": "",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/heater",
+  "workdir": "/Users/chasethompson/.heater/worktrees/heater/2eb7c0d6f9dc",
+  "lease_id": "2eb7c0d6f9dc",
+  "branch": "worker/059566b3e160",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

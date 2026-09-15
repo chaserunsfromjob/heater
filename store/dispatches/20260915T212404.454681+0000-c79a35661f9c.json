@@ -1,0 +1,18 @@
+{
+  "id": "c79a35661f9c",
+  "created": "2026-09-15T21:24:04.454681+00:00",
+  "task": "Build the usage taper: record Claude Code's 5-hour and 7-day usage utilization (weekly first), show both in bin/bearings.py with a taper band, and record the operator's policy as opinion 13 plus one rule bullet. See the worker brief for the data source, bands, and tests.",
+  "project": "heater",
+  "done_when": "bearings prints both windows with a band from a real reading on this machine (or names exactly why no reading exists), suite green, gate exit 0, OPINIONS.md opinion 13 verbatim, one Cost rule bullet, branch pushed",
+  "task_id": "62a5a521a2f4",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/heater",
+  "workdir": "/Users/chasethompson/.heater/worktrees/heater/03a2b608f262",
+  "lease_id": "03a2b608f262",
+  "branch": "worker/c79a35661f9c",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}
