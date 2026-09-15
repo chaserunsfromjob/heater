@@ -20,6 +20,8 @@ from that.
 | `hooks/pre_tool_use.py` | The guard. Denies the destructive spellings it is certain about, warns on the rest, never blocks ordinary work. |
 | `hooks/stop.py` | The one channel to the stoker. Wakes it with the queue at a turn boundary. |
 | `queue/` | Notes waiting for the stoker, one JSON file each. |
+| `HANDOVER.md` | What the next session cannot look up for itself. Rewritten, never appended to. |
+| `skills/handover/SKILL.md` | The procedure for ending a session safely. |
 
 A rule is one imperative bullet under fifty words, stated in exactly one place.
 `tools/style_lint.py` enforces that, and the gate runs it.
@@ -32,6 +34,7 @@ bin/deploy.py            # link ~/.claude files and register the hooks on this m
 bin/deploy.py --check    # report drift without changing anything
 bin/queue.py add --kind escalation --summary "..."   # file a note for the stoker
 bin/queue.py list        # what the stoker will be woken with
+bin/handover.py          # is this session safe to clear? exit 0 means yes
 tools/style_lint.py      # check rule files on their own
 python3 -m unittest discover -s tests
 ```
@@ -54,6 +57,10 @@ complete.
       style linter and the gate that runs it.
 - [x] **2. The PreToolUse guard and the Stop hook**, both failing open, with the
       fleet queue they read and write.
+- [x] **Handover** (moved up from step 6): `skills/handover/SKILL.md` and the
+      check that proves a session is safe to end. Brought forward because the
+      operator clears context often, and clearing is only safe once the reasons
+      are written down.
 - [ ] **3. One adversarial-review skill**, with a judge-only reviewer agent and a
       fixer agent.
 - [ ] **4. A review-rounds store** the skill writes to, and one query over it.
