@@ -1,8 +1,8 @@
 # Handover
 
-<!-- handover-commit: 62f632c -->
+<!-- handover-commit: 3e9ed40 -->
 
-Written at `62f632c` on `main`. Verify with
+Written at `3e9ed40` on `main`. Verify with
 `bin/handover.py`. A snapshot, not a log — rewrite it, do not append.
 
 Read `README.md` for what is built and what is next, `OPINIONS.md` for the
@@ -14,7 +14,7 @@ follows is only what you cannot look up.
 
 ## Start here
 
-**All seven steps plus handover are landed, pushed, and green: 319 tests,
+**All seven steps plus handover are landed, pushed, and green: 330 tests,
 `bin/gate.sh` passes.** Nothing is half-finished. No pull request is open and the
 operator has not asked for one.
 
@@ -159,8 +159,32 @@ a workspace: when it is both, every clash between the merge target and the edits
 in it becomes a decision somebody has to make, which is the input opinion 1 says
 to eliminate. Do not re-optimise this back.
 
-**Handover fires by itself at 55% context, and the bridge that makes it possible
-is fragile.** Hooks are never told how full the context window is — only the
+**Handover has two marks, and the difference between them is the whole design.**
+25% arms it: hand over at the next clean boundary, say once what is in flight,
+then wait. 45% forces it: park what is in flight and go. One mark could not
+express this, and the reason matters — handing over costs a re-orientation, but
+being cut off mid-task costs the work twice, and that second cost is invisible
+because redone work looks like ordinary work.
+
+**Mid-task is detected, not judged.** Uncommitted changes, unpushed commits, or a
+worker still out. At a boundary all three are clear, which is exactly when a
+fresh session can pick up from the repository alone. Do not replace this with a
+model deciding whether it feels finished.
+
+**While armed and mid-task the hook must fall through, not return a stop
+decision.** Returning one swallows the turn and the queue stops reaching the
+stoker for the whole armed period. Armed means finish what you are doing, not
+stop working. A test pins it.
+
+**25% came from measurement, not taste.** The dominant cost term is that every
+tool call re-sends the whole conversation — this session averaged 5.3 requests
+per turn — so the bill grows with context far faster than the message count
+suggests. Cost per turn falls about a third from 55% to 25% and the curve
+flattens below that while disruption keeps growing. Re-orientation cost is the
+thing that moves the optimum: a tight HANDOVER.md and a small CLAUDE.md are what
+make a low mark affordable, so they are coupled, not independent.
+
+**The bridge that makes any of this possible is fragile.** Hooks are never told how full the context window is — only the
 status line is. So `hooks/statusline.py` records it to `~/.heater/context.json`
 and `hooks/stop.py` reads it. If the status line is not deployed, or the operator
 has their own, automatic handover silently never fires. Deploy reports that as
