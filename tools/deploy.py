@@ -73,6 +73,38 @@ def hook_groups() -> dict[str, list[dict]]:
     }
 
 
+# Claude Code expands this to the project root, so a settings file committed in
+# the repository works in any copy of it without knowing where it lives.
+PROJECT_ROOT_VAR = "${CLAUDE_PROJECT_DIR}"
+PROJECT_SETTINGS = REPO / ".claude" / "settings.json"
+
+
+def portable(text: str) -> str:
+    return str(text).replace(str(REPO), PROJECT_ROOT_VAR)
+
+
+def project_settings() -> dict:
+    """The same registration, with paths that travel.
+
+    A machine-level install reaches every project on that machine. This reaches
+    every copy of this project on any machine, with nothing to run first — which
+    is what makes a fresh clone, including a cloud container, arrive switched on.
+    """
+    hooks = {
+        event: [{**group, "hooks": [{**h, "command": portable(h["command"])} for h in group["hooks"]]}
+                for group in groups]
+        for event, groups in hook_groups().items()
+    }
+    line = {**status_line(), "command": portable(status_line()["command"])}
+    return {"hooks": hooks, "statusLine": line}
+
+
+def write_project_settings() -> Path:
+    PROJECT_SETTINGS.parent.mkdir(parents=True, exist_ok=True)
+    PROJECT_SETTINGS.write_text(json.dumps(project_settings(), indent=2) + "\n", encoding="utf-8")
+    return PROJECT_SETTINGS
+
+
 def status_line() -> dict:
     """The status line is the only thing told how full the context window is, so
     it is what makes automatic handover possible. Hooks are never told."""
@@ -179,7 +211,13 @@ def deploy(target: Path, source: Path) -> str:
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="report drift without changing anything")
+    parser.add_argument("--write-project-settings", action="store_true",
+                        help="regenerate .claude/settings.json, which makes a fresh clone self-installing")
     args = parser.parse_args(argv[1:])
+
+    if args.write_project_settings:
+        print(f"wrote {write_project_settings()}")
+        return 0
 
     drifted = 0
     table = links()

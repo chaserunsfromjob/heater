@@ -178,5 +178,37 @@ class TestHookRegistration(unittest.TestCase):
         json.dumps(deploy.merge_hooks({}))
 
 
+class TestProjectSettings(unittest.TestCase):
+    """A committed settings file is what makes a fresh clone arrive switched on,
+    including a cloud container nobody can run an installer in."""
+
+    def committed(self) -> dict:
+        return json.loads(deploy.PROJECT_SETTINGS.read_text(encoding="utf-8"))
+
+    def test_it_is_committed(self):
+        self.assertTrue(deploy.PROJECT_SETTINGS.is_file(),
+                        "without it a fresh clone starts with nothing switched on")
+
+    def test_it_matches_what_deploy_would_write(self):
+        self.assertEqual(self.committed(), deploy.project_settings(),
+                         "stale: run bin/deploy.py --write-project-settings")
+
+    def test_every_path_travels(self):
+        for groups in self.committed()["hooks"].values():
+            for group in groups:
+                for handler in group["hooks"]:
+                    self.assertTrue(handler["command"].startswith(deploy.PROJECT_ROOT_VAR),
+                                    f"{handler['command']} only works on the machine it was written on")
+
+    def test_no_absolute_path_leaked_in(self):
+        self.assertNotIn(str(deploy.REPO), json.dumps(self.committed()))
+
+    def test_it_registers_the_same_events_as_a_machine_install(self):
+        self.assertEqual(sorted(self.committed()["hooks"]), sorted(deploy.hook_groups()))
+
+    def test_it_carries_the_status_line(self):
+        self.assertIn("statusline.py", self.committed()["statusLine"]["command"])
+
+
 if __name__ == "__main__":
     unittest.main()
