@@ -1,8 +1,8 @@
 # Handover
 
-<!-- handover-commit: ffe17af -->
+<!-- handover-commit: 36bd007 -->
 
-Written at `ffe17af` on `main`. Verify with
+Written at `36bd007` on `main`. Verify with
 `bin/handover.py`. A snapshot, not a log — rewrite it, do not append.
 
 Read `README.md` for what is built and what is next, `OPINIONS.md` for the
@@ -14,7 +14,7 @@ follows is only what you cannot look up.
 
 ## Start here
 
-**All seven steps plus handover are landed, pushed, and green: 271 tests,
+**All seven steps plus handover are landed, pushed, and green: 289 tests,
 `bin/gate.sh` passes.** Nothing is half-finished. No pull request is open and the
 operator has not asked for one.
 
@@ -151,12 +151,36 @@ directory came first on the import path won — `bearings` imported the CLI shim
 instead of the module and failed with a missing attribute. Never put importable
 logic in `bin/`.
 
-**Worktree slots are leased on demand, not provisioned.** The operator corrected
-an earlier plan here and was right: asking them whether a pool is needed is
-exactly the decision opinion 1 says the system should make for itself. So
-`dispatch.needs_its_own_checkout` decides — first worker on a project uses its
-checkout, second one gets its own. There is no pool to set up and no setting to
-turn on.
+**Every worker leases its own checkout, the first one included.** An earlier
+version gave the first worker the project's own checkout and only leased from
+the second onwards. The operator pushed back twice here and was right both
+times. The project's checkout is the consolidation target and must never also be
+a workspace: when it is both, every clash between the merge target and the edits
+in it becomes a decision somebody has to make, which is the input opinion 1 says
+to eliminate. Do not re-optimise this back.
+
+**`reconcile` derives what to do from git, never from a flag.** A sweep that
+dies halfway must be repeatable, and a flag written before a crash is a lie
+afterwards. `worktrees.landed` asks git whether the commits are reachable from
+the trunk, and that answer is correct whatever happened last time. A test pins
+idempotence by comparing the trunk commit before and after a second sweep.
+
+**Loose work is committed, not refused over.** The sweep autosaves anything
+uncommitted onto the worker's own branch before doing anything else. Refusing
+would be safe for the data and useless for the operator, who then has to
+intervene; committing is safe and needs nobody.
+
+**A conflict from the trunk having moved is resolved automatically; a real one
+is not.** The sweep merges the trunk into the worker's branch and retries, which
+handles the common case. A genuine conflict keeps the branch, the checkout and
+the slot and reports `needs_fix`, for a fixer to be dispatched. It never
+discards the losing side.
+
+**A dirty trunk holds everything, on purpose.** It is the one case not resolved
+automatically, because the uncommitted work there is the operator's and mixing
+it into a merge is not a call to make for them. Nothing is lost by waiting. In
+normal running the trunk is clean, because opinion 2 says changes go through the
+stoker.
 
 **A slot holding work that exists nowhere else is never destroyed, by any
 route.** Close, release, reclaim and land all refuse, and close records the
@@ -169,8 +193,13 @@ which meant work merged into trunk still counted as at risk and its slot could
 never be freed — the normal end of a dispatch would have jammed the pool. Do not
 collapse these back into one question.
 
-**`dispatch.land` is the whole end of the cycle and is deliberately not
-separable.** Merge back, delete the branch, remove the checkout, free the slot,
+**Nothing is deleted until its commits are provably in the trunk.** `finish`
+raises rather than clean up an unlanded branch, and a test calls it on unlanded
+work so the invariant is proven rather than merely intended. Every cleanup path
+goes through it.
+
+**`dispatch.land` is the single-dispatch version of the sweep and is deliberately
+not separable.** Merge back, delete the branch, remove the checkout, free the slot,
 close the dispatch. A merge that leaves the checkout behind and a checkout
 deleted before its merge are both ways to lose work. It refuses and changes
 nothing on: no recorded review pass, uncommitted work, a failing gate, a dirty
