@@ -1,0 +1,17 @@
+{
+  "id": "09904f7a3fa5",
+  "created": "2026-09-15T21:57:55.357207+00:00",
+  "change": "c79a35661f9c",
+  "project": "heater",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 11,
+  "wording_only": false,
+  "files": 9,
+  "insertions": 754,
+  "deletions": 3,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "5 blocking: five-hour stop must be 95 not 98 (operator instruction on trunk); in-flight-finish decision unrecorded and contradicts operator; no debrief; opinion 13 missing the fourth quote; stop hook marks queue delivered before new code can raise. 6 non-blocking wording/judgment."
+}
