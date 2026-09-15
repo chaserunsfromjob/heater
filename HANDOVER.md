@@ -1,8 +1,8 @@
 # Handover
 
-<!-- handover-commit: 08f1673 -->
+<!-- handover-commit: d2925ba -->
 
-Written at `08f1673` on `main`. Verify with
+Written at `d2925ba` on `main`. Verify with
 `bin/handover.py`. A snapshot, not a log — rewrite it, do not append.
 
 Read `README.md` for what is built and what is next, `OPINIONS.md` for the
@@ -14,18 +14,20 @@ follows is only what you cannot look up.
 
 ## Start here
 
-Steps 1 through 4 plus handover are landed, pushed, and green: 162 tests,
+Steps 1 through 5 plus handover are landed, pushed, and green: 194 tests,
 `bin/gate.sh` passes. Nothing is half-finished. No pull request is open and the
 operator has not asked for one.
 
-**The next action is step 5, the findings inbox**, then step 6, the stoker.
+**The next action is step 6, the stoker.** It is the step that makes the rest
+run unattended, and the step that flips `ENFORCE_STOKER_ROUTING` to `True`.
 
-**Branches.** `main` is the canonical branch and the work happens there. The repo
-was empty at the start, so `claude/artifact-system-continuation-ko9236` became
-GitHub's default by accident; every push goes to both refs to keep them
-identical. **The operator still needs to switch the default branch to `main` in
-GitHub's settings by hand** — no tool in this session can do it. Once they have,
-the old branch can be deleted.
+**Branches.** `main` is canonical and is now GitHub's default. The stale
+`claude/artifact-system-continuation-ko9236` still exists on GitHub pointing at
+an old commit: **deleting it from this environment is blocked**, not flaky. Both
+`git push --delete` and the colon refspec return HTTP 403 from the sandbox proxy,
+which the proxy's own README calls a policy denial to report rather than route
+around, and no delete-branch tool exists in the GitHub API set here. The operator
+deletes it from GitHub's branches page. Do not burn a session retrying.
 
 **The operator has not yet run `bin/deploy.py` on a real machine.** Nothing in
 this system is actually live for them until they do.
@@ -117,6 +119,19 @@ findings are the deliberate exception.
 one individually. Linking the whole `~/.claude/agents` directory would displace
 anything else the operator keeps there.
 
+**Findings live in the queue store, not in a directory of their own.** The
+obvious build is a parallel `inbox/findings/`, and it was rejected: one finding
+would then have two records that can disagree. `inbox/` holds only the task
+list. `tools/inbox.py` is the lifecycle over queue items of kind `finding`.
+
+**Only dismissed findings answer the refile question.** An open finding is still
+waiting to be judged and a promoted one is live work, so matching a new finding
+against either would suppress something real. Tests pin all three cases.
+
+**The task cap deletes, and a test asserts no file is left behind.** The
+tempting failure is to move a dropped task somewhere quieter and call that
+deleted. Opinion 5 means deleted.
+
 ## A tension already resolved — do not re-litigate
 
 Opinion 1 says the system must stop needing the operator and must never ask the
@@ -150,6 +165,11 @@ the conversation when they are present and asking. Leave it settled.
   query instead. It failed without erroring, which is the dangerous kind.
 - `tools/jsonstore.py` is shared by the queue and both stores. A change to its
   atomic write or its skip-corrupt behaviour touches all three.
+- `tools/textmatch.py` is shared by the rule linter and the findings inbox, at
+  two different thresholds: 0.85 for rules, 0.75 for findings. The lower one is
+  deliberate, because findings are free text written in a hurry and the same
+  observation arrives worded differently far more often than a rule does.
+  Changing the shared `ratio` moves both.
 
 ## Conventions worth knowing before you write anything
 
