@@ -1,8 +1,8 @@
 # Handover
 
-<!-- handover-commit: ea4aba1 -->
+<!-- handover-commit: ffe17af -->
 
-Written at `ea4aba1` on `main`. Verify with
+Written at `ffe17af` on `main`. Verify with
 `bin/handover.py`. A snapshot, not a log — rewrite it, do not append.
 
 Read `README.md` for what is built and what is next, `OPINIONS.md` for the
@@ -14,7 +14,7 @@ follows is only what you cannot look up.
 
 ## Start here
 
-**All seven steps plus handover are landed, pushed, and green: 255 tests,
+**All seven steps plus handover are landed, pushed, and green: 271 tests,
 `bin/gate.sh` passes.** Nothing is half-finished. No pull request is open and the
 operator has not asked for one.
 
@@ -158,9 +158,29 @@ exactly the decision opinion 1 says the system should make for itself. So
 checkout, second one gets its own. There is no pool to set up and no setting to
 turn on.
 
-**A slot holding unpushed work is never destroyed, by any route.** Close,
-release, and reclaim all refuse, and close records the reason on the dispatch
-rather than swallowing it. `--force` exists for a human who has looked.
+**A slot holding work that exists nowhere else is never destroyed, by any
+route.** Close, release, reclaim and land all refuse, and close records the
+reason on the dispatch rather than swallowing it. `--force` exists for a human
+who has looked.
+
+**`work_at_risk` checks three separate ways of being safe: merged, pushed, or
+never started.** The earlier version asked only "was it pushed to a remote",
+which meant work merged into trunk still counted as at risk and its slot could
+never be freed — the normal end of a dispatch would have jammed the pool. Do not
+collapse these back into one question.
+
+**`dispatch.land` is the whole end of the cycle and is deliberately not
+separable.** Merge back, delete the branch, remove the checkout, free the slot,
+close the dispatch. A merge that leaves the checkout behind and a checkout
+deleted before its merge are both ways to lose work. It refuses and changes
+nothing on: no recorded review pass, uncommitted work, a failing gate, a dirty
+or wrong-branch main checkout, or a conflict — and a conflicting merge is
+aborted, never left half-applied.
+
+**Landing reads the review store rather than trusting the report.** An
+unrecorded round did not happen, so the stoker must run
+`bin/store.py review --change <dispatch-id>` for each round or nothing will ever
+land.
 
 **`unpushed()` measures against the lease's recorded `base_sha`, never against
 "has any commits".** The first implementation asked whether the branch had any
