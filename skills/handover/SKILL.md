@@ -17,9 +17,10 @@ is, the Stop hook reads that, and past the threshold it refuses to let the turn
 end quietly and says to hand over now. Work this instruction before anything
 else: it names exactly what is outstanding.
 
-Hooks are never told the context size, so the status line is the only source.
-`bin/deploy.py --check` reports a missing or foreign status line as drift,
-because without it this never fires.
+Context usage is read from the transcript, which every hook is handed a path to,
+so this works in a terminal and in a web session alike. The status line is a
+second source where it runs: it knows the exact window size, which the transcript
+does not carry.
 
 There are two marks, not one, because being cut off mid-task costs the work
 twice and no cost model shows that.

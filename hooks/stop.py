@@ -24,18 +24,18 @@ import queue  # noqa: E402
 from heater_hook import keep_going, log, now, role, run, say, stop  # noqa: E402
 
 
-def handover_decision() -> dict[str, Any] | None:
+def handover_decision(transcript: str | None = None) -> dict[str, Any] | None:
     """Past the arming mark, handing over outranks starting anything new.
 
     Armed is not the same as due. Cutting a session off mid-task costs the work
     twice, which no cost model shows, so while work is in flight the handover
     waits for a boundary — until the ceiling, where waiting stops being a choice.
     """
-    condition = context.state()
+    condition = context.state(transcript)
     if condition == context.QUIET:
         return None
 
-    used, arm, cap = context.used() or 0.0, context.threshold(), context.ceiling()
+    used, arm, cap = context.used(transcript) or 0.0, context.threshold(), context.ceiling()
     flight = handover.in_flight()
 
     if condition == context.ARMED and flight:
@@ -91,7 +91,7 @@ def handle(payload: dict[str, Any]) -> dict[str, Any]:
 
     # Context pressure outranks the queue: picking up new work now only makes
     # the handover harder to write.
-    if (decision := handover_decision()) is not None:
+    if (decision := handover_decision(payload.get("transcript_path"))) is not None:
         return decision
 
     if role() != "stoker":

@@ -22,7 +22,7 @@ from that.
 | `hooks/session_start.py` | Loads the right role's rules from an environment marker, and reports machine drift. |
 | `hooks/post_tool_use.py` | A heartbeat, so a watcher can tell a quiet worker from a dead one. |
 | `hooks/session_end.py` | Records how a session ended and what fleet state it left unsynced. |
-| `hooks/statusline.py` | The status line, and the only thing told how full the context window is. |
+| `hooks/statusline.py` | The status line. Records the exact context window size, which the transcript does not carry. |
 | `hooks/pre_compact.py` | Backstop. Marks a session whose memory was summarised before a handover. |
 | `roles/stoker.md` | The stoker's own rules. Loaded by `HEATER_ROLE=stoker`. |
 | `roles/worker.md` | Standing instructions wrapped around every dispatched brief. |

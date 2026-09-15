@@ -100,6 +100,76 @@ class TestThreshold(StateCase):
         self.assertFalse(context.announced())
 
 
+class TestTranscriptSource(StateCase):
+    """The primary source: every hook gets a transcript_path, and the last usage
+    record in it is what the API actually reported. Works where no status line runs."""
+
+    def transcript(self, *records) -> str:
+        path = Path(self.tmp.name) / "t.jsonl"
+        path.write_text("\n".join(json.dumps(r) for r in records) + "\n", encoding="utf-8")
+        return str(path)
+
+    def usage(self, read: int, write: int = 0, fresh: int = 0) -> dict:
+        return {"message": {"usage": {"input_tokens": fresh,
+                                      "cache_creation_input_tokens": write,
+                                      "cache_read_input_tokens": read}}}
+
+    def test_it_reads_the_window_in_use(self):
+        path = self.transcript(self.usage(250_000, 1_000, 2))
+        self.assertAlmostEqual(context.from_transcript(path), 25.1002, places=3)
+
+    def test_it_takes_the_last_record_not_the_first(self):
+        path = self.transcript(self.usage(100_000), self.usage(400_000))
+        self.assertAlmostEqual(context.from_transcript(path), 40.0)
+
+    def test_it_ignores_lines_without_usage(self):
+        path = self.transcript({"type": "user", "text": "hello"}, self.usage(300_000))
+        self.assertAlmostEqual(context.from_transcript(path), 30.0)
+
+    def test_it_survives_a_corrupt_line(self):
+        path = Path(self.tmp.name) / "t.jsonl"
+        path.write_text('{"usage": broken\n' + json.dumps(self.usage(200_000)) + "\n", encoding="utf-8")
+        self.assertAlmostEqual(context.from_transcript(str(path)), 20.0)
+
+    def test_a_missing_file_reads_as_unknown(self):
+        self.assertIsNone(context.from_transcript(str(Path(self.tmp.name) / "gone.jsonl")))
+
+    def test_no_path_reads_as_unknown(self):
+        self.assertIsNone(context.from_transcript(None))
+
+    def test_a_transcript_with_no_usage_reads_as_unknown(self):
+        self.assertIsNone(context.from_transcript(self.transcript({"type": "user"})))
+
+    def test_it_reads_a_record_beyond_the_tail_window(self):
+        """A long session's transcript is far bigger than the tail that gets read."""
+        filler = [{"type": "user", "text": "x" * 2000} for _ in range(400)]
+        path = self.transcript(*filler, self.usage(350_000))
+        self.assertGreater(Path(path).stat().st_size, context.TAIL_BYTES)
+        self.assertAlmostEqual(context.from_transcript(path), 35.0)
+
+    def test_the_window_size_can_be_overridden(self):
+        os.environ["HEATER_CONTEXT_WINDOW"] = "200000"
+        self.addCleanup(os.environ.pop, "HEATER_CONTEXT_WINDOW", None)
+        self.assertAlmostEqual(context.from_transcript(self.transcript(self.usage(100_000))), 50.0)
+
+    def test_it_cannot_exceed_one_hundred_percent(self):
+        self.assertLessEqual(context.from_transcript(self.transcript(self.usage(9_000_000))), 100.0)
+
+    def test_the_transcript_beats_a_stale_snapshot(self):
+        self.at(5)
+        path = self.transcript(self.usage(600_000))
+        self.assertAlmostEqual(context.used(path), 60.0, msg="a stale snapshot must not win")
+
+    def test_the_snapshot_is_used_when_there_is_no_transcript(self):
+        self.at(33)
+        self.assertAlmostEqual(context.used(None), 33.0)
+
+    def test_state_is_driven_by_the_transcript(self):
+        self.assertEqual(context.state(self.transcript(self.usage(100_000))), context.QUIET)
+        self.assertEqual(context.state(self.transcript(self.usage(300_000))), context.ARMED)
+        self.assertEqual(context.state(self.transcript(self.usage(800_000))), context.FORCED)
+
+
 class TestStatusLine(StateCase):
     def render(self, payload: dict) -> str:
         done = subprocess.run([sys.executable, str(ROOT / "hooks" / "statusline.py")],

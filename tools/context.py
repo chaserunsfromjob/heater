@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
 """How full the context window is, and whether it is time to hand over.
 
-Hooks are not told how full the context window is; only the status line is. So
-the status line writes the number down and the hooks read it. That is the whole
-trick, and it is why `hooks/statusline.py` must stay deployed for automatic
-handover to work at all.
+Two sources, because one of them is not always there.
+
+The transcript is the primary source: every hook is handed a `transcript_path`,
+and the last usage record in it carries the exact token counts the API reported.
+That works in a terminal and in a web session alike, and needs nothing deployed
+beyond the hook itself.
+
+The status line is the secondary source. It is told the context window size and
+a pre-calculated percentage, which is cheaper to read and more precise about the
+window, but it only runs in the interactive CLI and only if the operator has not
+replaced it with their own.
 
 Handing over deliberately beats being compacted automatically. Compaction keeps
 whatever it judges important and nobody chooses what it drops; a handover keeps
@@ -50,6 +57,74 @@ def ceiling() -> float:
     return max(_number("HEATER_HANDOVER_CEILING", DEFAULT_CEILING), threshold())
 
 
+DEFAULT_WINDOW = 1_000_000
+
+# Usage records appear on every assistant message, so the tail of the transcript
+# always holds several. Reading the whole file on every turn-end would be waste.
+TAIL_BYTES = 512 * 1024
+
+
+def window_size() -> int:
+    """Tokens the context window holds. The status line knows exactly; otherwise assume."""
+    try:
+        if (override := os.environ.get("HEATER_CONTEXT_WINDOW")):
+            return int(override)
+    except ValueError:
+        pass
+    recorded = read().get("size")
+    return int(recorded) if isinstance(recorded, (int, float)) and recorded else DEFAULT_WINDOW
+
+
+def usage_tokens(record: dict[str, Any]) -> int | None:
+    """What one usage record says is currently in the window.
+
+    Input, cache writes and cache reads together are the context; output is not
+    part of it until the next request carries it back in.
+    """
+    try:
+        return (int(record.get("input_tokens") or 0)
+                + int(record.get("cache_creation_input_tokens") or 0)
+                + int(record.get("cache_read_input_tokens") or 0))
+    except (TypeError, ValueError):
+        return None
+
+
+def last_usage(path: Path) -> dict[str, Any] | None:
+    """The most recent usage record in a transcript, read from the end."""
+    try:
+        size = path.stat().st_size
+        with path.open("rb") as handle:
+            if size > TAIL_BYTES:
+                handle.seek(size - TAIL_BYTES)
+                handle.readline()  # discard a line the seek cut in half
+            lines = handle.read().decode("utf-8", "replace").splitlines()
+    except OSError:
+        return None
+
+    for line in reversed(lines):
+        if '"usage"' not in line:
+            continue
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        found = (record.get("message") or {}).get("usage") or record.get("usage")
+        if isinstance(found, dict) and usage_tokens(found):
+            return found
+    return None
+
+
+def from_transcript(transcript_path: str | None) -> float | None:
+    """Percentage of the window in use, read straight from the transcript."""
+    if not transcript_path:
+        return None
+    record = last_usage(Path(transcript_path))
+    if record is None:
+        return None
+    tokens = usage_tokens(record)
+    return None if not tokens else min(100.0, tokens / window_size() * 100)
+
+
 def snapshot_path() -> Path:
     base = os.environ.get("HEATER_STATE_DIR") or Path.home() / ".heater"
     return Path(base) / "context.json"
@@ -92,14 +167,17 @@ def record(payload: dict[str, Any]) -> float | None:
     return float(used)
 
 
-def used() -> float | None:
+def used(transcript_path: str | None = None) -> float | None:
+    """The transcript first; the status line's snapshot when there is no transcript."""
+    if (live := from_transcript(transcript_path)) is not None:
+        return live
     value = read().get("used_percentage")
     return float(value) if isinstance(value, (int, float)) else None
 
 
-def state() -> str:
+def state(transcript_path: str | None = None) -> str:
     """QUIET, ARMED (hand over at the next boundary), or FORCED (hand over now)."""
-    current = used()
+    current = used(transcript_path)
     if current is None:
         return QUIET
     if current >= ceiling():
@@ -107,8 +185,8 @@ def state() -> str:
     return ARMED if current >= threshold() else QUIET
 
 
-def due() -> bool:
-    return state() != QUIET
+def due(transcript_path: str | None = None) -> bool:
+    return state(transcript_path) != QUIET
 
 
 def announced() -> bool:
