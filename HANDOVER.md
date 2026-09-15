@@ -1,9 +1,9 @@
 # Handover
 
-<!-- handover-commit: 9242a44 -->
+<!-- handover-commit: 4cb65b6 -->
 
-Written at `9242a44` on `main`. Verify with `bin/handover.py`. A snapshot, not
-a log — rewrite it, do not append.
+Written at `4cb65b6` on `main`. Verify with `bin/handover.py`. A snapshot,
+not a log — rewrite it, do not append.
 
 Read `README.md` for what is built and what is next, `OPINIONS.md` for the
 operator's positions, `rules/` for the rules, and commit messages for why.
@@ -12,72 +12,94 @@ up.
 
 ---
 
-## Why this handover exists
+## First: the operator's taper policy, stated today and not yet in any rule
 
-The operator is closing the laptop mid-flight. Every agent below dies with the
-sleep (their network calls fail on wake). Their **on-disk work survives** in
-the worktrees; the job on reopening is to re-dispatch each unfinished round
-from what is on disk, not from scratch. Run `bin/bearings.py`, then
-`bin/dispatch.py list`, then check each worktree's `git status` and
-`git log -3` before dispatching anything.
+"as we get closer to both running out of 5 hour usage and weekly usage, i
+want to implement running less agents and using less usage more and more as
+we approach the limit ... cut agents that are working on things that are not
+as important, and prioritize more important tasks at your discretion."
 
-## Operator positions stated this session, not yet in any rule file
+The fleet records NO 5-hour/weekly utilization — that is task (score 65, top
+of `bin/inbox.py tasks`). Until it is closed, taper by judgement and say so.
+Priority order the operator has set, highest first: the four research
+surveys → the reconciliation (the engine decision) → the opponent-model
+design → the automatic handoff → evaluation → table-size notes. This session
+cost about $207 (`~/.heater/context.json`, `cost_usd`), with up to 10 agents
+at once; the operator did not object but has now asked for restraint as
+limits approach.
 
-All recorded verbatim as ranked tasks (`bin/inbox.py tasks`: 96243ce4163a,
-f2f8237946ac, 4fd636640f0a, 65bba741bf40) — dispatch them as ONE brief once
-`36e2ae4be45b` lands, since all touch `pokerbot/CLAUDE.md`:
+## Other operator positions stated today, recorded only as ranked tasks
 
-- Mandate: "just do whatever you think is best ... beating real players by a
-  lot, 2-9 players, exploitative play. i dont care how you do it."
-- No multi-day computing; a playable bot in hours on one laptop.
-- Private, never distributed (so GPL and paid tools are fine).
-- Plays mostly 6-handed, then 8/9 "treated the same".
-- Fleet-level: opinion 12 (handoff needs nothing from the operator) is on
-  branch `worker/46e285e1bfd0`, not yet on main.
+Dispatch tasks 96243ce4163a, f2f8237946ac, 4fd636640f0a, 65bba741bf40 as ONE
+brief once `36e2ae4be45b` lands (all touch `pokerbot/CLAUDE.md`): the
+mandate ("beating real players by a lot, 2-9 players, exploitative play. i
+dont care how you do it"), no multi-day computing, private and never
+distributed, and "mostly 6 player tables, followed by 8 or 9 player tables
+which can honestly be treated the same". Opinion 12 (handoff needs nothing
+from the operator) is on branch `worker/46e285e1bfd0`, not yet on main.
 
-## State of every change (all pokerbot unless noted; pokerbot has no remote)
+## This machine
 
-| Change | Branch / checkout | Where it is |
+MacBook, Apple M4, 16 GB RAM, no Homebrew, no tmux, no Rust toolchain. pip
+egress is sometimes blocked for subagents; curl and git clone work. Workers
+of type `worker`/`fixer`/`reviewer` have no WebFetch; use `general-purpose`
+for web research. `caffeinate -dims` runs to stop idle sleep; lid-close still
+sleeps, and every subagent stalls when it does — on wake, `SendMessage` each
+stalled agent by name with "the machine slept; continue from disk" and they
+resume with their memory intact (proven today, nine of nine).
+
+## Landed today
+
+pokerbot `aebf85e3a420` (vendoring + REFERENCE_NOTES + licence/compute/
+combinatorics bullets in CLAUDE.md) landed at pokerbot `3dc6fd9` after six
+rounds. Every other pokerbot branch is now BEHIND main and will need a merge;
+`36e2ae4be45b` will conflict on CLAUDE.md (both changed it).
+
+## State of every change (pokerbot has no remote; branches live locally)
+
+| Change | Checkout | Where it is when this was written |
 | --- | --- | --- |
-| Vendoring `aebf85e3a420` | `0f748212fb4c` | Round 4 review (default + environment) was running. Rounds 1-3 recorded fail (r3 had only two small leftovers, fixed in 3ba7e8c). If r4 is wording-only → land it. |
-| Opponent-model design `36e2ae4be45b` | `4c952047cdd3` | Round-6 fixer was running: applying 6 findings AND writing `tools/check_design_numbers.py` + `tests/test_design_numbers.py` so every derived number is machine-checked. Six rounds so far, each finding new arithmetic drift — if round 7 fails on substance, **escalate the cost to the operator** rather than spin round 8. |
-| Engine alternatives `7f09949cb56f` | `92e2a2c459ef` | Round-1 fixer was running: commit the research bot under `research/engine_alternatives/`, state betting mode per speed row, drop or bound the +3.87 bb/hand figure (it was noise: ±25 at n=300), scope the "no offline training" claim, and reframe the forefront-rule carve-out as a decision for the reconciliation step. |
-| Table-size notes `984aa6810a05` | `8b0b4064141f` | Round-2 review was running (fix ace10ce applied 11 findings). |
-| Evaluation strategy `45e49ce81e40` | `9fd7bd8ad257` | Round-1 fixer was running with the stoker's decisions on Q1/Q3/Q4 and the operator's answer to Q2 (6-max first, 8/9 one band). |
-| Bots research `14d64950c0bc` | `b1f72dd635fa` | Committed 60c6835; round-1 review was running (verification-heavy: NoRegrets is the lead candidate). |
-| Solvers research `048795519f43` | `85f4140c6fae` | Worker was running; check for a commit. |
-| Exploitation research `76bbf2823a53` | `41a874aea055` | Worker was running; check for a commit. |
-| Automatic handoff (heater) `46e285e1bfd0` | scratchpad worktree at `/private/tmp/claude-501/-Users-chasethompson-heater/60db9bfd-fa3a-4035-aa37-91a8741fa698/scratchpad/review-46e285e1bfd0`; branch on origin | Round-2 fixer was running (6 findings, the big one: Ctrl-C during the 2 s grace crashed the supervisor). Dispatch is already CLOSED (closing released its lease — a mistake to avoid: close only after landing), so `reconcile` will not land it; merge from trunk yourself after a wording-only round. The scratchpad worktree may be gone after a reboot: `git worktree prune`, then re-add from `origin/worker/46e285e1bfd0`. |
+| Opponent-model design `36e2ae4be45b` | `4c952047cdd3` | Round-7 fixer running (narrow: one arithmetic sentence, the seat priority in §4.5, ~15 figures the checker missed). Seven rounds; `tools/check_design_numbers.py` checks 554 figures and is the source of truth. If round 8 is wording-only, land (after a CLAUDE.md merge fix). If it fails on substance, escalate the cost — do not run round 9. |
+| Engine alternatives `7f09949cb56f` | `92e2a2c459ef` | Round-1 fixer running (commit the research bot, per-mode speeds, drop/bound the noise "+3.87", scope the "no offline training" claim, route the forefront carve-out to the reconciliation). |
+| Table-size notes `984aa6810a05` | `8b0b4064141f` | Round-3 fixer running (the band-boundary rationale was false; 4.5× was the wrong ratio). Cross-refs pinned to companion commit 5aa40b8 — reviewers must judge against that, not the moving working tree. |
+| Evaluation strategy `45e49ce81e40` | `9fd7bd8ad257` | Round-3 review running. Nightly acceptance = 5 seats (6,8,9,2 + one rotating), 20 cells, ~4.9 h; every seat gates on a four-night window. The 10 h / 1 h bounds are the stoker's design choices, labelled so. |
+| Bots research `14d64950c0bc` | `b1f72dd635fa` | Round-2 review running. Headline: NoRegrets needs 36–50 GB RAM (out on 16 GB); no surveyed bot covers 7–9 seats with true no-limit; value is in pieces (Slumbot benchmark, OpenHoldem's per-name stat design, ppl-interpreter). |
+| Solvers research `048795519f43` | `85f4140c6fae` | Round-1 fixer running (Rust timings unreproducible here; OMPEval capped at 6 players; MonkerSolver mis-listed; recommendation must not settle engine choice). |
+| Exploitation research `76bbf2823a53` | `41a874aea055` | Round-1 fixer running (fpdb-3 modules don't import standalone and DerivedStats carries a second evaluator; add villain, NE_RL, pokerchase-hud). phh-dataset (21.6M hands, 2–10 seats, stable player codes, CC BY) verified real and is the BASELINE source. |
+| Automatic handoff (heater) `46e285e1bfd0` | scratchpad worktree `/private/tmp/claude-501/-Users-chasethompson-heater/60db9bfd-fa3a-4035-aa37-91a8741fa698/scratchpad/review-46e285e1bfd0`; branch on origin | Round-3 fixer running (marker ownership by supervisor pid+start time so stale markers are reclaimed; marker checked before child-exit; O_EXCL create; crash-vs-operator-stop distinction). Dispatch record already CLOSED — `reconcile` will not land it; after a wording-only round, merge from trunk yourself with `bin/gate.sh`. If the scratchpad worktree is gone: `git worktree prune` then re-add from `origin/worker/46e285e1bfd0`. |
 
-## The decision waiting at the end of the research
+Every dispatch above except the handoff is still OPEN in `bin/dispatch.py
+list`; land them only through `bin/dispatch.py land <id> --gate "<pytest
+commands>"` (pokerbot has no gate script — task 5283f76b00b9) so the lease and
+branch are cleaned up. Closing a dispatch by hand releases the worktree.
 
-Two documents disagree on how the bot gets its poker judgment:
-ENGINE_ALTERNATIVES.md says compute each decision at play time with OpenSpiel
-(needs a recorded carve-out to pokerbot's forefront rule, because a rollout
-chooser is action-choosing code we wrote); RESOURCES_BOTS.md says adopt
-NoRegrets (2–6 player Pluribus-style, its own code chooses, claims a
-blueprint in ~1 h on 16 cores — unverified on a Mac). Neither has passed
-review. **Do not pick by instinct**: once engine, bots, solvers and
-exploitation have all landed, dispatch one worker to reconcile them into a
-plan with measured numbers (a half-day NoRegrets spike on this Mac is the
-obvious first measurement), and record the forefront-rule decision in
-pokerbot/CLAUDE.md as part of that.
+## The decision at the end of the research
+
+Four surveys disagree on where the bot's poker judgment comes from:
+ENGINE_ALTERNATIVES says compute each decision at play time with OpenSpiel
+(needs a recorded carve-out to the forefront rule: a rollout chooser is
+action-choosing code we wrote); RESOURCES_BOTS found nothing that fits 16 GB
+and all five criteria; RESOURCES_SOLVERS found fast heads-up solvers and
+equity tools but nothing multiway at decision speed; RESOURCES_EXPLOITATION
+found the opponent-statistics side is well covered (fpdb-3 counting logic,
+phh-dataset, pokeragent's DBBR). **Once all four have passed review, dispatch
+ONE worker to reconcile them into a plan with measured numbers and record the
+forefront-rule decision in pokerbot/CLAUDE.md.** Do not pick by instinct, and
+do not let any survey settle it by assertion — three of the four tried.
 
 ## Traps
 
-- `bin/dispatch.py close --outcome pushed` releases the lease and deletes
-  the worktree. For pokerbot branches that is fine (the branch stays in the
-  local repo) but findings a worker filed from inside a heater worktree are
-  lost with it (task d67cffad749a). Close pokerbot research dispatches only
-  via `reconcile`/`land` after review.
-- `bin/store.py review` refuses `--verdict pass` when findings are
+- `bin/store.py review` refuses `--verdict pass` when any finding is
   substantive; record such rounds as fail.
-- Reviewers judging TABLE_SIZE_AND_SIZING_NOTES.md must read the CURRENT
-  companion design doc in `4c952047cdd3`; round 1 judged a stale copy.
-- Workers of type `worker`/`fixer`/`reviewer` have no WebFetch; `curl` and
-  `git clone` work. Use `general-purpose` for web research.
-- `caffeinate -dims` is running to stop idle sleep; lid-close still sleeps.
+- A fixer that finds a defect inside its own change must fix it, not file
+  it — three did today; a one-line SendMessage sends them back.
+- Reviewers of documents that cite a companion under revision judge a stale
+  copy unless told which commit to read.
+- The design document's rounds 1–6 each found new arithmetic drift; the
+  checker ended that class. Any new numeric design document should ship
+  with the same kind of checker from its first round.
 
 ## Nothing is blocked on the operator
 
-They know the research is the focus and that the engine decision is coming.
+They know the research is the focus, the engine decision is coming, and that
+this session is handing over.

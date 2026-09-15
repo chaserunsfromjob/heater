@@ -1,0 +1,17 @@
+{
+  "id": "2d73b59fd8f4",
+  "created": "2026-09-15T21:20:16.785857+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "",
+  "path": "",
+  "origin": "",
+  "summary": "Record the operator's usage-taper policy (2026-09-15, verbatim): 'as we get closer to both running out of 5 hour usage and weekly usage, i want to implement running less agents and using less usage more and more as we approach the limit. therefore, as we get closer, we should cut agents that are working on things that are not as important, and prioritize more important tasks at your discretion' -- as OPINIONS.md opinion 13 and one rule bullet in rules/global.md Cost; AND close the collection hole: the fleet records no 5-hour/weekly utilization. Extend hooks/statusline.py to record the rate_limits fields Claude Code passes to the status line (if present in this version; verify), store them beside context.json, and show both windows in bin/bearings.py with a taper band (e.g. above 60% dispatch only top-of-list work; above 80% reviews and landings only; above 90% nothing new). tools/bearings.py",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-15T21:20:16.879088+00:00",
+    "score": 65,
+    "task_id": "62a5a521a2f4"
+  }
+}
