@@ -1,8 +1,8 @@
 # Handover
 
-<!-- handover-commit: a66441a -->
+<!-- handover-commit: 582c7b8 -->
 
-Written at `a66441a` on `main`. Verify with `bin/handover.py`. A snapshot,
+Written at `582c7b8` on `main`. Verify with `bin/handover.py`. A snapshot,
 not a log — rewrite it, do not append.
 
 Read `README.md` for what is built and what is next, `OPINIONS.md` for the
@@ -64,7 +64,7 @@ rounds. Every other pokerbot branch is now BEHIND main and will need a merge;
 | Change | Checkout | Where it is when this was written |
 | --- | --- | --- |
 | Opponent-model design `36e2ae4be45b` | `4c952047cdd3` | Round-7 fixer running (narrow: one arithmetic sentence, the seat priority in §4.5, ~15 figures the checker missed). Seven rounds; `tools/check_design_numbers.py` checks 554 figures and is the source of truth. If round 8 is wording-only, land (after a CLAUDE.md merge fix). If it fails on substance, escalate the cost — do not run round 9. |
-| Engine alternatives `7f09949cb56f` | `92e2a2c459ef` | Round-1 fixer running (commit the research bot, per-mode speeds, drop/bound the noise "+3.87", scope the "no offline training" claim, route the forefront carve-out to the reconciliation). |
+| Engine alternatives `7f09949cb56f` | `92e2a2c459ef` | Round-1 fixes committed (d6817d4); needs round 2. **Load-bearing new fact for the reconciliation**: at 250 ms per decision the OpenSpiel rollout chooser gets ~13,000 play-outs with a fixed bet MENU but only ~242 across 8 of 19,803 candidates with TRUE sizing (±50 bb — noise), and OpenSpiel is ~1.5× SLOWER than texasholdem under real sizing. The remeasured strength is +22.8 bb/hand (95% CI +15..+31, n=3,412) — still against RANDOM opponents. So play-time search is viable only with a sizing menu; free sizing needs something else. |
 | Table-size notes `984aa6810a05` | `8b0b4064141f` | Round-3 fixes committed (9c4a168); needs round 4 review. Cross-refs pinned to companion commit 5aa40b8 — reviewers must judge against that, not the moving working tree. |
 | Evaluation strategy `45e49ce81e40` | `9fd7bd8ad257` | Round 3 FAILED (8 findings; main moved under it — it assumes a 52-card conversion REFERENCE_NOTES.md now says is out; a 4-seat figure survives in the summary; the sha-gating rule is stated inconsistently). Needs a fixer, lower priority under the taper. Nightly acceptance = 5 seats (6,8,9,2 + one rotating), 20 cells, ~4.9 h; every seat gates on a four-night window. The 10 h / 1 h bounds are the stoker's design choices, labelled so. |
 | Bots research `14d64950c0bc` | `b1f72dd635fa` | Round 2 FAILED (dickreuter's sizing is a fixed menu, re-rate b ~; Shanky/OpenHoldem seat ticks unevidenced; the 24-bucket NoRegrets verdict misquoted; PPL profiles are hand-written decision logic — route to the reconciliation). Needs a fixer. Headline: NoRegrets needs 36–50 GB RAM (out on 16 GB); no surveyed bot covers 7–9 seats with true no-limit; value is in pieces (Slumbot benchmark, OpenHoldem's per-name stat design, ppl-interpreter). |
