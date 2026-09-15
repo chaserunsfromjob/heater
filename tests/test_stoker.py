@@ -336,6 +336,16 @@ class TestStokerLauncher(unittest.TestCase):
     def test_the_role_it_sets_has_a_rules_file(self):
         self.assertTrue((ROOT / "roles" / "stoker.md").is_file())
 
+    def test_it_starts_under_remote_control(self):
+        """Remote Control is what lets the operator talk to the stoker from the
+        app without the stoker giving up the machine it governs."""
+        self.assertIn("--remote-control", self.script.read_text(encoding="utf-8"))
+
+    def test_it_names_the_session_so_it_can_be_found_in_the_app(self):
+        """An unnamed session lands in the list as a generated hostname phrase,
+        which is not a thing the operator can pick out."""
+        self.assertIn("heater stoker", self.script.read_text(encoding="utf-8"))
+
     def test_it_enters_the_repo_so_the_session_starts_in_the_right_folder(self):
         self.assertIn('cd "$(dirname "$0")/.."', self.script.read_text(encoding="utf-8"))
 

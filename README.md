@@ -43,7 +43,7 @@ A rule is one imperative bullet under fifty words, stated in exactly one place.
 ## Commands
 
 ```sh
-bin/stoker.sh            # open the stoker: the one session the operator talks to
+bin/stoker.sh            # open the stoker on this machine, reachable from the Claude app
 bin/gate.sh              # the landing gate: style + suite. Exit 0 or it does not land.
 bin/deploy.py            # link ~/.claude files and register the hooks on this machine
 bin/deploy.py --check    # report drift without changing anything
