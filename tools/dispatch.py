@@ -123,14 +123,42 @@ class NotReadyToLand(RuntimeError):
     """A landing condition is unmet. Never a reason to merge anyway."""
 
 
-def reviewed(change: str) -> bool:
-    """True when a review round recorded a pass for this change.
+def round_order(record: dict[str, Any]) -> tuple[int, str]:
+    """Sort key for review rounds: the round number, then when it was recorded.
 
-    Read from the store rather than taken on trust: landing needs a fresh
-    independent review pass, and the store is the only place that records one.
+    Rounds are not always written in the order they ran, and two lenses can
+    share a round number, so the later of the two is the one that stands.
     """
-    return any(r["verdict"] == "pass" and r["change"] == change
-               for r in jsonstore.load(store.reviews_dir()))
+    number = record.get("round")
+    return (number if isinstance(number, int) else 0, record.get("created", ""))
+
+
+def latest_round(change: str) -> dict[str, Any] | None:
+    """The last review round recorded for this change, or None if there is none."""
+    rounds = [r for r in jsonstore.load(store.reviews_dir()) if r.get("change") == change]
+    return max(rounds, key=round_order) if rounds else None
+
+
+def reviewed(change: str) -> bool:
+    """True when the LAST recorded round for this change passed.
+
+    Read from the store rather than taken on trust, and only the last round is
+    read: an earlier pass describes a change that no longer exists. Counting any
+    pass lands work that later rounds rejected, and lands it while the next round
+    is still running.
+    """
+    last = latest_round(change)
+    return bool(last and last.get("verdict") == "pass")
+
+
+def resting_on(change: str) -> dict[str, Any]:
+    """The round a landing rests on, named so the record says what was read."""
+    last = latest_round(change)
+    if last is None:
+        return {"round": None, "review": "", "verdict": None,
+                "said": "no recorded review round"}
+    return {"round": last.get("round"), "review": last["id"], "verdict": last.get("verdict"),
+            "said": f"review round {last.get('round')} {last['id']} ({last.get('verdict')})"}
 
 
 def land(dispatch_id: str, *, gate: str = "", change: str = "",
@@ -146,10 +174,11 @@ def land(dispatch_id: str, *, gate: str = "", change: str = "",
     if record.get("closed_at"):
         raise NotReadyToLand(f"{dispatch_id} is already closed as {record['outcome']}")
 
+    rested = resting_on(change or dispatch_id)
     if not skip_review and not reviewed(change or dispatch_id):
         raise NotReadyToLand(
-            f"no review pass recorded for {change or dispatch_id}; "
-            "run the adversarial-review loop and record the round before landing")
+            f"the last review of {change or dispatch_id} is {rested['said']}; "
+            "run the adversarial-review loop and record a passing round before landing")
 
     lease = None
     if record.get("lease_id"):
@@ -159,7 +188,8 @@ def land(dispatch_id: str, *, gate: str = "", change: str = "",
     if lease is None:
         # The worker used the project's own checkout, so there is nothing to
         # merge from and nothing to clean up.
-        return close_dispatch(dispatch_id, "landed", "worked in the project checkout")
+        return close_dispatch(dispatch_id, "landed",
+                              f"worked in the project checkout; on {rested['said']}")
 
     path, repo = Path(lease["path"]), Path(lease["repo"])
     branch, trunk = lease["branch"], lease.get("base_branch") or "main"
@@ -189,7 +219,8 @@ def land(dispatch_id: str, *, gate: str = "", change: str = "",
 
     worktrees.release(lease["id"], "landed")
     worktrees.git(repo, "branch", "-d", branch)
-    return close_dispatch(dispatch_id, "landed", f"merged {branch} into {trunk}")
+    return close_dispatch(dispatch_id, "landed",
+                          f"merged {branch} into {trunk} on {rested['said']}")
 
 
 def start_run(task: str, *, repo: str, project: str = "", workers: int = 2,
@@ -249,8 +280,14 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
     Nothing is deleted until its commits are reachable from the trunk. Work is
     never refused for being loose; it is committed on its own branch first.
     """
-    report: dict[str, Any] = {"at": jsonstore.now(), "landed": [], "held": [],
+    report: dict[str, Any] = {"at": jsonstore.now(), "landed": [], "landed_on": [], "held": [],
                               "awaiting_review": [], "needs_fix": [], "runs_finished": []}
+
+    def record_landing(record: dict[str, Any], rested: dict[str, Any]) -> None:
+        """Report one landing and the round it rested on, so a stale pass shows."""
+        report["landed"].append(record["id"])
+        report["landed_on"].append({"dispatch": record["id"], **rested})
+
     leases = {l["id"]: l for l in jsonstore.load(worktrees.leases_dir())}
 
     candidates = [d for d in live()
@@ -260,9 +297,11 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
     checked: dict[str, str] = {}
     for record in candidates:
         lease = leases.get(record.get("lease_id", ""))
+        rested = resting_on(record["id"])
         if lease is None or lease.get("released_at"):
-            close_dispatch(record["id"], "landed", "no checkout to consolidate")
-            report["landed"].append(record["id"])
+            close_dispatch(record["id"], "landed",
+                           f"no checkout to consolidate; on {rested['said']}")
+            record_landing(record, rested)
             continue
 
         repo, path = Path(lease["repo"]), Path(lease["path"])
@@ -281,8 +320,9 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
         if worktrees.landed(lease, trunk):
             # Either nothing was done, or a previous sweep merged it and stopped
             # before cleaning up. Both end the same way.
-            finish(record, lease, branch, repo, trunk, "already in the trunk")
-            report["landed"].append(record["id"])
+            finish(record, lease, branch, repo, trunk,
+                   f"already in the trunk; on {rested['said']}")
+            record_landing(record, rested)
             continue
 
         if require_review and not reviewed(record["id"]):
@@ -303,8 +343,8 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
             report["needs_fix"].append({"dispatch": record["id"], "branch": branch, "why": why})
             continue
 
-        finish(record, lease, branch, repo, trunk, why)
-        report["landed"].append(record["id"])
+        finish(record, lease, branch, repo, trunk, f"{why} on {rested['said']}")
+        record_landing(record, rested)
 
     report["runs_finished"] = finished_runs()
     return report
@@ -364,6 +404,10 @@ def render_reconcile(result: dict[str, Any]) -> str:
              f"  awaiting review  {len(result['awaiting_review'])}",
              f"  needs a fixer    {len(result['needs_fix'])}",
              f"  held             {len(result['held'])}"]
+    # Which round each landing rested on, so a stale pass is visible in the
+    # report rather than only in the store.
+    for entry in result.get("landed_on", []):
+        lines.append(f"    {entry['dispatch']} landed on {entry['said']}")
     for entry in result["needs_fix"]:
         lines.append(f"    {entry['branch']}: {entry['why']}")
     for entry in result["held"]:

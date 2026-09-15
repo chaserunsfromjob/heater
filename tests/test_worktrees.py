@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
 import dispatch  # noqa: E402
+import jsonstore  # noqa: E402
 import store  # noqa: E402
 import worktrees  # noqa: E402
 
@@ -406,6 +407,53 @@ class TestRuns(WorktreeCase):
         self.assertEqual(len({r["workdir"] for r in records}), MANY)
 
 
+class TestTheRoundThatCounts(WorktreeCase):
+    """Which recorded round answers "has this change been reviewed?".
+
+    The last one, and only the last one. A change that passed round 1 and failed
+    round 2 has been rejected; landing it on the round-1 pass merges work a later
+    round threw out, which is exactly how a change once reached a project trunk
+    on a round-4 pass with rounds 5, 6 and 7 failed behind it.
+    """
+
+    def test_a_pass_followed_by_a_fail_is_not_reviewed(self):
+        store.record_review("auth", 1, "default", "pass")
+        store.record_review("auth", 2, "default", "fail", findings=3)
+        self.assertFalse(dispatch.reviewed("auth"), "the fail is the change as it stands")
+
+    def test_a_fail_followed_by_a_pass_is_reviewed(self):
+        store.record_review("auth", 1, "default", "fail", findings=3)
+        store.record_review("auth", 2, "default", "pass")
+        self.assertTrue(dispatch.reviewed("auth"))
+
+    def test_the_highest_round_answers_not_the_last_written(self):
+        """Rounds are not always recorded in the order they were run."""
+        store.record_review("auth", 2, "default", "fail", findings=1)
+        store.record_review("auth", 1, "default", "pass")
+        self.assertFalse(dispatch.reviewed("auth"))
+
+    def test_the_later_of_two_rounds_sharing_a_number_answers(self):
+        store.record_review("auth", 3, "default", "pass")
+        store.record_review("auth", 3, "failure-mode", "fail", findings=1)
+        self.assertFalse(dispatch.reviewed("auth"))
+
+    def test_another_changes_rounds_are_not_read(self):
+        store.record_review("auth", 1, "default", "pass")
+        store.record_review("parser", 2, "default", "fail", findings=1)
+        self.assertTrue(dispatch.reviewed("auth"))
+
+    def test_a_change_nobody_reviewed_is_not_reviewed(self):
+        self.assertFalse(dispatch.reviewed("never-seen"))
+
+    def test_the_round_a_landing_would_rest_on_is_named(self):
+        first = store.record_review("auth", 1, "default", "fail", findings=1)
+        latest = store.record_review("auth", 2, "default", "pass")
+        said = dispatch.resting_on("auth")
+        self.assertEqual(said["round"], 2)
+        self.assertEqual(said["review"], latest["id"])
+        self.assertNotIn(first["id"], said["said"])
+
+
 class TestReconcile(WorktreeCase):
     """The sweep: consolidate everything finished, clean up after it, lose nothing."""
 
@@ -468,6 +516,53 @@ class TestReconcile(WorktreeCase):
         report = dispatch.reconcile()
         self.assertIn(first["id"], report["awaiting_review"])
         self.assertTrue(Path(first["workdir"]).exists(), "waiting must never mean discarding")
+
+    def test_a_stale_pass_does_not_consolidate_work_a_later_round_failed(self):
+        first, _ = self.start()
+        self.work(first, "a.py", "from a\n")
+        store.record_review(first["id"], 1, "default", "pass")
+        store.record_review(first["id"], 2, "default", "fail", findings=2)
+        report = dispatch.reconcile()
+        self.assertIn(first["id"], report["awaiting_review"])
+        self.assertFalse((self.repo / "a.py").is_file(), "a rejected change must not reach the trunk")
+        self.assertTrue(Path(first["workdir"]).exists())
+
+    def test_a_later_pass_clears_an_earlier_fail(self):
+        first, _ = self.start()
+        self.work(first, "a.py", "from a\n")
+        store.record_review(first["id"], 1, "default", "fail", findings=2)
+        store.record_review(first["id"], 2, "default", "pass")
+        dispatch.reconcile()
+        self.assertTrue((self.repo / "a.py").is_file())
+
+    def test_the_report_names_the_round_the_landing_rested_on(self):
+        first, _ = self.start()
+        self.work(first, "a.py", "from a\n")
+        store.record_review(first["id"], 1, "default", "fail", findings=1)
+        latest = store.record_review(first["id"], 2, "default", "pass")
+        report = dispatch.reconcile()
+        named = next(e for e in report["landed_on"] if e["dispatch"] == first["id"])
+        self.assertEqual(named["round"], 2)
+        self.assertEqual(named["review"], latest["id"])
+        self.assertIn(latest["id"], dispatch.render_reconcile(report))
+
+    def test_every_landed_dispatch_says_what_it_landed_on(self):
+        records = self.start()
+        for n, record in enumerate(records):
+            self.work(record, f"f{n}.py", f"{n}\n")
+        self.approve(*records)
+        report = dispatch.reconcile()
+        self.assertEqual({e["dispatch"] for e in report["landed_on"]}, set(report["landed"]))
+
+    def test_the_closing_note_records_the_round(self):
+        first, _ = self.start()
+        self.work(first, "a.py", "from a\n")
+        latest = store.record_review(first["id"], 4, "default", "pass")
+        dispatch.reconcile()
+        closed = next(d for d in jsonstore.load(dispatch.dispatches_dir())
+                      if d["id"] == first["id"])
+        self.assertIn("round 4", closed["note"])
+        self.assertIn(latest["id"], closed["note"])
 
     def test_skipping_review_lands_it(self):
         first, second = self.start()
@@ -621,6 +716,42 @@ class TestLanding(WorktreeCase):
         store.record_review(record["id"], 1, "default", "fail", findings=2)
         with self.assertRaises(dispatch.NotReadyToLand):
             dispatch.land(record["id"])
+
+    def test_a_pass_a_later_round_overturned_does_not_land(self):
+        record = self.second_worker()
+        self.do_work(record)
+        store.record_review(record["id"], 1, "default", "pass", cost_usd=0.1)
+        store.record_review(record["id"], 2, "default", "fail", findings=2)
+        with self.assertRaises(dispatch.NotReadyToLand):
+            dispatch.land(record["id"])
+        self.assertFalse((self.repo / "feature.txt").is_file())
+        self.assertTrue(Path(record["workdir"]).exists())
+
+    def test_the_refusal_names_the_round_that_failed(self):
+        record = self.second_worker()
+        self.do_work(record)
+        store.record_review(record["id"], 1, "default", "pass", cost_usd=0.1)
+        latest = store.record_review(record["id"], 2, "default", "fail", findings=2)
+        with self.assertRaises(dispatch.NotReadyToLand) as caught:
+            dispatch.land(record["id"])
+        self.assertIn("round 2", str(caught.exception))
+        self.assertIn(latest["id"], str(caught.exception))
+
+    def test_a_later_pass_lands_over_an_earlier_fail(self):
+        record = self.second_worker()
+        self.do_work(record)
+        store.record_review(record["id"], 1, "default", "fail", findings=2)
+        store.record_review(record["id"], 2, "default", "pass", cost_usd=0.1)
+        dispatch.land(record["id"])
+        self.assertTrue((self.repo / "feature.txt").is_file())
+
+    def test_the_landing_record_names_the_round_it_rested_on(self):
+        record = self.second_worker()
+        self.do_work(record)
+        latest = store.record_review(record["id"], 3, "default", "pass", cost_usd=0.1)
+        landed = dispatch.land(record["id"])
+        self.assertIn("round 3", landed["note"])
+        self.assertIn(latest["id"], landed["note"])
 
     def test_uncommitted_work_blocks_landing(self):
         record = self.second_worker()
