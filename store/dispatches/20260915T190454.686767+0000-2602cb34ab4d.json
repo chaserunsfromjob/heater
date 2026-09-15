@@ -1,0 +1,18 @@
+{
+  "id": "2602cb34ab4d",
+  "created": "2026-09-15T19:04:54.686767+00:00",
+  "task": "Research task, not code. Survey real open-source poker engines/bots (beyond fedden/poker_ai, which we already know defaults to a 20-card short deck and fixed-limit betting) that natively support: (a) standard 52-card no-limit hold'em with real continuous bet sizing (not fixed raise amounts), and (b) a VARIABLE number of players per hand from 2 up to 9 (heads-up through full-ring), not a hardcoded table size. Look at OpenSpiel (Google DeepMind's universal_poker game -- check its actual sizing/player-count flexibility, don't assume from the name), PokerRL, RLCard, PyPokerEngine, PokerKit, clubs, and anything else genuinely real (verify each: is it actually maintained/real code, not another awesome-list entry). For each real candidate, report: does it support true no-limit sizing out of the box, does it support 2-9 players without engine surgery, does it have any CFR/solver capability we could still use for opponent-modeling-informed strategy selection, and how much engineering it would take to reach 'runs a hand of no-limit hold'em with N players and lets me query recommended actions' compared to what we already know about adapting fedden/poker_ai. Conclude with a clear recommendation: stick with fedden/poker_ai and adapt it further, switch to a different engine, or use two engines for different purposes. Write findings to a new file ENGINE_ALTERNATIVES.md in the repo root. Do not touch OPPONENT_MODEL_DESIGN.md or CLAUDE.md -- those are actively being edited by another in-progress task; if you need to reference something in them, read but do not write.",
+  "project": "pokerbot",
+  "done_when": "ENGINE_ALTERNATIVES.md exists, evaluates at least 4 real candidates against the two hard requirements (true no-limit sizing, 2-9 players) with specific evidence (not guesses), and ends with one clear recommendation",
+  "task_id": "",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/25f6c357da88",
+  "lease_id": "25f6c357da88",
+  "branch": "worker/2602cb34ab4d",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

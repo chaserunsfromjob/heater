@@ -1,0 +1,10 @@
+{
+  "id": "b4b61d9860b7",
+  "created": "2026-09-15T19:07:16.162377+00:00",
+  "score": 20,
+  "title": "treys and poker_ai's evaluator share deuces ancestry (same encoding/PRIMES/lookup table) -- the ground-truth fixture isn't independent; needs a genuinely different algorithm family (e.g. phevaluator, already used successfully by a reviewer earlier) to actually catch a shared-ancestor bug",
+  "source_finding": "fc159ef0bcef",
+  "project": "pokerbot",
+  "path": "tests/ground_truth/test_hand_ranking.py",
+  "done_at": null
+}

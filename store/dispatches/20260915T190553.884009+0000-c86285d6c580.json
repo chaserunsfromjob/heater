@@ -1,0 +1,18 @@
+{
+  "id": "c86285d6c580",
+  "created": "2026-09-15T19:05:53.884009+00:00",
+  "task": "Research and design-writing, not code. We have no testing/evaluation strategy yet for whether this bot is actually good, beyond the hand-ranking ground-truth fixture (tests/ground_truth/, already landed -- read it for context, don't touch it) which only validates card-ranking correctness, not playing strength. Research and write a new file, EVALUATION_STRATEGY.md, covering: (1) how real poker-AI research evaluates bot strength without needing thousands of hands against real humans -- e.g. exploitability estimation, best-response computation, AIVAT (the variance-reduction technique Pluribus's own paper used -- verify what it actually is and cite the source, don't guess), and self-play win-rate with proper statistical significance (confidence intervals on mbb/hand or similar, given how high-variance poker is); (2) what a realistic, buildable evaluation harness looks like for a solo few-week/month timeframe -- e.g. a set of rule-based 'opponent personas' that mimic common human mistakes (calls too much, never bluffs, tilts after losing, etc.) to play the bot against repeatedly, with a concrete statistical test for 'is this change actually an improvement' rather than eyeballing a win rate over a small sample; (3) how this connects to the operator's firm requirement that the bot must work across every table size 2-9 and real no-limit sizing -- the evaluation harness needs to exercise all of that, not just one fixed scenario. Cite real sources (papers, established statistical methods) the way OPPONENT_MODEL_DESIGN.md does, don't invent thresholds or claims. Do not edit OPPONENT_MODEL_DESIGN.md or CLAUDE.md -- both are being actively edited by other in-progress tasks; read-only if you need context from them.",
+  "project": "pokerbot",
+  "done_when": "EVALUATION_STRATEGY.md exists, cites real sources for its statistical/evaluation methodology, and proposes a concrete, buildable evaluation harness a future coding task could implement directly, covering variable table sizes and true no-limit sizing",
+  "task_id": "",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/93f6ecf00d17",
+  "lease_id": "93f6ecf00d17",
+  "branch": "worker/c86285d6c580",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

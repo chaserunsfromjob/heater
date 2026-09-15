@@ -1,0 +1,17 @@
+{
+  "id": "6029a725d54a",
+  "created": "2026-09-15T18:59:09.329695+00:00",
+  "change": "36e2ae4be45b",
+  "project": "pokerbot",
+  "round": 4,
+  "lens": "default",
+  "verdict": "pass",
+  "findings": 7,
+  "wording_only": true,
+  "files": 2,
+  "insertions": 158,
+  "deletions": 31,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "reviewer a2762b4e4250951a1: PASS, zero substantive findings for the first time after 3 real fails (5->1->2->0). All 7 findings wording-only: F1 the general live/population test literally condemns the population-level combos it's meant to allow (scope to 'live field as such'); F2 database-membership ambiguity (does it exclude currently-seated players?); F3 the '100% of combinations enumerated' claim misses 3 real ones (V4's mean gap, EM re-clustering, pooled win-rate reporting); F4 'only place live field is read collectively' contradicted by two offline/descriptive reads; F5 (highest value) exploit-flag table uses unqualified lowercase 'baseline' where it means the specific capitalized BASELINE constant -- the one remaining spot a worker could substitute a table-local average; F6 \u00a72.4's load-bearing 'full table' claim isn't specified where the mechanism actually lives; F7 'never an input to a decision' is in tension with an offline calibration step that does eventually feed bucketing. Independently verified the 14-cell verbatim table match via script, recomputed all arithmetic tables, ran a full document sweep, confirmed contents-numbering left untouched as instructed. First wording-only round; committing to one more fix+review pass per the review-ends procedure before landing."
+}

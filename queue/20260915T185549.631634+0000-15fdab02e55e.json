@@ -8,5 +8,10 @@
   "origin": "stoker",
   "summary": "poker_ai --multi_process training is the DEFAULT and is unusable on macOS: the spawned worker re-imports poker_ai, hits the module-level mp.Manager() at agent.py:8 during its own bootstrap, and dies with RuntimeError _check_not_importing_main. A guarded launcher script does NOT fix it (verified); mp.Manager() has to move out of module scope. Consequence: training currently runs single-core only. 50 iterations 3-handed took 27s, 6-handed 376s.",
   "delivered_at": "2026-09-15T18:56:43.626126+00:00",
-  "resolution": null
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-15T19:07:16.132050+00:00",
+    "score": 15,
+    "task_id": "8383075a95ca"
+  }
 }
