@@ -1,0 +1,17 @@
+{
+  "id": "8aaf7b17b440",
+  "created": "2026-09-15T19:43:43.775262+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "",
+  "path": "",
+  "origin": "",
+  "summary": "Record the operator's mandate verbatim in pokerbot/CLAUDE.md beside the firm requirements (with tasks 96243ce4163a and f2f8237946ac, dispatch as one brief): 2026-09-15 'just do whatever you think is best to get the result that i have asked for every time. beating real players by a lot, 2-9 players, exploitative play. i dont care how you do it. just get it done and keep me updated' -- the operator decides the outcome, the stoker decides the method; 'by a lot' is the bar, not merely winning. pokerbot/CLAUDE.md",
+  "delivered_at": "2026-09-15T19:43:46.491074+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-15T19:43:43.812495+00:00",
+    "score": 50,
+    "task_id": "4fd636640f0a"
+  }
+}

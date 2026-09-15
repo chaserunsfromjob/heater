@@ -12,7 +12,7 @@
   "branch": "",
   "run_id": "",
   "part": "",
-  "closed_at": null,
-  "outcome": null,
-  "note": ""
+  "closed_at": "2026-09-15T19:32:52.324588+00:00",
+  "outcome": "pushed",
+  "note": "merge commit 0674461 on worker/36e2ae4be45b (no remote; committed on branch); CLAUDE.md conflict resolved keeping both sides; 20 ground-truth tests pass; cost 20.6k tokens"
 }

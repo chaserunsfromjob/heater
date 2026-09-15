@@ -7,7 +7,7 @@
   "path": "",
   "origin": "",
   "summary": "tools/dispatch.py reconcile: a live worker whose branch has no commits yet is treated as 'already in the trunk' (worktrees.landed true), its lease released, worktree removed and dispatch closed as landed -- this actually hit on 2026-09-15 19:14Z and discarded three running research workers (2602cb34ab4d, ba8300646017, c86285d6c580). Needs a liveness check (heartbeat/agent alive or dispatch age) before treating an empty branch as finished. tools/dispatch.py:281",
-  "delivered_at": null,
+  "delivered_at": "2026-09-15T19:31:51.768001+00:00",
   "resolution": {
     "action": "promoted",
     "at": "2026-09-15T19:29:28.311987+00:00",

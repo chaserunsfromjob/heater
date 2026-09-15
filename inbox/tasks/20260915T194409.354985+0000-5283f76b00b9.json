@@ -1,0 +1,10 @@
+{
+  "id": "5283f76b00b9",
+  "created": "2026-09-15T19:44:09.354985+00:00",
+  "score": 40,
+  "title": "pokerbot has no bin/gate.sh, so the landing rule (exit 0 from the project's gate) has nothing to run and every reconcile must hand-assemble the two pytest commands; add bin/gate.sh that builds/uses the documented root .venv and runs tests/ground_truth and vendor/poker_ai/test, exit 0 only when both pass. pokerbot/bin/gate.sh",
+  "source_finding": "1488eb84b25d",
+  "project": "",
+  "path": "",
+  "done_at": null
+}

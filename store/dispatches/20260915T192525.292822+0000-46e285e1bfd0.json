@@ -12,7 +12,7 @@
   "branch": "worker/46e285e1bfd0",
   "run_id": "",
   "part": "",
-  "closed_at": null,
-  "outcome": null,
-  "note": ""
+  "closed_at": "2026-09-15T19:37:52.201128+00:00",
+  "outcome": "pushed",
+  "note": "worker/46e285e1bfd0 at e156abf; supervisor tools/stoker.py + stop-hook marker + rule/opinion/skill rewrites; 428 tests, gate exit 0"
 }

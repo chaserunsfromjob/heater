@@ -1,0 +1,16 @@
+{
+  "id": "5ca76a71b226",
+  "created": "2026-09-15T19:41:10.395624+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "",
+  "path": "",
+  "origin": "",
+  "summary": "/Users/chasethompson/pokerbot/CLAUDE.md states the goal as beating humans 'at a table of 3 or more', which contradicts the operator's firm requirement of 2 to 9 players; OPPONENT_MODEL_DESIGN.md section 1's case against pursuing GTO also rests on n>=3 and does not hold at n=2",
+  "delivered_at": "2026-09-15T19:42:43.831495+00:00",
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-15T19:42:30.685560+00:00",
+    "reason": "already covered: task 96243ce4163a rewrites pokerbot/CLAUDE.md's goal to the firm 2-9 requirement, and design fixer round 5 (36e2ae4be45b, finding 3) reconciles OPPONENT_MODEL_DESIGN.md section 1 with 2 players"
+  }
+}

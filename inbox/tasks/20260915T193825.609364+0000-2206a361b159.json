@@ -1,0 +1,10 @@
+{
+  "id": "2206a361b159",
+  "created": "2026-09-15T19:38:25.609364+00:00",
+  "score": 35,
+  "title": "bin/bearings.py shows none of the stoker supervisor's stoker_launch/stoker_restart/stoker_stalled/stoker_exit log events, so an unattended handoff leaves no trace the operator can see. tools/bearings.py",
+  "source_finding": "92a81d8b9b4a",
+  "project": "",
+  "path": "",
+  "done_at": null
+}

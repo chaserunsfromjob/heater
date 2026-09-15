@@ -1,0 +1,10 @@
+{
+  "id": "f2f8237946ac",
+  "created": "2026-09-15T19:41:45.708360+00:00",
+  "score": 50,
+  "title": "Record two operator positions in pokerbot/CLAUDE.md beside the firm requirements (task 96243ce4163a): (1) compute budget -- no multi-day computing; a playable bot must be reachable in hours on one laptop, so the 52-card clustering path in poker_ai (~18 days, ~147 GiB) is out; (2) the project is private and never distributed. Operator's words 2026-09-15: 'i dont have 18 days of straight computing'; 'i dont want to publish the code that we build'. pokerbot/CLAUDE.md",
+  "source_finding": "8af62734ba6f",
+  "project": "",
+  "path": "",
+  "done_at": null
+}

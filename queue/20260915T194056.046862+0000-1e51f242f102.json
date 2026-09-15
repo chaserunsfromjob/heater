@@ -1,0 +1,16 @@
+{
+  "id": "1e51f242f102",
+  "created": "2026-09-15T19:40:56.046862+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "",
+  "path": "",
+  "origin": "",
+  "summary": "fedden/poker_ai is ARCHIVED (read-only) on GitHub as of 2023-04-03; REFERENCE_NOTES.md at /Users/chasethompson/.heater/worktrees/pokerbot/0f748212fb4c/REFERENCE_NOTES.md records only 'no commits since 2020', understating that upstream can never accept a fix",
+  "delivered_at": "2026-09-15T19:42:43.831495+00:00",
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-15T19:42:30.641140+00:00",
+    "reason": "folded into the vendoring fix round already running on aebf85e3a420: REFERENCE_NOTES.md will record that upstream is archived (read-only since 2023-04-03), so no fix can go upstream"
+  }
+}

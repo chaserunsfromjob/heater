@@ -1,0 +1,17 @@
+{
+  "id": "92a81d8b9b4a",
+  "created": "2026-09-15T19:38:25.567396+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "",
+  "path": "",
+  "origin": "",
+  "summary": "bin/bearings.py shows none of the stoker supervisor's stoker_launch/stoker_restart/stoker_stalled/stoker_exit log events, so an unattended handoff leaves no trace the operator can see. tools/bearings.py",
+  "delivered_at": "2026-09-15T19:39:04.925265+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-15T19:38:25.610214+00:00",
+    "score": 35,
+    "task_id": "2206a361b159"
+  }
+}

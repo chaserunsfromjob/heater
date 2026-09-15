@@ -1,0 +1,17 @@
+{
+  "id": "a12471f2ca3b",
+  "created": "2026-09-15T19:38:25.683191+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "",
+  "path": "",
+  "origin": "",
+  "summary": "A worker leased a checkout of the fleet repository writes bin/queue.py findings into that checkout's own queue/ (heater_hook.REPO resolves to the worktree), and dispatch close releases the worktree, so the finding is lost: happened to 46e285e1bfd0's finding 6e2302faa051. queue.py should write to the canonical fleet repo regardless of which checkout it runs from. tools/queue.py",
+  "delivered_at": "2026-09-15T19:39:04.925263+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-15T19:38:25.718138+00:00",
+    "score": 55,
+    "task_id": "d67cffad749a"
+  }
+}

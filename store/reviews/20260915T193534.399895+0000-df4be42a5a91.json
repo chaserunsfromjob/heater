@@ -1,0 +1,17 @@
+{
+  "id": "df4be42a5a91",
+  "created": "2026-09-15T19:35:34.399895+00:00",
+  "change": "aebf85e3a420",
+  "project": "",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 7,
+  "wording_only": false,
+  "files": 145,
+  "insertions": 25921,
+  "deletions": 1,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": ""
+}
