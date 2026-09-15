@@ -32,7 +32,7 @@ class StateCase(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         managed = ("HEATER_STATE_DIR", "HEATER_HANDOVER_AT", "HEATER_HANDOVER_CEILING",
-                   stoker.CHILD_ENV)
+                   stoker.CHILD_ENV, stoker.OWNER_ENV)
         self.previous = {k: os.environ.get(k) for k in managed}
         os.environ["HEATER_STATE_DIR"] = self.tmp.name
         for key in managed[1:]:
@@ -231,8 +231,19 @@ class TestStopTrigger(StateCase):
         return mock.patch.object(stop_hook.handover, "problems", return_value=list(reasons))
 
     def supervised(self, token: str = "child-token"):
-        """A session a supervisor launched, which is the only kind it can end."""
-        return mock.patch.dict(os.environ, {stoker.CHILD_ENV: token})
+        """A session a supervisor launched, which is the only kind it can end.
+
+        The session is told which supervisor is waiting on it as well as which
+        session it is, and the mark it leaves carries both.
+        """
+        return mock.patch.dict(os.environ, {stoker.CHILD_ENV: token,
+                                            stoker.OWNER_ENV: stoker.own_owner()})
+
+    def existing_mark(self, token: str, owner: dict) -> None:
+        """A mark already holding the one path when this session reaches its own."""
+        stoker.marker_path().write_text(
+            json.dumps({"at": "earlier", "token": token, "session": "s0", **owner}) + "\n",
+            encoding="utf-8")
 
     def test_quiet_below_the_arming_mark(self):
         self.at(10)
@@ -323,13 +334,13 @@ class TestStopTrigger(StateCase):
         self.assertNotIn("ending now", decision["systemMessage"])
 
     def test_it_does_not_promise_an_ending_it_cannot_deliver(self):
-        """Another session's mark already holds the one path, so this session's
-        was never written and no supervisor will act on it. Saying it is ending
-        now would leave the operator waiting on something that never comes."""
+        """Another session's mark already holds the one path and the supervisor
+        waiting on it is still running, so this session's was never written and
+        nothing will act on it. Saying it is ending now would leave the operator
+        waiting on something that never comes."""
         self.at(30)
-        stoker.marker_path().write_text(
-            json.dumps({"at": "earlier", "token": "somebody-else", "session": "s0"}) + "\n",
-            encoding="utf-8")
+        self.existing_mark("somebody-else", {"owner_pid": os.getpid(),
+                                             "owner_start": stoker.process_start(os.getpid())})
         with self.supervised("child-9"), self.busy(), self.outstanding():
             decision = stop_hook.handover_decision(None, "stoker", "session-42")
         self.assertNotIn("ending now", decision["systemMessage"])
@@ -337,6 +348,20 @@ class TestStopTrigger(StateCase):
         self.assertIn("bin/stoker.sh", decision["systemMessage"])
         self.assertEqual(json.loads(stoker.marker_path().read_text())["token"], "somebody-else",
                          "another session's mark is not ours to overwrite")
+
+    def test_a_mark_left_by_a_supervisor_that_is_gone_does_not_block_this_one(self):
+        """The machine restarted with a mark on disk. Nothing is waiting on it,
+        and leaving it there would mean no session in this folder could ever be
+        replaced again — with nothing on screen saying why."""
+        self.at(30)
+        spent = subprocess.Popen([sys.executable, "-c", "pass"])
+        spent.wait()
+        self.existing_mark("a-session-of-the-supervisor-that-died",
+                           {"owner_pid": spent.pid, "owner_start": "Thu Jan  1 00:00:00 1970"})
+        with self.supervised("child-9"), self.busy(), self.outstanding():
+            decision = stop_hook.handover_decision(None, "stoker", "session-42")
+        self.assertEqual(json.loads(stoker.marker_path().read_text())["token"], "child-9")
+        self.assertIn("ending now", decision["systemMessage"])
 
     def test_a_mark_that_could_not_be_written_is_not_reported_as_written(self):
         """A full or read-only disk swallows the write. Nothing is on disk for

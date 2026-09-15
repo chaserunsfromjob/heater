@@ -11,9 +11,12 @@ input, and injecting keystrokes into a terminal is off the table. So the process
 lifecycle moves up one level instead. This supervisor is what the operator
 starts; `claude` is its child. When the Stop hook has proved the handover is
 written, current and pushed, it leaves a marker file naming the session it was
-written from. The supervisor sees a marker naming its own child, ends that
-session, and starts a fresh one in the same folder. A marker naming anything
-else is somebody else's session and is left alone.
+written from and the supervisor waiting on that session. The supervisor sees a
+marker naming its own child, ends that session, and starts a fresh one in the
+same folder. A marker naming a session another running supervisor started is
+left where it is. A marker whose supervisor is gone — the machine restarted
+mid-session — is waited on by nobody, so it is cleared away rather than left to
+hold the one path forever.
 
 A relauncher spawned from a hook is not guaranteed to outlive the process that
 ran the hook, so the relauncher has to be the thing that launched `claude` in
@@ -87,6 +90,17 @@ DEFAULT_PAUSE = 2.0
 DEFAULT_MIN_LIFETIME = 30.0
 MAX_SHORT_LAUNCHES = 3
 
+# A session shut down by something outside this program — the machine running
+# out of memory is the common one — is not the operator stopping the stoker, so
+# it is opened again. Whatever is doing the shutting down can keep doing it, so
+# more than this many inside the window below stops the supervisor.
+DEFAULT_MAX_CRASHES = 3
+
+# How a session ends when a person ends it: on its own (any exit code), by
+# Ctrl-C, or by the plain terminate that a closing terminal sends to everything
+# in it. Any other signal killed a session that was still working.
+OPERATOR_SIGNALS = {int(signal.SIGINT), int(signal.SIGTERM)}
+
 # A handover is a session doing its job, so it never counts as a stalled
 # launch. But a session that opens, finds nothing to do and hands straight over
 # again is a loop too, just a slower one, so the rate is bounded on its own:
@@ -102,6 +116,14 @@ MARKER_NAME = "handover-complete"
 # the supervised session instead of its own. The hook writes this token into the
 # marker, and the supervisor acts only on a marker naming the child it started.
 CHILD_ENV = "HEATER_STOKER_CHILD"
+
+# Which supervisor is waiting on the session, set on the session it launches and
+# written into the marker with the token. A supervisor remembers the identities
+# it issued only in memory, so after a restart its own leftover marker would
+# read as somebody else's and sit there forever, disabling the handoff for good.
+# The owner in the marker is what survives a restart: a marker whose owner is
+# gone is reclaimed, and one whose owner is still running is left alone.
+OWNER_ENV = "HEATER_STOKER_OWNER"
 
 # How finely an interruptible wait notices that the supervisor has been told to
 # stop. A `kill` during the pause between sessions must not open another one.
@@ -125,6 +147,7 @@ class Limits(NamedTuple):
     minimum: float
     max_handoffs: float
     handoff_window: float
+    max_crashes: float
 
 
 def limits() -> Limits:
@@ -136,6 +159,7 @@ def limits() -> Limits:
         minimum=_number("HEATER_STOKER_MIN_LIFETIME", DEFAULT_MIN_LIFETIME),
         max_handoffs=_number("HEATER_STOKER_MAX_HANDOFFS", DEFAULT_MAX_HANDOFFS),
         handoff_window=_number("HEATER_STOKER_HANDOFF_WINDOW", DEFAULT_HANDOFF_WINDOW),
+        max_crashes=_number("HEATER_STOKER_MAX_CRASHES", DEFAULT_MAX_CRASHES),
     )
 
 
@@ -157,27 +181,159 @@ def child_token() -> str:
     return os.environ.get(CHILD_ENV, "").strip()
 
 
+def process_start(pid: int) -> str:
+    """When that process started, as the system reports it. Empty when unknown.
+
+    A pid on its own is not an identity. Numbers are handed out again, so a
+    marker naming pid 812 can find some unrelated program wearing that number by
+    the time anybody reads it. The moment the process started is what tells the
+    two apart.
+    """
+    try:
+        done = subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)],
+                              capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return done.stdout.strip() if done.returncode == 0 else ""
+
+
+def own_owner() -> str:
+    """This supervisor's identity, to be carried by the marker its session writes."""
+    pid = os.getpid()
+    return f"{pid} {process_start(pid)}"
+
+
+def owner_identity() -> tuple[int | None, str]:
+    """The supervisor this session was told was waiting on it, or nobody."""
+    raw = os.environ.get(OWNER_ENV, "").strip()
+    number, _, start = raw.partition(" ")
+    try:
+        return int(number), start.strip()
+    except ValueError:
+        return None, ""
+
+
+def owner_alive(marker: dict[str, Any]) -> bool:
+    """Is the supervisor this marker names still running?
+
+    Both halves have to match. A pid that is alive but started at a different
+    moment is a different program that inherited the number, and a marker naming
+    no owner at all — an older one, or a truncated write — names nobody alive.
+    """
+    pid = marker.get("owner_pid")
+    if not isinstance(pid, int) or pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:  # Somebody else's process, so alive and not ours.
+        pass
+    except OSError:
+        return False
+    recorded = marker.get("owner_start")
+    recorded = recorded.strip() if isinstance(recorded, str) else ""
+    return process_start(pid) == recorded
+
+
+def owner_named(marker: dict[str, Any]) -> bool:
+    """Does the marker say which supervisor is waiting on it at all?"""
+    pid = marker.get("owner_pid")
+    return isinstance(pid, int) and pid > 0
+
+
+def owner_note(marker: dict[str, Any]) -> dict[str, Any]:
+    """What to log about a marker: whose it says it is."""
+    token = marker.get("token")
+    return {"marker_token": token if isinstance(token, str) and token else None,
+            "owner_pid": marker.get("owner_pid"),
+            "owner_start": marker.get("owner_start") or None}
+
+
+# What the marker on disk is to this supervisor.
+MINE = "mine"        # the session this supervisor is watching right now
+OURS = "ours"        # one this supervisor launched earlier and never cleared
+LIVE = "live"        # another supervisor's, and that supervisor is still running
+STALE = "stale"      # nobody is waiting on it, so it is this supervisor's to remove
+
+
+def marker_state(token: str = "") -> tuple[str | None, dict[str, Any]]:
+    """Classify the marker on disk, and hand back what it says.
+
+    None means there is no marker. Everything else is one of the four above, and
+    only STALE and OURS may be removed: removing a marker a running supervisor
+    is waiting on would answer for that supervisor, and leaving a stale one is
+    what disabled the handoff forever.
+    """
+    marker = read_marker()
+    if marker is None:
+        return None, {}
+    found = marker.get("token")
+    found = found.strip() if isinstance(found, str) else ""
+    if token and found == token:
+        return MINE, marker
+    if found and found in _issued:
+        return OURS, marker
+    if owner_alive(marker):
+        return LIVE, marker
+    return STALE, marker
+
+
+def _create_marker(path: Path, payload: str) -> bool:
+    """Write the marker, or fail because there already is one. Never overwrite.
+
+    Looking first and writing afterwards leaves a gap two sessions can both walk
+    through, and the second one through it overwrites the first. Creating the
+    file exclusively closes the gap: the operating system decides which session
+    got there first, and only one call can be told it did.
+    """
+    try:
+        handle = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+    except FileExistsError:
+        return False
+    with os.fdopen(handle, "w", encoding="utf-8") as stream:
+        stream.write(payload)
+    return True
+
+
 def mark_complete(when: str, token: str | None = None,
                   session: str | None = None) -> bool:
     """Say the handover is done and this session can end. Never raises.
 
-    Returns True when this call is what wrote the marker. The marker's own
-    existence is the guard against writing it twice, and the token in it is what
-    says which session is asking to be ended. A session with no token writes
-    nothing: only the supervisor's own child can ask the supervisor for anything.
+    Returns True when this call is what wrote the marker. The token in it says
+    which session is asking to be ended, and the owner says which supervisor is
+    waiting on that session. A session with no token writes nothing: only the
+    supervisor's own child can ask the supervisor for anything.
+
+    A marker already there is somebody's turn, not this session's — unless
+    nobody is waiting on it any more, in which case it is a leftover and this
+    session takes the path.
     """
     token = (token if token is not None else child_token()).strip()
     if not token:
         return False
+    pid, start = owner_identity()
+    payload = json.dumps({"at": when, "token": token, "session": session or None,
+                          "owner_pid": pid, "owner_start": start}) + "\n"
     try:
         path = marker_path()
-        if path.exists():
-            return False
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(
-            json.dumps({"at": when, "token": token, "session": session or None}) + "\n",
-            encoding="utf-8")
-        return True
+        for _ in range(2):
+            if _create_marker(path, payload):
+                return True
+            marker = read_marker()
+            if marker is None:  # It went away between the write and the read.
+                continue
+            if marker.get("token") == token:
+                return False  # Already this session's. Asking twice changes nothing.
+            if not owner_named(marker) or owner_alive(marker):
+                # Somebody's turn, not this session's. A marker that names no
+                # owner is left for the supervisor to clear on its next launch,
+                # where clearing it cannot be a race with the session writing it.
+                return False
+            log("stoker_stale_marker", {**owner_note(marker), "seen": "writing a mark"})
+            clear_marker()
+        return False
     except Exception:
         return False
 
@@ -214,23 +370,27 @@ def clear_marker() -> None:
         pass
 
 
-def clear_own_marker() -> None:
-    """Remove a leftover marker this supervisor's own session wrote, and only that.
+def reclaim_marker() -> None:
+    """Clear a leftover marker nobody is waiting on, before opening a session.
 
-    A marker its own last session left behind would end the next one on its
-    first poll, so it goes. A marker carrying any other identity belongs to a
-    session this supervisor never started, and deleting it would be answering
-    for the supervisor that did — the same reason the watch loop leaves one
-    alone. It cannot end this supervisor's session either way, because no other
-    identity ever matches the one this launch is given.
+    A marker this supervisor's own last session left behind would end the next
+    one on its first poll, so it goes. One naming a supervisor that is still
+    running is that supervisor's business and is left where it is. Anything else
+    was left by a supervisor that is gone — the usual way being a machine that
+    restarted mid-session — and leaving it would mean no session here could ever
+    hand over again, because the one path stays taken forever.
     """
-    found = marker_token()
-    if found is None:
+    state, marker = marker_state()
+    if state is None:
         return
-    if found in _issued:
+    if state == OURS:
         clear_marker()
         return
-    log("stoker_foreign_marker", {"marker_token": found or None, "seen": "before launch"})
+    if state == LIVE:
+        log("stoker_foreign_marker", {**owner_note(marker), "seen": "before launch"})
+        return
+    log("stoker_stale_marker", {**owner_note(marker), "seen": "before launch"})
+    clear_marker()
 
 
 def session_name() -> str:
@@ -261,7 +421,8 @@ def new_token() -> str:
 
 def child_env(token: str | None = None) -> dict[str, str]:
     return {**os.environ, "HEATER_ROLE": "stoker",
-            CHILD_ENV: token or os.environ.get(CHILD_ENV, "")}
+            CHILD_ENV: token or os.environ.get(CHILD_ENV, ""),
+            OWNER_ENV: own_owner()}
 
 
 # The session in progress, and whether the supervisor itself has been told to
@@ -368,19 +529,22 @@ def watch(child: subprocess.Popen, poll: float, token: str, grace: float,
           kill_after: float) -> tuple[int, bool, bool]:
     """Wait for the session to end or to hand over.
 
-    Only a marker naming this child is a handover. Any other marker belongs to
-    some session this supervisor did not start — the operator's own `claude` in
-    this folder counts as the stoker too — and ending this session on it would
-    end the wrong conversation. So it is logged once and left where it is.
+    Only a marker naming this child is a handover. A marker naming a session
+    another running supervisor started — the operator's own `claude` in this
+    folder counts as the stoker too — is logged once and left where it is,
+    because ending this session on it would end the wrong conversation. One
+    nobody is waiting on is cleared out of the way.
 
     Returns (exit code, handed over, interrupted).
     """
     interrupted = False
-    reported = False
+    left_alone: set[str] = set()
     while True:
-        code = child.poll()
-        if code is not None:
-            return code, False, interrupted
+        # The marker is read before the exit is, because a session that hands
+        # over and then ends inside one poll interval has still handed over.
+        # Reading the exit first took that for the operator closing the session,
+        # and with a clean exit the supervisor stopped instead of opening the
+        # successor: the handoff quietly needed a person again.
         found = marker_token()
         if found is not None and found == token:
             clear_marker()
@@ -389,9 +553,11 @@ def watch(child: subprocess.Popen, poll: float, token: str, grace: float,
             # message has to reach the screen, before the session is ended.
             wait_unless_stopping(grace)
             return _terminate(child, kill_after), True, interrupted
-        if found is not None and not reported:
-            reported = True
-            log("stoker_foreign_marker", {"pid": child.pid, "marker_token": found or None})
+        if found is not None and found not in left_alone and _judge_other_marker(token, child.pid):
+            left_alone.add(found)
+        code = child.poll()
+        if code is not None:
+            return code, False, interrupted
         try:
             time.sleep(poll)
         except KeyboardInterrupt:
@@ -401,6 +567,35 @@ def watch(child: subprocess.Popen, poll: float, token: str, grace: float,
             # would take the first press for the second. So this only remembers
             # that the operator is at the keyboard, and keeps watching.
             interrupted = True
+
+
+def _judge_other_marker(token: str, pid: int) -> bool:
+    """A marker that is not this session's. True when it was left where it is.
+
+    Judging it costs a look at the process it names, so the caller remembers the
+    answer rather than asking again on every poll for as long as the session runs.
+    """
+    state, marker = marker_state(token)
+    if state is None or state == MINE:
+        return False
+    if state == LIVE:
+        log("stoker_foreign_marker", {"pid": pid, **owner_note(marker)})
+        return True
+    log("stoker_stale_marker", {"pid": pid, **owner_note(marker)})
+    clear_marker()
+    return False
+
+
+def is_crash(code: int) -> bool:
+    """Did something outside this program shut the session down?
+
+    A session ending on its own is the operator ending it, whatever code it
+    ends with. So is Ctrl-C, and so is the plain terminate that a closing
+    terminal sends to everything running in it. Anything else — a machine out of
+    memory reaching for the session, a fault — killed a session that was still
+    working, and that is not the operator saying stop.
+    """
+    return code < 0 and -code not in OPERATOR_SIGNALS
 
 
 def exit_code(code: int) -> int:
@@ -425,6 +620,18 @@ def churning_message(handoffs: int, allowed: float, window: float) -> str:
         f"is not being restarted again. Nothing was lost, and nothing was deleted. A session "
         f"that finishes the moment it starts usually opened with nothing left to do: read "
         f"HANDOVER.md, then run bin/stoker.sh again when there is."
+    )
+
+
+def shutdown_message(crashes: int, allowed: float, window: float) -> str:
+    minutes = max(1, int(round(window / 60)))
+    return (
+        f"bin/stoker.sh: the Claude session was shut down by the machine {crashes} times in "
+        f"the last {minutes} minute(s), which is more than the {int(allowed)} this expects, so "
+        f"it is not being restarted again. Nothing was lost, and nothing was deleted. "
+        f"Something outside this program is closing the session down: a machine that has run "
+        f"out of memory does exactly this. Run `claude` in this folder by hand and watch what "
+        f"happens to it."
     )
 
 
@@ -466,6 +673,7 @@ def _run_sessions(extra: list[str] | None, spawn: Callable[..., subprocess.Popen
     short = 0
     code = 0
     handoffs: list[float] = []
+    shutdowns: list[float] = []
     while True:
         # Asked to stop is asked to stop, whether that arrived while a session
         # ran or during the pause between two of them.
@@ -474,8 +682,9 @@ def _run_sessions(extra: list[str] | None, spawn: Callable[..., subprocess.Popen
             return exit_code(code)
 
         # A marker left by this supervisor's own last session would kill the
-        # next one on its first poll. Anybody else's is left where it is.
-        clear_own_marker()
+        # next one on its first poll, and one left by a supervisor that is gone
+        # would take the one path forever. A running supervisor's is left alone.
+        reclaim_marker()
 
         token = new_token()
         line = command(extra)
@@ -530,6 +739,26 @@ def _run_sessions(extra: list[str] | None, spawn: Callable[..., subprocess.Popen
 
         if handed_over:
             log("stoker_restart", {"exit_code": code, "seconds": round(lifetime, 1)})
+            wait_unless_stopping(pause)
+            continue
+
+        # A session the machine shut down is not the operator stopping the
+        # stoker, so it is opened again — but whatever did the shutting down can
+        # do it again, and a session that lived long enough never trips the
+        # stalled-launch rule above. This is the bound on that.
+        if is_crash(code) and not interrupted:
+            now = time.monotonic()
+            shutdowns = [t for t in shutdowns if now - t < bounds.handoff_window] + [now]
+            if len(shutdowns) > bounds.max_crashes:
+                print(shutdown_message(len(shutdowns), bounds.max_crashes,
+                                       bounds.handoff_window), file=sys.stderr)
+                log("stoker_shutdowns", {"shutdowns": len(shutdowns),
+                                         "allowed": bounds.max_crashes,
+                                         "window_seconds": bounds.handoff_window,
+                                         "exit_code": code})
+                return exit_code(code) or 1
+            log("stoker_relaunch_after_shutdown",
+                {"exit_code": code, "seconds": round(lifetime, 1)})
             wait_unless_stopping(pause)
             continue
 

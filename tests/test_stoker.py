@@ -14,6 +14,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 from pathlib import Path
@@ -466,25 +467,56 @@ signal.signal(signal.SIGINT, signal.SIG_IGN)
 log = Path(os.environ["STUB_LOG"])
 state = Path(os.environ["HEATER_STATE_DIR"])
 token = os.environ.get("HEATER_STOKER_CHILD")
-seen = len(log.read_text().splitlines()) if log.exists() else 0
-with log.open("a") as handle:
-    handle.write(json.dumps({
-        "launch": seen + 1,
-        "argv": sys.argv[1:],
-        "role": os.environ.get("HEATER_ROLE"),
-        "token": token,
-        "pid": os.getpid(),
-        "cwd": os.getcwd(),
-        "marker_present": (state / "handover-complete").exists(),
-    }) + "\\n")
+
+
+def written():
+    if not log.exists():
+        return []
+    return [json.loads(l) for l in log.read_text().splitlines() if l.strip()]
+
+
+def record(entry):
+    with log.open("a") as handle:
+        handle.write(json.dumps(entry) + "\\n")
+
+
+seen = sum(1 for r in written() if "launch" in r)
+record({
+    "launch": seen + 1,
+    "argv": sys.argv[1:],
+    "role": os.environ.get("HEATER_ROLE"),
+    "token": token,
+    "owner": os.environ.get("HEATER_STOKER_OWNER"),
+    "pid": os.getpid(),
+    "cwd": os.getcwd(),
+    "marker_present": (state / "handover-complete").exists(),
+})
 
 mode = os.environ.get("STUB_MODE", "sleep")
 if mode == "exit" or (mode == "handoff" and seen >= 1):
     sys.exit(int(os.environ.get("STUB_EXIT", "0")))
-if mode == "mark":
-    # What the Stop hook does once the handover is written, current and pushed.
-    (state / "handover-complete").write_text(
-        json.dumps({"at": "now", "token": token, "session": f"s{seen + 1}"}) + "\\n")
+if mode in ("mark", "mark_then_exit", "hook"):
+    # What the Stop hook does once the handover is written, current and pushed,
+    # by the same call the hook makes. A hook that loses the one marker path to
+    # another supervisor's session runs again at the next turn boundary, which
+    # is what the retry stands in for.
+    sys.path.insert(0, os.environ["STUB_REPO"] + "/tools")
+    import stoker as marking
+    while True:
+        wrote = marking.mark_complete("now", token, f"s{seen + 1}")
+        record({"mark": seen + 1, "token": token, "wrote": wrote,
+                "marked": marking.marker_token()})
+        if wrote or mode != "hook":
+            break
+        time.sleep(0.1)
+    if mode == "mark_then_exit":
+        # Handed over, and then ended by itself inside one poll interval.
+        sys.exit(0)
+if mode == "crash":
+    # Shut down by something outside the supervisor, after a real session's worth
+    # of life: what an out-of-memory kill looks like from here.
+    time.sleep(float(os.environ.get("STUB_LIVE", "0.2")))
+    os.kill(os.getpid(), signal.SIGKILL)
 time.sleep(60)
 '''
 
@@ -516,16 +548,22 @@ class TestStokerSupervisor(unittest.TestCase):
                 "HEATER_STATE_DIR": str(self.state),
                 "HEATER_LOG_DIR": str(Path(self.tmp.name) / "logs"),
                 "STUB_LOG": str(self.log),
+                "STUB_REPO": str(ROOT),
                 "HEATER_STOKER_POLL": "0.05",
                 "HEATER_STOKER_PAUSE": "0.05",
                 "HEATER_STOKER_GRACE": "0.05",
                 "HEATER_STOKER_KILL_AFTER": "5",
                 **extra}
 
-    def launches(self) -> list[dict]:
-        if not self.log.exists():
+    def records(self, path: Path | None = None) -> list[dict]:
+        path = path or self.log
+        if not path.exists():
             return []
-        return [json.loads(line) for line in self.log.read_text().splitlines() if line.strip()]
+        return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+
+    def launches(self, path: Path | None = None) -> list[dict]:
+        """Only the records a launch wrote; a session can write others too."""
+        return [r for r in self.records(path) if "launch" in r]
 
     def supervisor(self, **extra: str) -> subprocess.Popen:
         return subprocess.Popen([sys.executable, str(ROOT / "tools" / "stoker.py")],
@@ -548,10 +586,22 @@ class TestStokerSupervisor(unittest.TestCase):
             return []
         return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
 
-    def hand_over(self, token: str | None) -> None:
+    def live_owner(self) -> dict:
+        """A supervisor that is still running: this test process stands in for one."""
+        return {"owner_pid": os.getpid(), "owner_start": stoker.process_start(os.getpid())}
+
+    def dead_owner(self) -> dict:
+        """A supervisor that is gone. The start time is what makes it certain:
+        the number can be handed out again, but not with that moment attached."""
+        spent = subprocess.Popen([sys.executable, "-c", "pass"])
+        spent.wait()
+        return {"owner_pid": spent.pid, "owner_start": "Thu Jan  1 00:00:00 1970"}
+
+    def hand_over(self, token: str | None, owner: dict | None = None) -> None:
         """Write the marker exactly as the Stop hook in that session would."""
         self.marker().write_text(
-            json.dumps({"at": "2026-01-01T00:00:00+00:00", "token": token, "session": "s"}) + "\n",
+            json.dumps({"at": "2026-01-01T00:00:00+00:00", "token": token, "session": "s",
+                        **(owner if owner is not None else self.live_owner())}) + "\n",
             encoding="utf-8")
 
     def wait_until(self, condition, timeout: float = 30.0) -> bool:
@@ -596,7 +646,7 @@ class TestStokerSupervisor(unittest.TestCase):
         self.assertFalse(self.marker().exists())
 
     def test_a_marker_it_did_not_write_survives_the_launch(self):
-        """Deleting it would answer for the supervisor that is waiting on it.
+        """Deleting it would answer for the supervisor still waiting on it.
         It cannot end this supervisor's session either way: no other identity
         ever matches the one this launch was given."""
         self.hand_over("some-other-session")
@@ -606,6 +656,118 @@ class TestStokerSupervisor(unittest.TestCase):
         self.assertTrue(self.marker().exists(), "another session's mark is not ours to delete")
         self.assertTrue(any(e["event"] == "stoker_foreign_marker" for e in self.hook_events()),
                         "it must say it saw a mark it was leaving alone")
+
+    def test_a_marker_left_by_a_supervisor_that_is_gone_is_reclaimed(self):
+        """The machine restarted mid-session and the marker outlived the
+        supervisor that was waiting on it. Left where it is, it takes the one
+        marker path forever and no session here can ever hand over again."""
+        self.hand_over("a-session-of-the-supervisor-that-died", owner=self.dead_owner())
+        running = self.supervisor(STUB_MODE="handoff", HEATER_STOKER_MIN_LIFETIME="0")
+        first = self.wait_for_launches(1, running)
+        self.assertTrue(self.wait_until(lambda: not self.marker().exists(), 15),
+                        "a marker nobody is waiting on was left to block every handoff")
+        self.assertTrue(any(e["event"] == "stoker_stale_marker" for e in self.hook_events()),
+                        "it must say what it reclaimed and whose it said it was")
+        self.hand_over(first[0]["token"])
+        records = self.wait_for_launches(2, running)
+        running.communicate(timeout=30)
+        self.assertEqual(len(records), 2, "the handoff never came back after the reclaim")
+
+    def test_a_session_that_ends_as_it_hands_over_is_still_a_handover(self):
+        """The session wrote its marker and then ended inside one poll interval.
+        Reading the exit first called that the operator closing the session and
+        stopped the supervisor, so the handoff quietly needed a person again."""
+        running = self.supervisor(STUB_MODE="mark_then_exit", HEATER_STOKER_MIN_LIFETIME="0",
+                                  HEATER_STOKER_MAX_HANDOFFS="2")
+        try:
+            _, err = running.communicate(timeout=60)
+        except subprocess.TimeoutExpired:
+            running.kill()
+            self.fail("it never stopped")
+        self.assertEqual(len(self.launches()), 3,
+                         "a session that ended as it handed over was taken for an ending")
+        self.assertIn("3 times", err, "the sessions it opened were handoffs, not stops")
+
+    def test_two_supervisors_in_one_folder_each_end_only_their_own_session(self):
+        """One marker path, two supervisors. Each session's mark has to reach
+        the supervisor that launched it, and neither session may be left
+        running with nobody watching it."""
+        second = Path(self.tmp.name) / "launches-b.jsonl"
+        shared = {"STUB_MODE": "hook", "HEATER_STOKER_MIN_LIFETIME": "0",
+                  "HEATER_STOKER_POLL": "0.1", "HEATER_STOKER_MAX_HANDOFFS": "500"}
+        first = self.supervisor(**shared)
+        other = self.supervisor(**shared, STUB_LOG=str(second))
+        try:
+            handed_over = self.wait_until(
+                lambda: len(self.launches()) >= 2 and len(self.launches(second)) >= 2, 40)
+            self.assertTrue(handed_over,
+                            f"a session's mark never reached its own supervisor: "
+                            f"{len(self.launches())} and {len(self.launches(second))} launch(es)")
+            self.assertIsNone(first.poll(), "one supervisor stopped on the other's mark")
+            self.assertIsNone(other.poll(), "one supervisor stopped on the other's mark")
+            for log in (self.log, second):
+                tokens = {r["token"] for r in self.launches(log)}
+                marks = [r for r in self.records(log) if "mark" in r]
+                self.assertTrue(marks, "no session ever asked to be ended")
+                for mark in marks:
+                    if mark["wrote"]:
+                        self.assertEqual(mark["marked"], mark["token"],
+                                         "a session's mark was overwritten by another's")
+                self.assertTrue(tokens.isdisjoint(
+                    {r["token"] for r in self.launches(second if log is self.log else self.log)}),
+                    "two supervisors handed out the same identity")
+        finally:
+            for process in (first, other):
+                process.terminate()
+                try:
+                    process.communicate(timeout=20)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.communicate()
+
+    def test_a_session_shut_down_by_the_machine_is_opened_again(self):
+        """Running out of memory is not the operator stopping the stoker."""
+        running = self.supervisor(STUB_MODE="sleep", HEATER_STOKER_MIN_LIFETIME="0.5")
+        first = self.wait_for_launches(1, running)
+        time.sleep(1.0)
+        os.kill(first[0]["pid"], signal.SIGKILL)
+        records = self.wait_for_launches(2, running)
+        running.terminate()
+        running.communicate(timeout=30)
+        self.assertEqual(len(records), 2, "a session the machine killed was taken for a stop")
+
+    def test_a_session_ended_from_outside_by_hand_stops_the_supervisor(self):
+        """The plain terminate is what a closing terminal sends to everything in
+        it, and what `kill` sends by default. That is a person, not a machine."""
+        running = self.supervisor(STUB_MODE="sleep", HEATER_STOKER_MIN_LIFETIME="0.5")
+        first = self.wait_for_launches(1, running)
+        time.sleep(1.0)
+        os.kill(first[0]["pid"], signal.SIGTERM)
+        try:
+            running.communicate(timeout=30)
+        except subprocess.TimeoutExpired:
+            running.kill()
+            self.fail("the supervisor kept going after the session was ended by hand")
+        self.assertEqual(len(self.launches()), 1, "it reopened a session the operator ended")
+        self.assertEqual(running.returncode, 128 + int(signal.SIGTERM))
+
+    def test_endless_shutdowns_stop_it(self):
+        """Whatever is killing the session can keep killing it, and a session
+        that lived a while never trips the never-started rule."""
+        running = self.supervisor(STUB_MODE="crash", HEATER_STOKER_MIN_LIFETIME="0",
+                                  HEATER_STOKER_MAX_CRASHES="2", STUB_LIVE="0.2")
+        try:
+            _, err = running.communicate(timeout=60)
+        except subprocess.TimeoutExpired:
+            running.kill()
+            self.fail("it kept reopening a session that was being killed")
+        self.assertNotEqual(running.returncode, 0)
+        self.assertEqual(len(self.launches()), 3, "it stopped at the wrong count")
+        self.assertIn("3 times", err, "the message must name how many it saw")
+        self.assertIn("more than the 2", err, "and how many it expects")
+        self.assertNotIn("Traceback", err)
+        for jargon in ("SIGKILL", "SIGTERM", "exit code", "subprocess", "marker", "token"):
+            self.assertNotIn(jargon, err, "the operator reads this; keep it in plain words")
 
     def test_an_unreadable_marker_does_not_kill_the_next_session(self):
         self.marker().write_text("left behind\n", encoding="utf-8")
@@ -806,7 +968,10 @@ class TestWatchingForTheMarker(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
-        patch = mock.patch.dict(os.environ, {"HEATER_STATE_DIR": self.tmp.name})
+        # Marks written here name this process as the supervisor waiting on
+        # them, which is a supervisor that is very much still running.
+        patch = mock.patch.dict(os.environ, {"HEATER_STATE_DIR": self.tmp.name,
+                                             stoker.OWNER_ENV: stoker.own_owner()})
         patch.start()
         self.addCleanup(patch.stop)
 
@@ -842,6 +1007,49 @@ class TestWatchingForTheMarker(unittest.TestCase):
                                          grace=0.01, kill_after=1.0)
         self.assertFalse(handed_over)
 
+    def test_a_session_already_gone_when_its_marker_is_read_still_handed_over(self):
+        """It wrote the mark and ended inside one poll interval. Calling that an
+        ending stops the supervisor, and the successor never opens."""
+        stoker.mark_complete("now", "mine", "s1")
+        _, handed_over, _ = stoker.watch(FakeChild(lifetime=0), 0.01, "mine",
+                                         grace=0.01, kill_after=1.0)
+        self.assertTrue(handed_over, "the handoff was read as the operator closing the session")
+
+    def test_a_marker_nobody_is_waiting_on_is_cleared_out_of_the_way(self):
+        """Left there it takes the one path forever, and every later session in
+        this folder loses its way of saying it has finished."""
+        stoker.marker_path().write_text(
+            json.dumps({"at": "earlier", "token": "gone", "session": "s0",
+                        "owner_pid": 999999, "owner_start": "Thu Jan  1 00:00:00 1970"}) + "\n",
+            encoding="utf-8")
+        _, handed_over, _ = stoker.watch(FakeChild(lifetime=0.2), 0.01, "mine",
+                                         grace=0.01, kill_after=1.0)
+        self.assertFalse(handed_over, "it ended its session on a marker that was not its own")
+        self.assertFalse(stoker.marker_path().exists())
+
+
+class TestWhoEndedTheSession(unittest.TestCase):
+    """Stopping the stoker is the operator's to do. A session killed from
+    underneath it is not that, and treating it as that is the stoker silently
+    not running any more."""
+
+    def test_a_session_that_ends_on_its_own_is_the_operator(self):
+        for code in (0, 1, 7):
+            self.assertFalse(stoker.is_crash(code), f"exit {code} was read as a shutdown")
+
+    def test_ctrl_c_and_a_plain_terminate_are_the_operator(self):
+        for name in ("SIGINT", "SIGTERM"):
+            self.assertFalse(stoker.is_crash(-int(getattr(signal, name))), name)
+
+    def test_anything_else_killed_a_session_that_was_still_working(self):
+        for name in ("SIGKILL", "SIGSEGV", "SIGABRT", "SIGBUS"):
+            self.assertTrue(stoker.is_crash(-int(getattr(signal, name))), name)
+
+    def test_how_many_shutdowns_it_will_reopen_before_it_stops(self):
+        self.assertEqual(stoker.DEFAULT_MAX_CRASHES, 3)
+        with mock.patch.dict(os.environ, {"HEATER_STOKER_MAX_CRASHES": "7"}):
+            self.assertEqual(stoker.limits().max_crashes, 7)
+
 
 class TestHandoverMarker(unittest.TestCase):
     """The marker is the whole signal between the hook and the supervisor."""
@@ -849,8 +1057,11 @@ class TestHandoverMarker(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
+        # A supervised session: it was told which session it is, and which
+        # supervisor is waiting on it. Both go into the mark it leaves.
         patch = mock.patch.dict(os.environ, {"HEATER_STATE_DIR": self.tmp.name,
-                                             stoker.CHILD_ENV: "tok"})
+                                             stoker.CHILD_ENV: "tok",
+                                             stoker.OWNER_ENV: stoker.own_owner()})
         patch.start()
         self.addCleanup(patch.stop)
 
@@ -886,6 +1097,72 @@ class TestHandoverMarker(unittest.TestCase):
         with mock.patch.dict(os.environ, {"HEATER_STATE_DIR": "/proc/nope"}):
             self.assertFalse(stoker.mark_complete("x"))
             stoker.clear_marker()
+
+    def live_owner(self) -> dict:
+        return {"owner_pid": os.getpid(), "owner_start": stoker.process_start(os.getpid())}
+
+    def dead_owner(self) -> dict:
+        spent = subprocess.Popen([sys.executable, "-c", "pass"])
+        spent.wait()
+        return {"owner_pid": spent.pid, "owner_start": "Thu Jan  1 00:00:00 1970"}
+
+    def existing(self, token: str, owner: dict) -> None:
+        stoker.marker_path().write_text(
+            json.dumps({"at": "earlier", "token": token, "session": "s0", **owner}) + "\n",
+            encoding="utf-8")
+
+    def test_the_mark_names_the_supervisor_waiting_on_it(self):
+        """A supervisor remembers what it handed out only while it is running,
+        so after a restart the owner in the mark is all there is to go on."""
+        with mock.patch.dict(os.environ, {stoker.OWNER_ENV: f"{os.getpid()} Tue Sep 15 17:00:00 2026"}):
+            stoker.mark_complete("now", "tok", "s1")
+        written = json.loads(stoker.marker_path().read_text(encoding="utf-8"))
+        self.assertEqual(written["owner_pid"], os.getpid())
+        self.assertEqual(written["owner_start"], "Tue Sep 15 17:00:00 2026")
+
+    def test_a_mark_a_running_supervisor_is_waiting_on_is_refused(self):
+        """That supervisor is about to end the session named in it. Taking the
+        path would end the wrong conversation and lose this session's request."""
+        self.existing("another-session", self.live_owner())
+        self.assertFalse(stoker.mark_complete("now", "tok", "s1"))
+        self.assertEqual(stoker.marker_token(), "another-session")
+
+    def test_a_mark_nobody_is_waiting_on_is_taken_over(self):
+        """Nothing will ever act on it, and leaving it there means no session in
+        this folder can hand over again."""
+        self.existing("a-session-that-is-gone", self.dead_owner())
+        self.assertTrue(stoker.mark_complete("now", "tok", "s1"))
+        self.assertEqual(stoker.marker_token(), "tok")
+
+    def test_a_pid_handed_out_again_is_not_the_supervisor_that_is_gone(self):
+        """This process is alive and wearing that number, but it started at a
+        different moment, so the mark still belongs to nobody."""
+        self.existing("a-session-that-is-gone",
+                      {"owner_pid": os.getpid(), "owner_start": "Thu Jan  1 00:00:00 1970"})
+        self.assertTrue(stoker.mark_complete("now", "tok", "s1"))
+
+    def test_only_one_of_many_sessions_marking_at_once_is_told_it_marked(self):
+        """Looking first and writing afterwards leaves a gap both sessions walk
+        through, and the loser overwrites the winner's request with its own."""
+        ready = threading.Barrier(8)
+        results: list[tuple[bool, str]] = []
+        lock = threading.Lock()
+
+        def ask(number: int) -> None:
+            ready.wait()
+            wrote = stoker.mark_complete("now", f"tok{number}", f"s{number}")
+            with lock:
+                results.append((wrote, f"tok{number}"))
+
+        threads = [threading.Thread(target=ask, args=(n,)) for n in range(8)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(30)
+        winners = [token for wrote, token in results if wrote]
+        self.assertEqual(len(winners), 1, "two sessions were both told they had marked")
+        self.assertEqual(stoker.marker_token(), winners[0],
+                         "the mark on disk is not the one that was acknowledged")
 
 
 if __name__ == "__main__":

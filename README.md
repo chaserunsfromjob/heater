@@ -45,7 +45,10 @@ A rule is one imperative bullet under fifty words, stated in exactly one place.
 ```sh
 bin/stoker.sh            # run the stoker on this machine, reachable from the Claude app.
                          # Stays running: ends a session that has handed over and
-                         # opens the next one itself. /exit or Ctrl-C stops it.
+                         # opens the next one itself. /exit, Ctrl-C, or closing the
+                         # terminal stops it. A session shut down by the machine —
+                         # running out of memory is the usual way — is not the
+                         # operator stopping it, so that one is opened again.
 bin/gate.sh              # the landing gate: style + suite. Exit 0 or it does not land.
 bin/deploy.py            # link ~/.claude files and register the hooks on this machine
 bin/deploy.py --check    # report drift without changing anything
@@ -97,11 +100,27 @@ what runs. Set one by putting it in front of the command, like
   `HEATER_STOKER_MAX_HANDOFFS` [5].
 - The span that count is measured over, in seconds:
   `HEATER_STOKER_HANDOFF_WINDOW` [3600, an hour].
+- How many sessions shut down by the machine it will reopen inside that same
+  span before it stops: `HEATER_STOKER_MAX_CRASHES` [3].
 - What the session is called in the Claude app's list: `HEATER_SESSION_NAME`
   [heater stoker].
+- The folder the stoker keeps its own notes in, including the finished-session
+  note described below: `HEATER_STATE_DIR` [`~/.heater`].
 - The identity `bin/stoker.sh` gives the session it opens, so it can tell that
   session's finish from any other's: `HEATER_STOKER_CHILD` [set per session; not
   for the operator to set].
+- Which running `bin/stoker.sh` is waiting on that session, so a note left
+  behind can be traced back to it: `HEATER_STOKER_OWNER` [set per session; not
+  for the operator to set].
+
+A session says it has finished by leaving one small file,
+`~/.heater/handover-complete` (`HEATER_STATE_DIR` moves it). That file is the
+whole signal: `bin/stoker.sh` sees it, closes that session, and opens the next
+one. It names both the session that left it and the `bin/stoker.sh` waiting on
+it, so a file left behind when a machine restarts mid-session is recognised as
+belonging to nobody and cleared away the next time `bin/stoker.sh` runs. One
+left by a `bin/stoker.sh` that is still running is left exactly where it is,
+because that one is still waiting on it. Nothing has to be deleted by hand.
 
 All logic lives in `tools/`; `bin/` holds only entry points. Nothing in `bin/` is
 imported, because a module there sharing a name with one in `tools/` shadows it

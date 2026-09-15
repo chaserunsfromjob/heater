@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Prove a session is safe to end.
 
-Clearing a session is cheap and safe exactly when the durable record is
+Ending a session is cheap and safe exactly when the durable record is
 complete. This checks that it is: the work is committed, it is pushed, the suite
 is green, and HANDOVER.md describes the commit that is actually at the tip.
 
