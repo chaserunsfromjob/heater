@@ -122,6 +122,13 @@ belonging to nobody and cleared away the next time `bin/stoker.sh` runs. One
 left by a `bin/stoker.sh` that is still running is left exactly where it is,
 because that one is still waiting on it. Nothing has to be deleted by hand.
 
+Beside it, `~/.heater/stoker-session` records which session `bin/stoker.sh`
+started last. Normally that session is long gone by the time anything reads it.
+If it is still going, the `bin/stoker.sh` that was watching it was killed
+outright and the session has been running unwatched since, so the next
+`bin/stoker.sh` says so on screen and names it before opening a fresh one — two
+sessions working this folder at once would undo each other's changes.
+
 All logic lives in `tools/`; `bin/` holds only entry points. Nothing in `bin/` is
 imported, because a module there sharing a name with one in `tools/` shadows it
 on the import path.

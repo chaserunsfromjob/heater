@@ -109,13 +109,36 @@ def handover_decision(transcript: str | None = None,
             "outstanding, so this session can be closed whenever you like."
         )
 
+    # What is said when nothing is going to end this session by itself: it is
+    # finished, and opening the next one is a thing the operator can do when
+    # they like. Never a promise, because nothing here could keep one.
+    def on_your_own() -> dict[str, Any]:
+        return say(
+            f"Context {used:.0f}% — handover is written, current and pushed, and nothing is "
+            "outstanding. Nothing is set to replace this session by itself, so close it when "
+            "you like and run bin/stoker.sh to open the next one."
+        )
+
+    # The mark is a message to one program: the supervisor that launched this
+    # session and is watching for it. If that program is gone — killed, or the
+    # machine took it — nobody will ever read the mark, and it would sit on the
+    # one path blocking the next session's handover too. So the mark is only
+    # left when there is still somebody to read it.
+    if not stoker.supervisor_alive():
+        log("handover_not_marked", {"used_percentage": used, "supervised": True,
+                                    "reason": "the supervisor watching this session is gone"})
+        return on_your_own()
+
     # Saying the session is ending is a promise only the mark can keep, so it is
-    # made only once the mark on disk is this session's. It might not be: the
-    # one path can already hold another session's mark, or a mark this one left
-    # earlier, or the write can fail outright on a full or unwritable disk.
+    # made only once this session's mark has reached the one path. Writing it is
+    # what proves that; reading it back afterwards cannot, because the
+    # supervisor looks at that path twice a second and clearing the mark is the
+    # first thing it does when it acts on one. So a mark this call wrote and the
+    # supervisor has already taken counts, and only a mark that is somebody
+    # else's, or that never landed at all, falls through.
     wrote = stoker.mark_complete(now(), token, session_id)
     marked = stoker.marker_token()
-    if marked == token:
+    if wrote or marked == token:
         log("handover_complete", {"used_percentage": used, "supervised": True,
                                   "wrote": wrote})
         return say(
@@ -128,11 +151,7 @@ def handover_decision(transcript: str | None = None,
                                 "reason": "no mark was written" if marked is None
                                 else "the mark belongs to another session",
                                 "marker_token": marked or None})
-    return say(
-        f"Context {used:.0f}% — handover is written, current and pushed, and nothing is "
-        "outstanding. Nothing is set to replace this session by itself, so close it when "
-        "you like and run bin/stoker.sh to open the next one."
-    )
+    return on_your_own()
 
 
 def handle(payload: dict[str, Any]) -> dict[str, Any]:

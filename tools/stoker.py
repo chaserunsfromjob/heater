@@ -110,6 +110,12 @@ DEFAULT_HANDOFF_WINDOW = 3600.0
 
 MARKER_NAME = "handover-complete"
 
+# Which session the supervisor last started, kept beside the marker. A kill the
+# supervisor cannot catch leaves that session running with nobody watching it,
+# and the next run would open a second one in the same folder without a word.
+# This file is how a later run can see the first one and say so.
+CHILD_RECORD_NAME = "stoker-session"
+
 # Set on the session the supervisor launches, and on nothing else. The marker is
 # one shared path, and the fleet repository makes any unmarked session in it the
 # stoker, so without an identity a plain `claude` opened in this folder would end
@@ -188,13 +194,43 @@ def process_start(pid: int) -> str:
     marker naming pid 812 can find some unrelated program wearing that number by
     the time anybody reads it. The moment the process started is what tells the
     two apart.
+
+    The answer is two identities compared as plain text, so it has to be spelled
+    the same way every time it is asked for. The system names the day in the
+    language the terminal is set to — "Di" in one, "Tue" in another — and one
+    supervisor reading another's start time in a different language would take a
+    live supervisor for a dead one. Asking in a fixed language settles that.
     """
     try:
         done = subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)],
-                              capture_output=True, text=True, timeout=5)
+                              capture_output=True, text=True, timeout=5,
+                              env={**os.environ, "LC_ALL": "C", "LANG": "C"})
     except (OSError, subprocess.SubprocessError):
         return ""
     return done.stdout.strip() if done.returncode == 0 else ""
+
+
+def process_alive(pid: Any, start: Any) -> bool:
+    """Is that exact process — that number, started at that moment — running?
+
+    A start time nobody can read is not evidence of life. Without it all that is
+    left is a number the system hands out again, so a mark naming one would read
+    as a live supervisor's forever and no session here could hand over again.
+    """
+    if not isinstance(pid, int) or pid <= 0:
+        return False
+    recorded = start.strip() if isinstance(start, str) else ""
+    if not recorded:
+        return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:  # Somebody else's process, so alive and not ours.
+        pass
+    except OSError:
+        return False
+    return process_start(pid) == recorded
 
 
 def own_owner() -> str:
@@ -220,20 +256,19 @@ def owner_alive(marker: dict[str, Any]) -> bool:
     moment is a different program that inherited the number, and a marker naming
     no owner at all — an older one, or a truncated write — names nobody alive.
     """
-    pid = marker.get("owner_pid")
-    if not isinstance(pid, int) or pid <= 0:
-        return False
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:  # Somebody else's process, so alive and not ours.
-        pass
-    except OSError:
-        return False
-    recorded = marker.get("owner_start")
-    recorded = recorded.strip() if isinstance(recorded, str) else ""
-    return process_start(pid) == recorded
+    return process_alive(marker.get("owner_pid"), marker.get("owner_start"))
+
+
+def supervisor_alive() -> bool:
+    """Is the supervisor that launched this session still running?
+
+    Only that supervisor can end this session, so it is what the Stop hook asks
+    before promising the session is ending. A session that outlived the program
+    watching it is on its own, and its mark would sit on the one path with
+    nobody to act on it, blocking the next session's handover as well.
+    """
+    pid, start = owner_identity()
+    return process_alive(pid, start)
 
 
 def owner_named(marker: dict[str, Any]) -> bool:
@@ -368,6 +403,60 @@ def clear_marker() -> None:
         pass
     except OSError:
         pass
+
+
+def child_record_path() -> Path:
+    return state_dir() / CHILD_RECORD_NAME
+
+
+def record_child(pid: int, token: str) -> None:
+    """Write down which session this supervisor just started. Never raises.
+
+    The supervisor holds this in memory as well, and memory is what a kill takes
+    away. What is on disk is all a later run has to go on.
+    """
+    payload = json.dumps({"pid": pid, "start": process_start(pid), "token": token,
+                          "owner_pid": os.getpid()}) + "\n"
+    try:
+        path = child_record_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(payload, encoding="utf-8")
+    except OSError:
+        pass
+
+
+def read_child_record() -> dict[str, Any]:
+    """The session a supervisor last started here, as far as disk knows."""
+    try:
+        parsed = json.loads(child_record_path().read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def orphan_session() -> int | None:
+    """A session a supervisor started here that is still running. None normally.
+
+    Normally there is none: the supervisor ends its session before opening the
+    next one, so the process named here is gone by the time anybody asks. One
+    that is still running means the supervisor that was watching it was killed
+    outright — `kill -9`, or a crash — and nothing has been watching it since.
+    """
+    record = read_child_record()
+    pid = record.get("pid")
+    if not process_alive(pid, record.get("start")):
+        return None
+    return pid if isinstance(pid, int) else None
+
+
+def orphan_message(pid: int) -> str:
+    return (
+        f"bin/stoker.sh: the Claude session that was running here last is still going, and "
+        f"nothing is watching it any more — whatever was watching it was killed outright. A "
+        f"fresh session is being opened now, so two of them will be working this folder at "
+        f"once and they will undo each other's changes. Close the old one: find its window and "
+        f"quit it, or run `kill {pid}` in a terminal."
+    )
 
 
 def reclaim_marker() -> None:
@@ -681,6 +770,15 @@ def _run_sessions(extra: list[str] | None, spawn: Callable[..., subprocess.Popen
             log("stoker_exit", {"exit_code": code, "stopped": True})
             return exit_code(code)
 
+        # A session still running with nobody watching it is about to be joined
+        # by a second one in the same folder. Opening it anyway is right — this
+        # is how the stoker comes back after a crash — but it is never right to
+        # do it silently, because the two will undo each other's work.
+        orphan = orphan_session()
+        if orphan is not None:
+            print(orphan_message(orphan), file=sys.stderr)
+            log("stoker_orphan_session", {"pid": orphan})
+
         # A marker left by this supervisor's own last session would kill the
         # next one on its first poll, and one left by a supervisor that is gone
         # would take the one path forever. A running supervisor's is left alone.
@@ -698,6 +796,10 @@ def _run_sessions(extra: list[str] | None, spawn: Callable[..., subprocess.Popen
             return 127
 
         _current = child
+        # Written down before anything else happens to it: a kill that lands on
+        # this supervisor takes every memory of the session with it, and what is
+        # on disk is the only way a later run can see the session left behind.
+        record_child(child.pid, token)
         if _stopping:
             # The signal landed while this one was being spawned, so the handler
             # had nothing to aim at. Take it down here instead of watching it.

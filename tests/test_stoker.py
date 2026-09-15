@@ -804,6 +804,54 @@ class TestStokerSupervisor(unittest.TestCase):
             self.fail("the supervisor ignored SIGTERM")
         self.assertEqual(len(self.launches()), 1, "it must not reopen after being stopped")
 
+    def end_process(self, pid: int) -> None:
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):  # pragma: no cover - already gone
+            pass
+
+    def still_running(self, pid: int) -> bool:
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            return False
+        return True
+
+    def test_a_session_left_running_by_a_killed_supervisor_is_said_out_loud(self):
+        """A kill the supervisor cannot catch leaves its session running with
+        nobody watching it. The next run opens a second session in the same
+        folder, and two of them working the same repository undo each other's
+        work, so the one still running has to be named on screen."""
+        running = self.supervisor(STUB_MODE="sleep", HEATER_STOKER_MIN_LIFETIME="30")
+        first = self.wait_for_launches(1, running)
+        orphan = first[0]["pid"]
+        self.addCleanup(self.end_process, orphan)
+        os.kill(running.pid, signal.SIGKILL)
+        # Not communicate(): the session is still holding the pipes open, which
+        # is exactly the situation under test.
+        running.wait(timeout=30)
+        running.stdout.close()
+        running.stderr.close()
+        self.assertTrue(self.still_running(orphan), "the test never made an orphan")
+
+        code, _, err = self.run_supervisor(STUB_MODE="exit", HEATER_STOKER_MIN_LIFETIME="0")
+        self.assertEqual(code, 0, err)
+        self.assertIn(str(orphan), err, "it opened a second session without naming the first")
+        self.assertIn("still going", err, "it never said what the old session was")
+        self.assertTrue(any(e["event"] == "stoker_orphan_session" for e in self.hook_events()),
+                        "nothing was written down about the session left running")
+
+    def test_a_session_this_run_ended_is_never_called_an_orphan(self):
+        """The ordinary handoff ends the session before opening the next one.
+        Warning about that one would train the warning out."""
+        running = self.supervisor(STUB_MODE="handoff", HEATER_STOKER_MIN_LIFETIME="0")
+        first = self.wait_for_launches(1, running)
+        self.hand_over(first[0]["token"])
+        self.wait_for_launches(2, running)
+        _, err = running.communicate(timeout=30)
+        self.assertNotIn("still going", err)
+        self.assertFalse(any(e["event"] == "stoker_orphan_session" for e in self.hook_events()))
+
     def test_every_launch_gets_an_identity_of_its_own(self):
         """The marker is one shared path, so the token in it is the only thing
         that says which session asked to be ended."""
@@ -1049,6 +1097,50 @@ class TestWhoEndedTheSession(unittest.TestCase):
         self.assertEqual(stoker.DEFAULT_MAX_CRASHES, 3)
         with mock.patch.dict(os.environ, {"HEATER_STOKER_MAX_CRASHES": "7"}):
             self.assertEqual(stoker.limits().max_crashes, 7)
+
+
+class TestWhichProcessIsWhich(unittest.TestCase):
+    """Whether a supervisor is still running decides whether its session's mark
+    is acted on or swept away, so reading a process's identity wrongly either
+    clears a live supervisor's mark or keeps a dead one's forever."""
+
+    def test_when_a_process_started_reads_the_same_in_any_language(self):
+        """The system names the day in whatever language the terminal is set to,
+        and the two spellings are compared as plain text. A supervisor started in
+        one terminal and read from another would look like a different process,
+        and its session's mark would be swept away while it waited for it."""
+        plain = stoker.process_start(os.getpid())
+        with mock.patch.dict(os.environ, {"LC_ALL": "de_DE.UTF-8", "LC_TIME": "de_DE.UTF-8",
+                                          "LANG": "de_DE.UTF-8"}):
+            translated = stoker.process_start(os.getpid())
+        self.assertEqual(translated, plain,
+                         "the same process read as two different ones")
+
+    def test_a_process_whose_start_cannot_be_read_is_not_alive(self):
+        """Without the moment it started, all that is left is the number, and
+        numbers are handed out again: the marker would name a live supervisor
+        forever and no session in this folder could ever hand over."""
+        self.assertFalse(stoker.owner_alive({"owner_pid": os.getpid(), "owner_start": ""}))
+
+    def test_a_supervisor_is_not_alive_when_the_system_cannot_be_asked(self):
+        """With no way to ask when anything started, a mark naming a number some
+        later program is wearing reads as a live supervisor's for good, and every
+        handover in this folder stops. Not knowing is not evidence of life."""
+        with mock.patch.object(stoker, "process_start", return_value=""):
+            self.assertFalse(stoker.owner_alive({"owner_pid": os.getpid(), "owner_start": ""}))
+            self.assertFalse(stoker.owner_alive(
+                {"owner_pid": os.getpid(), "owner_start": "Tue Sep 15 17:00:00 2026"}))
+
+    def test_a_session_with_no_supervisor_left_running_is_not_supervised(self):
+        spent = subprocess.Popen([sys.executable, "-c", "pass"])
+        spent.wait()
+        with mock.patch.dict(os.environ,
+                             {stoker.OWNER_ENV: f"{spent.pid} Thu Jan  1 00:00:00 1970"}):
+            self.assertFalse(stoker.supervisor_alive())
+
+    def test_a_session_whose_supervisor_is_running_is_supervised(self):
+        with mock.patch.dict(os.environ, {stoker.OWNER_ENV: stoker.own_owner()}):
+            self.assertTrue(stoker.supervisor_alive())
 
 
 class TestHandoverMarker(unittest.TestCase):

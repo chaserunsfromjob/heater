@@ -363,6 +363,34 @@ class TestStopTrigger(StateCase):
         self.assertEqual(json.loads(stoker.marker_path().read_text())["token"], "child-9")
         self.assertIn("ending now", decision["systemMessage"])
 
+    def test_it_promises_nothing_when_the_supervisor_that_launched_it_is_gone(self):
+        """The supervisor was killed and the session outlived it. Its mark would
+        sit on the one path with nobody left to act on it, so the session would
+        be told it was ending while nothing was ever going to end it — and the
+        mark would block the next session's handover too."""
+        self.at(30)
+        spent = subprocess.Popen([sys.executable, "-c", "pass"])
+        spent.wait()
+        with mock.patch.dict(os.environ, {stoker.CHILD_ENV: "child-9",
+                                          stoker.OWNER_ENV: f"{spent.pid} Thu Jan  1 00:00:00 1970"}), \
+                self.busy(), self.outstanding():
+            decision = stop_hook.handover_decision(None, "stoker", "session-42")
+        self.assertNotIn("ending now", decision["systemMessage"])
+        self.assertIn("bin/stoker.sh", decision["systemMessage"])
+        self.assertFalse(stoker.marker_path().exists(),
+                         "a mark nobody is waiting on was left holding the one path")
+
+    def test_a_mark_acted_on_before_the_read_back_is_still_a_handover(self):
+        """The supervisor watches the path every half second, so it can see this
+        session's mark and clear it before the hook looks again. Reading that as
+        a failure tells the operator to start a second supervisor over the one
+        already replacing this session."""
+        self.at(30)
+        with self.supervised("child-9"), self.busy(), self.outstanding(), \
+                mock.patch.object(stoker, "marker_token", return_value=None):
+            decision = stop_hook.handover_decision(None, "stoker", "session-42")
+        self.assertIn("ending now", decision["systemMessage"])
+
     def test_a_mark_that_could_not_be_written_is_not_reported_as_written(self):
         """A full or read-only disk swallows the write. Nothing is on disk for
         any supervisor to act on, so nothing is promised."""
