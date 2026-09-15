@@ -1,0 +1,12 @@
+{
+  "id": "347ea63db07d",
+  "created": "2026-09-15T16:01:02.556600+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "",
+  "origin": "",
+  "summary": "hooks/session_end.py unlinks heartbeat_dir()/f'{session_id}.json' with the raw session id (no SAFE_ID sanitising as in post_tool_use.py), so a crafted session id could delete a file outside the heartbeat directory",
+  "delivered_at": null,
+  "resolution": null
+}

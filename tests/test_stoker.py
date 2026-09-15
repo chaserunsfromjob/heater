@@ -188,6 +188,17 @@ class TestHooksFailOpen(unittest.TestCase):
             self.assertEqual(len(written), 1)
             self.assertNotIn("..", written[0].name)
 
+    def test_no_session_id_writes_no_heartbeat(self):
+        """Nothing can ever clear a beat with no session id, so never write one."""
+        with tempfile.TemporaryDirectory() as tmp:
+            for payload in ({"tool_name": "Bash"}, {"session_id": "", "tool_name": "Bash"},
+                            {"session_id": "   ", "tool_name": "Bash"}):
+                result = self.run_hook("post_tool_use.py", json.dumps(payload),
+                                       {"HEATER_LOG_DIR": str(Path(tmp) / "logs")})
+                self.assertEqual(result.returncode, 0)
+                self.assertEqual(list((Path(tmp) / "heartbeat").glob("*.json")), [],
+                                 f"{payload} left a heartbeat nothing will ever retire")
+
     def test_session_end_clears_the_heartbeat(self):
         with tempfile.TemporaryDirectory() as tmp:
             env = {"HEATER_LOG_DIR": str(Path(tmp) / "logs")}
