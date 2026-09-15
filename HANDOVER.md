@@ -1,8 +1,8 @@
 # Handover
 
-<!-- handover-commit: 24e297c -->
+<!-- handover-commit: 928b983 -->
 
-Written at `24e297c` on `main`. Verify with
+Written at `928b983` on `main`. Verify with
 `bin/handover.py`. A snapshot, not a log — rewrite it, do not append.
 
 Read `README.md` for what is built and what is next, `OPINIONS.md` for the
@@ -14,32 +14,30 @@ follows is only what you cannot look up.
 
 ## Start here
 
-**All seven steps plus handover are landed, pushed, and green: 330 tests,
-`bin/gate.sh` passes.** Nothing is half-finished. No pull request is open and the
-operator has not asked for one.
+**Everything built is landed, pushed, and green: 379 tests, `bin/gate.sh`
+passes.** Nothing is half-finished.
 
-**The next action is not building. It is the first real run.** Nothing here has
-ever run unattended: every piece is unit-tested and no stoker session has
-dispatched a real worker. The likely failures are in the seams, not the units —
-whether `HEATER_ROLE` actually reaches a dispatched agent's session, and whether
-the Stop hook's wake behaves the way the unit tests assume. Do not build more
-until one dispatch has gone out and come back.
+**The next action is still the first real run, and it has still never
+happened.** No stoker session has dispatched a real worker. Every piece is unit
+tested and the seams between them are not: whether `HEATER_ROLE` reaches a
+dispatched agent, and whether the Stop hook's wake behaves the way the unit
+tests assume. Do not build more until one dispatch has gone out and come back.
+The operator has agreed to the drift finding in the queue as the first job,
+with them watching.
 
-**Two things only the operator can do**, both still outstanding: delete the stale
-`claude/artifact-system-continuation-ko9236` branch on GitHub, and run
-`bin/deploy.py` on a real machine. Until the second one happens none of this is
-live for them.
+**The stoker is now live on the operator's own Mac**, started with
+`bin/stoker.sh`, under Remote Control, and confirmed: it identified itself as
+the stoker without being told and found the waiting work on its own. That is
+the first time any of this has run outside a container.
 
-**Branches.** `main` is canonical and is now GitHub's default. The stale
-`claude/artifact-system-continuation-ko9236` still exists on GitHub pointing at
-an old commit: **deleting it from this environment is blocked**, not flaky. Both
-`git push --delete` and the colon refspec return HTTP 403 from the sandbox proxy,
-which the proxy's own README calls a policy denial to report rather than route
-around, and no delete-branch tool exists in the GitHub API set here. The operator
-deletes it from GitHub's branches page. Do not burn a session retrying.
+**Both of the old operator-only items are closed.** The stale
+`claude/artifact-system-continuation-ko9236` branch is deleted, and
+`bin/deploy.py` has been run on their machine.
 
-**The operator has not yet run `bin/deploy.py` on a real machine.** Nothing in
-this system is actually live for them until they do.
+**Machines need a re-deploy.** The `PreToolUse` matcher changed to reach
+`create_session`, so every machine deployed before that reports
+`hook registration out of date` until `bin/deploy.py` runs again. This is
+expected, not a fault.
 
 ## The operator
 
@@ -83,6 +81,51 @@ lives in `OPINIONS.md` and `rules/`.
 
 Each of these looks arbitrary in the code and is not. Re-deriving them costs a
 session; reversing them costs more.
+
+**Remote Control settles cloud-versus-terminal, and the question is closed.** A
+whole session went into the premise that the operator had to choose: a cloud
+session cannot reach their disk, a terminal session is not in the app. Remote
+Control is neither — the session runs on their machine with their filesystem and
+their fleet install, and the app is a window onto it. `bin/stoker.sh` asks for
+it. Do not re-open this as a trade-off; it is not one.
+
+**Opening the repository is what makes a session the stoker, not a marker.**
+Requiring `HEATER_ROLE=stoker` failed in the worst available way: the session
+opened, looked ordinary, and silently was not the stoker, so the Stop hook never
+handed it the queue. An explicit marker still wins, which is what keeps the
+reviewer's write ban intact. `is_dispatched()` deliberately still reads the
+marker alone — letting the fleet-repo default satisfy it would quietly retire
+the unrouted-write warning.
+
+**`in_fleet_repo` takes the most authoritative source outright**, not any match:
+payload `cwd`, then `CLAUDE_PROJECT_DIR`, then the process directory. The first
+draft accepted any of them and the suite caught it, because the tests run inside
+the repository, so every session looked like it was in the repository too.
+
+**The arming mark is 30%, not 25%, because the measurement ignored the floor.**
+A session is near 10% before the operator has said anything — system prompt,
+tool definitions, `CLAUDE.md`. The mark is against total usage, so that floor is
+a toll paid before any working room is counted, and 25% left about fifteen
+points rather than twenty-five. The test pins the reasoning against the floor
+rather than the digits.
+
+**A session must never open its own successor, and the guard denies it.** This
+is why this repository's sessions went missing from the project list: a session
+created from inside another arrives with no checkout, so it is filed under no
+project and the operator cannot find it. It also opens by re-cloning, which is
+work they watch instead of the work they asked for. It cannot be fixed
+afterwards — the workspace is settled when the container starts. A note in the
+handover skill was not enough, because the skill is read when invoked and this
+fires whether or not anyone invoked it.
+
+**The denial is narrow by tool name.** `get`, `list`, `archive` and retitle are
+untouched. A test asserts the registered matcher actually matches the tool,
+because a denial the matcher never routes to the guard is decoration.
+
+**Handover ends by archiving the session.** Its notes are written and pushed, so
+everything it knew is in the repository; leaving it open invites the operator
+back into a conversation that has said goodbye, and invites two sessions editing
+the same files. After the push, never before.
 
 **Near-duplicate detection uses character matching, not token overlap.** Token
 overlap was written first, then measured against the real rule files: a plural
