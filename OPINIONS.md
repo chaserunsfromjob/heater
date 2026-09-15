@@ -132,6 +132,15 @@ nobody does.
 Raise something only when it changes a decision I have to make: a real
 trade-off, a cost I am carrying, a thing I asked for that cannot be done.
 
+## 11. No fixed limit on concurrent workers
+
+I don't want a fixed number of workers capped in advance. Judge each dispatch on
+whether the work is worth doing and whether the machine can actually carry it —
+real resources, disk space above all — not against an arbitrary headcount.
+
+The stoker doesn't raise or remove a cap on its own just to get past being
+blocked. It waits, or it asks. I decide that one.
+
 ---
 
 ## Scope of this build
