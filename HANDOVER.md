@@ -1,8 +1,8 @@
 # Handover
 
-<!-- handover-commit: 36bd007 -->
+<!-- handover-commit: 62f632c -->
 
-Written at `36bd007` on `main`. Verify with
+Written at `62f632c` on `main`. Verify with
 `bin/handover.py`. A snapshot, not a log — rewrite it, do not append.
 
 Read `README.md` for what is built and what is next, `OPINIONS.md` for the
@@ -14,7 +14,7 @@ follows is only what you cannot look up.
 
 ## Start here
 
-**All seven steps plus handover are landed, pushed, and green: 289 tests,
+**All seven steps plus handover are landed, pushed, and green: 319 tests,
 `bin/gate.sh` passes.** Nothing is half-finished. No pull request is open and the
 operator has not asked for one.
 
@@ -158,6 +158,19 @@ times. The project's checkout is the consolidation target and must never also be
 a workspace: when it is both, every clash between the merge target and the edits
 in it becomes a decision somebody has to make, which is the input opinion 1 says
 to eliminate. Do not re-optimise this back.
+
+**Handover fires by itself at 55% context, and the bridge that makes it possible
+is fragile.** Hooks are never told how full the context window is — only the
+status line is. So `hooks/statusline.py` records it to `~/.heater/context.json`
+and `hooks/stop.py` reads it. If the status line is not deployed, or the operator
+has their own, automatic handover silently never fires. Deploy reports that as
+drift rather than taking their status line over. Do not "tidy" the status line
+out of the hooks directory.
+
+**Nothing can clear the conversation.** Hook output cannot send input into a
+session, confirmed in the docs, so the final `/clear` is always a keystroke the
+operator makes. Everything before it — noticing, writing, committing, pushing,
+verifying — is automatic. Do not promise the operator otherwise.
 
 **`reconcile` derives what to do from git, never from a flag.** A sweep that
 dies halfway must be repeatable, and a flag written before a crash is a lie
