@@ -1,8 +1,8 @@
 # Handover
 
-<!-- handover-commit: dac9a95 -->
+<!-- handover-commit: 7bc79ce -->
 
-Written at `dac9a95` on `main`. Verify with `bin/handover.py`. A snapshot,
+Written at `7bc79ce` on `main`. Verify with `bin/handover.py`. A snapshot,
 not a log — rewrite it, do not append.
 
 Read `README.md` for what is built and what is next, `OPINIONS.md` for the
