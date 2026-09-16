@@ -1,0 +1,17 @@
+{
+  "id": "85cbcc803c3c",
+  "created": "2026-09-16T00:20:07.286369+00:00",
+  "change": "059566b3e160",
+  "project": "heater",
+  "round": 2,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 5,
+  "wording_only": false,
+  "files": 5,
+  "insertions": 377,
+  "deletions": 26,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "core last-round rule proven on fixtures and end to end; gate green on 2752f36 and on the merge with main. F1 'landed WITHOUT a passing review' fires on idle workers and no-checkout closures (nothing merged); F2 SKILL.md says a later-recorded round replaces a pass (false: highest number wins); F3-F5 wording (no-round refusal not a sentence; unreadable round called rejected and printed bare; rejected line lacks branch)."
+}
