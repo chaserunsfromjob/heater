@@ -18,13 +18,13 @@ context as "Subagent hand-back" messages.
 - Engine survey 7f09949cb56f: round-2 fixer RUNNING (long; started before
   the context clear); findings in `findings-7f09949cb56f-engine-r2.md`.
   Then round 3.
-- Exploitation survey 76bbf2823a53: round 6 FAILED on one price claim
-  (converter caveat generalises PT4's price to three other vendors) plus
-  three wording; `findings-76bbf2823a53-exploitation-r6.md`. Fixer 6 done
-  at 72c60d2 (HM3 converter price fetched from the vendor page, four
-  separately sourced figures, two log entries). Round 7 RUNNING at checkout
-  41a874aea055. Wording-only → confirming round 8 → `bin/dispatch.py land`.
-  Never run reconcile while its pass is recorded and it is unlanded.
+- Exploitation survey 76bbf2823a53: round 7 FAILED at 72c60d2 on two
+  vendor-page facts in the round-6 text (DriveHUD sells its converter
+  standalone at $29/month; Hand2Note's app coverage is emulators on Windows)
+  plus three wording; `findings-76bbf2823a53-exploitation-r7.md`. Fixer 7
+  RUNNING at checkout 41a874aea055. Then round 8; wording-only → confirming
+  round 9 → `bin/dispatch.py land`. Never run reconcile while its pass is
+  recorded and it is unlanded. Seven rounds so far.
 - Bots survey 14d64950c0bc: LANDED and DONE. Wording fixer landed on
   pokerbot main at 3fbd279 (2026-09-16 23:15Z) after rounds 6 and 7 both
   came back wording-only; findings files deleted. Nothing left to do.
