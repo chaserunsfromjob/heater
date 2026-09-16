@@ -1,0 +1,10 @@
+{
+  "id": "fad0e0aba254",
+  "created": "2026-09-16T01:58:59.903701+00:00",
+  "score": 45,
+  "title": "reconcile crashes with an uncaught ValueError from close_dispatch if a second sweep closed the same dispatch first",
+  "source_finding": "8e5be8211524",
+  "project": "heater",
+  "path": "tools/dispatch.py",
+  "done_at": null
+}

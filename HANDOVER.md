@@ -22,9 +22,9 @@ Act on each as it lands; do not re-dispatch a round that is already out.
 
 | Agent name (as its report will show) | Change | Round out | On its report |
 | --- | --- | --- | --- |
-| Fix usage taper round 4 | `c79a35661f9c` | fixer 4 (round 4 failed on the debrief page only: two entries describe the wrong work, a repository and a branch name still reach the page, the repeat count reads lossy text; see `handover/findings-c79a35661f9c-taper-r4.md`; taper half sound for the third round) | dispatch review round 5; wording-only → confirming round → `bin/dispatch.py land`; at landing mark task 32cbdf129bdf done (the 95 STOP band and debrief are in this branch) |
-| Review reconcile change round 5 | `059566b3e160` | review 5 (round-4 fixes at 0b9af3e on origin: runs split into consolidated and still-to-account-for, failed round named on left-behind and unknown lines; fixer flagged that `land()` records no commit state so its runs list as still-to-account-for; reviewer weighs it) | record; fail → fixer; wording-only → failure-mode lens, then land by merging from trunk with the gate |
-| Review automatic handoff round 8 | `46e285e1bfd0` | review 8 (default + failure-mode; round-7 fixes at b0f9878 on origin: bounded hold, one session named once, unwritten note logged and its claim not counted; a stale round-7 reviewer worktree still holds the branch name, task 418b4396b9f7, so reviewers use `worktree add --detach`) | record; fail → fixer; wording-only → confirming round → merge from trunk, tell the operator to start `bin/stoker.sh` once |
+| Review usage taper round 5 | `c79a35661f9c` | review 5 (round-4 fixes at 11b3280 on origin; the fixer's three in-change findings, "1 minutes", a stub done_when on the page, "1 separate pieces", were dismissed from the inbox and carried into the reviewer's brief) | record; fail → fixer; wording-only → confirming round → `bin/dispatch.py land`; at landing mark task 32cbdf129bdf done (the 95 STOP band and debrief are in this branch) |
+| Fix reconcile change round 5 | `059566b3e160` | fixer 5 (round 5 failed: `land()` records no commit state so its runs never read consolidated; the state is a frozen snapshot that can never clear; stoker decided re-ask at every sweep; see `handover/findings-059566b3e160-reconcile-r5.md`) | dispatch review round 6; wording-only → failure-mode lens, then land by merging from trunk with the gate |
+| Fix automatic handoff round 8 | `46e285e1bfd0` | fixer 8 (round 8 confirmed every round-7 behaviour fix and failed on text only: the sealed-state-dir trade unrecorded in README, a false "fresh session is being opened" on the stop paths, two README overstatements; see `handover/findings-46e285e1bfd0-handoff-r8.md`; stale worktree still holds the branch name, so detached worktree + `push HEAD:` + guarded `update-ref`) | dispatch review round 9 (default + failure-mode); wording-only → confirming round → merge from trunk, tell the operator to start `bin/stoker.sh` once |
 | Review exploitation survey round 5 | `76bbf2823a53` | review 5 (round-4 fixes at 7d24066: OpenSpiel facts against their files, fpdb-3 failure restated, (a)/(b) cells re-sourced with PokerTracker 4 at ~ as a flagged deviation, plain-words arithmetic moved to §3.1) | record; fail → fixer; wording-only → confirming round |
 | Fix engine survey round 2 | `7f09949cb56f` | fixer 2 | dispatch review round 3 |
 | Review bots survey round 6 | `14d64950c0bc` | review 6 (round-5 fixes at 50ac5b8: exhaustiveness clause deleted, CLAUDE.md:30 clause restored verbatim, seven wording, bonusbots FAQ qualifier carried after the fixer was sent back) | record; fail → fixer; wording-only → confirming round |
@@ -73,6 +73,10 @@ take it when one frees.
   reconcile fix make their own worktree in the scratchpad and remove it.
 - Fixers sometimes file a defect inside their own change instead of fixing
   it; a one-line SendMessage sends them back.
+- With seven agents out the one-minute load reaches 11 and the harness
+  watchdog kills agents as "stalled: no progress for 600s"; their edits
+  survive on disk. SendMessage to the same agent id resumes it; tell it to
+  commit what is on disk first. One stalled twice in a row before resuming.
 - Two fixers substituted "Claude Opus 5" for the attribution line the brief
   gave; harmless, do not chase it.
 - pokerbot has no remote and no `bin/gate.sh`; "push" means nothing there;

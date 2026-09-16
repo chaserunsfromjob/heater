@@ -1,0 +1,17 @@
+{
+  "id": "8e5be8211524",
+  "created": "2026-09-16T01:52:23.025528+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "tools/dispatch.py",
+  "origin": "",
+  "summary": "reconcile crashes with an uncaught ValueError from close_dispatch if a second sweep closed the same dispatch first",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-16T01:58:59.905534+00:00",
+    "score": 45,
+    "task_id": "fad0e0aba254"
+  }
+}

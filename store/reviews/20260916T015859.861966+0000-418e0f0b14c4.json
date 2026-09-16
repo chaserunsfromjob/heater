@@ -1,0 +1,17 @@
+{
+  "id": "418e0f0b14c4",
+  "created": "2026-09-16T01:58:59.861966+00:00",
+  "change": "059566b3e160",
+  "project": "heater",
+  "round": 5,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 2,
+  "wording_only": false,
+  "files": 6,
+  "insertions": 921,
+  "deletions": 40,
+  "cost_usd": null,
+  "duration_s": 855.0,
+  "note": "2 substantive, both in the run-level summary added in round 4: land() and close --outcome landed record no commit state, so a run landed by the documented route lists as 'work still to account for' forever (dispatch.py:245-246,:276-277,:525; SKILL.md:88 contradicts itself, :109-112 silent); the commit state is a snapshot frozen at close and never re-asked, so a left-behind or unknown alarm can never clear even after the branch is merged by hand, and that snapshot-vs-re-ask choice is recorded nowhere. Core verified on own probes: original bug, all tie-breaks, unreadable round, door guard, per-dispatch alarm lines, cross-sweep persistence, no-lease failed round; 51 new tests fail on main's code; merge clean, revert restores main; 473 tests OK, gate 0 (load 5.6-10.7). Dropping the awaiting gloss judged inside W2's scope; record_landing re-read cannot silently lose a close. Reviewer tokens 83217, tool uses 34 (no cost rate)."
+}

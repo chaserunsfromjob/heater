@@ -1,0 +1,17 @@
+{
+  "id": "90bc1dfab268",
+  "created": "2026-09-16T01:58:04.493076+00:00",
+  "change": "46e285e1bfd0",
+  "project": "heater",
+  "round": 8,
+  "lens": "failure-mode",
+  "verdict": "fail",
+  "findings": 4,
+  "wording_only": false,
+  "files": 14,
+  "insertions": 2919,
+  "deletions": 58,
+  "cost_usd": null,
+  "duration_s": 835.0,
+  "note": "Default + failure-mode. All three round-7 behavioural fixes reproduced from the real code path: bounded hold returned in 2.02 s under a 10 s foreign holder at load 9.96 and the launch reached watch; one session named once (2 records, 1 orphan, 1 bearings line, 1 queue item); sealed state dir gives claim False on 3 launches and 0 queue items; 120 concurrent record_child calls, slowest 33 ms, nothing lost. 1 substantive: the sealed-dir trade (queue item filed zero times rather than once per launch; screen, log and bearings still say it) is settled in code and recorded nowhere, README:130-133 states the opposite; resolve by one README clause, code stays (reviewer's judgement, stoker agrees: once is unreachable, every-time is the duplicate-wake defect round 6 closed). 3 wording: 'A fresh session is being opened' false on the two stop paths (stoker.py:715 via :1032, :1090); README:134-137 and the docstring at :656 promise an unconditional lock the 2 s deadline gives up; README:125-127 'one entry per bin/stoker.sh' is false once keep_unended writes a second. Merge clean against d66de8f and b7f11e7, revert restores main, 496 tests OK, gate 0. Reviewer tokens 84524, tool uses 47 (no cost rate)."
+}

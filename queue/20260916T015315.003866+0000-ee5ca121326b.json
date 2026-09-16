@@ -1,0 +1,16 @@
+{
+  "id": "ee5ca121326b",
+  "created": "2026-09-16T01:53:15.003866+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "tools/usage.py",
+  "origin": "",
+  "summary": "usage._age_words says 'read 1 minutes ago' for any reading between one and two minutes old; debrief._minutes exists for exactly this",
+  "delivered_at": null,
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-16T02:39:54.113724+00:00",
+    "reason": "Inside change c79a35661f9c (the taper and debrief); carried into the round-5 reviewer's brief and the handover row so the next fixer round takes it. A defect inside a change is not a separate task."
+  }
+}
