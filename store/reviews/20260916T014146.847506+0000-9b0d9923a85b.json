@@ -1,0 +1,17 @@
+{
+  "id": "9b0d9923a85b",
+  "created": "2026-09-16T01:41:46.847506+00:00",
+  "change": "c79a35661f9c",
+  "project": "heater",
+  "round": 4,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 9,
+  "wording_only": false,
+  "files": 14,
+  "insertions": 2150,
+  "deletions": 4,
+  "cost_usd": null,
+  "duration_s": 1200.0,
+  "note": "Taper half sound: every band boundary (94.9\u2192reviews-only, 95.0\u2192NOTHING_NEW, weekly 95 too), both env overrides, non-text usage.json crash path, bearings exit 1, queue route with one-line show, opinion 13 quotations byte-for-byte, rule bullet 17 words. 4 substantive, all on the debrief page: _describe accepts an incidental later sentence when the opening one dies on machinery, so MAX_SLOTS job reads 'Update the constant's comment' and a test-isolation job reads a diagnostic note (debrief.py:318-336); a bare repository name (poker_ai), 'this repo' (pinned by a test) and a bare branch name (main) still reach the page (:54-68,:76-85, tests/test_debrief.py:373-378); _repeats compares rendered lossy text so two different jobs could render identical and the 'N separate pieces of work' figure would understate the store (:418-434, latent today). 5 wording: 'They are: an account' plural/singular, 'read 0 minutes ago', ALLOWS[NOTHING_NEW] omits the --queue command, an opinion-13 sentence writing prior practice into the record, lone '(a)' and shouted BOTS/SOLVERS/EXPLOIT on the page. 512 tests OK at load 3.92, gate 0. Reviewer token count not in the hand-back."
+}

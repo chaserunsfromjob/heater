@@ -7,7 +7,7 @@
   "path": "/Users/chasethompson/pokerbot",
   "origin": "",
   "summary": "pokerbot has no bin/gate.sh, so the landing rule's 'exit 0 from bin/gate.sh' cannot be satisfied for any pokerbot change",
-  "delivered_at": null,
+  "delivered_at": "2026-09-16T01:41:33.029251+00:00",
   "resolution": {
     "action": "dismissed",
     "at": "2026-09-16T01:40:41.534505+00:00",
