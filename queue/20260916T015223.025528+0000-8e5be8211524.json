@@ -7,7 +7,7 @@
   "path": "tools/dispatch.py",
   "origin": "",
   "summary": "reconcile crashes with an uncaught ValueError from close_dispatch if a second sweep closed the same dispatch first",
-  "delivered_at": null,
+  "delivered_at": "2026-09-16T02:49:36.439109+00:00",
   "resolution": {
     "action": "promoted",
     "at": "2026-09-16T01:58:59.905534+00:00",

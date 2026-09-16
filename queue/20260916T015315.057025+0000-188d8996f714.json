@@ -7,7 +7,7 @@
   "path": "tools/debrief.py",
   "origin": "",
   "summary": "debrief._repeats says '1 separate pieces of work, not 2' when every entry but one is a repeat",
-  "delivered_at": null,
+  "delivered_at": "2026-09-16T02:49:36.439104+00:00",
   "resolution": {
     "action": "dismissed",
     "at": "2026-09-16T02:39:54.176457+00:00",
