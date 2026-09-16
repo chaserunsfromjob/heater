@@ -20,9 +20,11 @@ context as "Subagent hand-back" messages.
   Then round 3.
 - Exploitation survey 76bbf2823a53: round 6 FAILED on one price claim
   (converter caveat generalises PT4's price to three other vendors) plus
-  three wording; `findings-76bbf2823a53-exploitation-r6.md`. Fixer 6
-  RUNNING at checkout 41a874aea055. Then round 7. Never run reconcile while
-  its pass is recorded and it is unlanded.
+  three wording; `findings-76bbf2823a53-exploitation-r6.md`. Fixer 6 done
+  at 72c60d2 (HM3 converter price fetched from the vendor page, four
+  separately sourced figures, two log entries). Round 7 RUNNING at checkout
+  41a874aea055. Wording-only → confirming round 8 → `bin/dispatch.py land`.
+  Never run reconcile while its pass is recorded and it is unlanded.
 - Bots survey 14d64950c0bc: DONE reviewing. Round 6 and confirming round 7
   both wording-only; survey already on main at ea013b5. Wording fixer
   RUNNING on fresh dispatch 15568bef93ba (branch worker/15568bef93ba,
