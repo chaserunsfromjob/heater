@@ -7,7 +7,7 @@
   "path": "tools/store.py",
   "origin": "",
   "summary": "Every review round records cost_usd null (42 of 42 today) although rules/global.md Cost requires it and the debrief promises it. The stoker DOES receive a per-agent token count in every task notification (subagent_tokens, tool_uses, duration_ms); add --tokens and --tool-uses to bin/store.py review, have the stoker record them from the notification, and let bearings/debrief report tokens until a dollar rate exists.",
-  "delivered_at": null,
+  "delivered_at": "2026-09-16T01:16:45.914808+00:00",
   "resolution": {
     "action": "promoted",
     "at": "2026-09-16T00:42:33.349871+00:00",
