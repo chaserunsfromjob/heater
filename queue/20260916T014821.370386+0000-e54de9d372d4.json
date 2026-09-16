@@ -1,0 +1,12 @@
+{
+  "id": "e54de9d372d4",
+  "created": "2026-09-16T01:48:21.370386+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "RESOURCES_BOTS.md",
+  "origin": "",
+  "summary": "RESOURCES_BOTS.md:541 quotes bonusbots pricing 'License can be moved as often as needed' without its FAQ qualifier that the licence is restricted to one computer and moves happen on request (bonusbots.com/pricing.htm FAQ: 'Is the license restricted to 1 computer? Yes, but we are happy to move it for you upon request as often as you need.')",
+  "delivered_at": null,
+  "resolution": null
+}
