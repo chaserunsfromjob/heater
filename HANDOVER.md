@@ -23,7 +23,7 @@ Act on each as it lands; do not re-dispatch a round that is already out.
 | Agent name (as its report will show) | Change | Round out | On its report |
 | --- | --- | --- | --- |
 | Fix usage taper round 3 | `c79a35661f9c` | fixer 3 (round 3 failed on the debrief prose and a bearings crash; see `handover/findings-c79a35661f9c-taper-r3.md`) | dispatch review round 4; wording-only → confirming round → `bin/dispatch.py land` |
-| Fix reconcile change round 3 | `059566b3e160` | fixer 3 (round 3 failed on the alarm gate's could-not-check case; see `handover/findings-059566b3e160-reconcile-r3.md`) | dispatch review round 4; wording-only → land by merging from trunk with the gate |
+| Review reconcile change round 4 | `059566b3e160` | review 4 (round-3 fixes at f1a4543 on origin: four named states for where commits went, tip_sha recorded at release, 465 tests, gate 0; reviewer makes its own worktree) | record; fail → fixer; wording-only → failure-mode lens, then land by merging from trunk with the gate |
 | Review automatic handoff round 7 | `46e285e1bfd0` | review 7 (default + failure-mode; round-6 fixes at 029057a: un-ended child announced, locked record, atomic write) | record; wording-only → confirming round → merge from trunk, tell the operator to start `bin/stoker.sh` once |
 | Review exploitation survey round 4 | `76bbf2823a53` | review 4 (round-3 fixes at f8566ab: all 12 findings applied, script re-run byte for byte; fixer asks whether the plain-words item 3 now carries too much of §3.1's detail) | record; fail → fixer; wording-only → confirming round |
 | Fix engine survey round 2 | `7f09949cb56f` | fixer 2 | dispatch review round 3 |
