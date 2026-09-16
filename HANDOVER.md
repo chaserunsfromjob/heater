@@ -22,13 +22,15 @@ Act on each as it lands; do not re-dispatch a round that is already out.
 
 | Agent name (as its report will show) | Change | Round out | On its report |
 | --- | --- | --- | --- |
-| Review usage taper round 5 | `c79a35661f9c` | review 5 (round-4 fixes at 11b3280 on origin; the fixer's three in-change findings, "1 minutes", a stub done_when on the page, "1 separate pieces", were dismissed from the inbox and carried into the reviewer's brief) | record; fail → fixer; wording-only → confirming round → `bin/dispatch.py land`; at landing mark task 32cbdf129bdf done (the 95 STOP band and debrief are in this branch) |
-| Fix reconcile change round 5 | `059566b3e160` | fixer 5 (round 5 failed: `land()` records no commit state so its runs never read consolidated; the state is a frozen snapshot that can never clear; stoker decided re-ask at every sweep; see `handover/findings-059566b3e160-reconcile-r5.md`) | dispatch review round 6; wording-only → failure-mode lens, then land by merging from trunk with the gate |
+| (none running) usage taper | `c79a35661f9c` | round 5 failed on the debrief page only (5 substantive, 6 wording; see `handover/findings-c79a35661f9c-taper-r5.md`); taper half sound four rounds running. Fixer 5 waits for a slot behind the research | when a slot is free after the research: fixer 5 from that file, then review 6; wording-only → confirming round → `bin/dispatch.py land`; at landing mark task 32cbdf129bdf done |
+| Fix evaluation strategy round 3 | `45e49ce81e40` | fixer 3 (round 3 failed 2026-09-15 21:22Z: gated on a 52-card conversion trunk says is out, summary carries the abolished four-seat grid, a weights arithmetic error, the sha-gating rule stated five ways; findings recovered from the reviewer transcript into `handover/findings-45e49ce81e40-evaluation-r3.md`) | dispatch review round 4 |
+| Review table-size notes round 4 | `984aa6810a05` | review 4 (round-3 fixes at 9c4a168; cross-references judged against trunk's OPPONENT_MODEL_DESIGN.md at 5aa40b8 and REFERENCE_NOTES.md's seven-seat ceiling) | record; fail → fixer; wording-only → confirming round |
+| (none running) reconcile change | `059566b3e160` | fixer 5 done at 79d66c1 on origin (`land` records where the commits went via `close_landed`; `consolidated_now` re-asks git at every sweep; SKILL.md rows; 475 tests, gate 0). Review 6 waits for a slot behind the research (operator's instruction 2026-09-15 late: wrap the research inside this usage window) | when a slot is free after the research: review round 6 at 79d66c1; wording-only → failure-mode lens, then land by merging from trunk with the gate. Note for that reviewer: the two-round landing rule is still not coded (task f16c56933d8a) |
 | (none running) automatic handoff | `46e285e1bfd0` | fixer 8 done at 1c55d7f on origin (all four text findings applied, 497 tests, gate 0); one in-change finding dismissed and carried: the `end_session` docstring at tools/stoker.py:827-828 still promises a fresh session, false on the two exit paths. Review 9 waits for a slot: the operator's order puts research ahead of the handoff, and the operator has asked to wrap the research inside this usage window | when a slot is free after the research: review round 9 (default + failure-mode) at 1c55d7f, carrying the docstring finding; wording-only → confirming round → merge from trunk, tell the operator to start `bin/stoker.sh` once |
 | Review opponent-model design round 8 | `36e2ae4be45b` | review 8 against trunk pokerbot main (design landed at 659c6b7 on a stale pass; round-7 fixes at 72eff27, then 5f7a1a8; rounds 5-7 notes were never stored) | record; wording-only → done, delete the design section from `handover/findings-pokerbot-pending.md`; substantive → tell the operator the cost, no round 9 unasked |
-| Fix exploitation survey round 5 | `76bbf2823a53` | fixer 5 (round 5 failed on the DriveHUD entry only: reachable with a browser user-agent, (b) evidence on its own FAQ, vendor prices contradict the reseller range, one unattributed quote; four wording; see `handover/findings-76bbf2823a53-exploitation-r5.md`) | dispatch review round 6 |
+| Review exploitation survey round 6 | `76bbf2823a53` | review 6 (round-5 fixes at 9dea35e: DriveHUD re-read with a browser user-agent, key clause for partly-evidenced ~, four wording; fixer flagged the converter-price caveat at about :152 for the reviewer) | record; fail → fixer; wording-only → confirming round; never run reconcile while its pass is recorded and it is unlanded |
 | Fix engine survey round 2 | `7f09949cb56f` | fixer 2 | dispatch review round 3 |
-| Fix bots survey round 6 wording | `14d64950c0bc` | round 6 PASSED wording-only (first clean round of any survey); fixer 6 applying the two inexact quotations (:533 bonusbots tagline, :682-683 PokerScreenBot README) | dispatch confirming review round 7; wording-only again → record its findings as observations and land (`bin/dispatch.py land`; pokerbot has no gate, run `pytest tests/ -q` in a venv), deleting `handover/findings-14d64950c0bc-bots-r{4,5}.md` in the landing commit |
+| Confirming review bots survey round 7 | `14d64950c0bc` | round 6 PASSED wording-only; then reconcile LANDED it early on pokerbot main at ea013b5 (see the trap below) with fixer 6's autosave, which carries the fixed bonusbots tagline; round-6 F2 (PokerScreenBot quote, about :682-683) still open. Confirming round 7 running against trunk, told to record F2 as known | wording-only → one fixer on a fresh branch from trunk applies F2 plus any new wording, lands via `bin/dispatch.py land`, deletes `handover/findings-14d64950c0bc-bots-r{4,5}.md`; substantive → fixer on a fresh branch, then round 8. Undo path if ever needed: `git -C /Users/chasethompson/pokerbot revert -m 1 ea013b5` |
 | Review solvers survey round 4 | `048795519f43` | review 4 (round-3 fixes at f237c6d: evaluator nomination moved to the open list, flop runs published per run with logs, vendor quotes verbatim; the fixer's in-change finding that MonkerSolver has a built-in batch Scripting tool per a third-party guide was dismissed from the inbox and carried into the reviewer's brief) | record; fail → fixer; wording-only → confirming round |
 
 Every review round so far is recorded in the store. Record each new one
@@ -58,9 +60,14 @@ take it when one frees.
 ## Traps found this session
 
 - `bin/dispatch.py reconcile` landed the design on an hours-old pass because
-  `reviewed()` accepts any pass ever recorded. Fix on `worker/059566b3e160`;
-  until it lands, check `store/reviews` for a stale pass on every open
-  dispatch before each reconcile (none today).
+  `reviewed()` accepts any pass ever recorded. Fix on `worker/059566b3e160`.
+  It bit again at 02:52Z: the bots survey was recorded as a wording-only
+  pass (round 6) and the very next reconcile merged it (ea013b5) with the
+  fixer still in the checkout, before the confirming round. Even the fixed
+  tool lands on one pass; the two-round rule is not coded (task at score
+  75). **Never run reconcile while any open dispatch has a pass recorded.**
+  Record a pass, dispatch the confirming round, and reconcile only after
+  the change is landed by hand with `bin/dispatch.py land`.
 - Reconcile's autosave commits a live worker's half-edited tree. Judged
   intentional twice: review the branch tip against main, never commit by
   commit. Reconcile reports the taper branch "held" whenever the fleet repo

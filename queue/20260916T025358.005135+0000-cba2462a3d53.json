@@ -1,0 +1,17 @@
+{
+  "id": "cba2462a3d53",
+  "created": "2026-09-16T02:53:58.005135+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "tools/dispatch.py",
+  "origin": "",
+  "summary": "reconcile lands a change on its first wording-only pass: at 02:52Z it merged worker/14d64950c0bc into pokerbot main (ea013b5) minutes after round 6 was recorded as a wording-only pass, with fixer 6 still in the checkout, before the confirming round that skills/adversarial-review requires (two consecutive wording-only rounds). The fix in review (059566b3e160) makes the latest round decide but still lands on one pass. reconcile must require the two-round rule, or never land on its own and leave landing to bin/dispatch.py land run by the stoker after the confirming round. Until then: never run reconcile while any open dispatch has a pass recorded.",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-16T02:53:58.037600+00:00",
+    "score": 75,
+    "task_id": "f16c56933d8a"
+  }
+}

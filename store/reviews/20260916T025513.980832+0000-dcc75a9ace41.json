@@ -1,0 +1,17 @@
+{
+  "id": "dcc75a9ace41",
+  "created": "2026-09-16T02:55:13.980832+00:00",
+  "change": "c79a35661f9c",
+  "project": "heater",
+  "round": 5,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 11,
+  "wording_only": false,
+  "files": 14,
+  "insertions": 2269,
+  "deletions": 4,
+  "cost_usd": null,
+  "duration_s": 841.0,
+  "note": "Taper half sound again (bands at nine points, overrides, NOTHING_NEW names the --queue command, every page count independently recomputed and right). 5 substantive, all on the debrief page: the done_when fall-through prints a content-free stub ('Done when a file in the project passes', debrief.py:363-372); the done_when path leaks fleet jargon (worktree, dirty checkout, context-usage) that matches no reject rule (:369-371, :57-83); the first-non-meta-sentence break prints background not work on 4 of 18 entries and 2 of 8 on the five-hour page (:363-368); the two round-4 regression tests use invented done_when text and so pass on friendly data (tests/test_debrief.py:280-303); the repeats sentence says 'entries' while counting briefs, so a reader finds a fourth identical pair (:465-483). 6 wording: 'read 1 minutes ago' (usage.py:266-273), '1 separate pieces' (:478-483), 'Vendor' as a verb, {used:.0f}% rounds 94.99 to 95 beside a non-stop band (usage.py:307,:351-352), lone-marker trim drops the 2-9 players requirement after a colon, opinion-13 sentence contradicted by the fourth quote (OPINIONS.md:161-163). 516 tests OK, gate 0. Reviewer tokens 89711, tool uses 32."
+}
