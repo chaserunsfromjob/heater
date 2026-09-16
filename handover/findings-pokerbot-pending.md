@@ -29,13 +29,12 @@ context as "Subagent hand-back" messages.
 - Bots survey 14d64950c0bc: LANDED and DONE. Wording fixer landed on
   pokerbot main at 3fbd279 (2026-09-16 23:15Z) after rounds 6 and 7 both
   came back wording-only; findings files deleted. Nothing left to do.
-- Solvers survey 048795519f43: round 5 FAILED at 474402d (the "$69 to
-  $499" range pack ceiling is an Omaha product, hold'em tops at $319; two
-  stale engine-survey play-out counts; GTOpen's own "historical, not
-  predictions" head-note omitted; the 0.71 s solver upper end traces to no
-  file; three wording); `findings-048795519f43-solvers-r5.md`. Fixer 5
-  RUNNING at checkout 85f4140c6fae. Then round 6; wording-only → confirming
-  round 7 → `bin/dispatch.py land`. Five rounds so far.
+- Solvers survey 048795519f43: fixer 5 done at 72d5b7f (MonkerGuy hold'em
+  ladder $69-$319 at six sites; engine-survey play-out counts dropped;
+  GTOpen head-note quoted; 0.706 s timer copied into the turn run note;
+  F5-F7). Review round 6 RUNNING at checkout 85f4140c6fae. Wording-only →
+  confirming round 7 → `bin/dispatch.py land`, subject to the cap proposed
+  to the operator. Five rounds so far.
 - Evaluation strategy 45e49ce81e40: round 4 FAILED at fa819e5 (5
   substantive: the today's-engine grid unsized, the seat sweep misquoted and
   X6/X1 overstated, a stale 56,414 hands/s figure, the release gate
