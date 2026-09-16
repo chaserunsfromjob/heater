@@ -1,0 +1,17 @@
+{
+  "id": "ec90d2e46124",
+  "created": "2026-09-16T03:07:34.850431+00:00",
+  "change": "76bbf2823a53",
+  "project": "pokerbot",
+  "round": 6,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 4,
+  "wording_only": false,
+  "files": 3,
+  "insertions": 1575,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 587.0,
+  "note": "reviewer ae35c51dcff5c9445 at 9dea35e: FAIL, 1 substantive + 3 wording. DriveHUD rewrite (round 5 target) verified clean against all three pages; measurement script re-run byte-identical and cross-checked with tomllib; twelve least-sampled citations re-fetched, all exact (open_spiel 5,486 vs 5,487 stars, drift). F1 :151-154 converter caveat generalises PT4's $29-49/month to HM3, DriveHUD and Hand2Note; contradicted by the document's own s1.4 (DriveHUD converter only inside $199.99/yr Ultimate+) and s1.3 (Hand2Note includes app rooms in $15.99/$39 per month); HM3 converter unsourced anywhere. W1 :263-269 'only documented way out' is an unsearched exclusivity claim and the cited page lists three export routes. W2 :1310 unwrapped 111-char line. W3 :1069 'Dirichlet blend' has no plain-words gloss. Findings in handover/findings-76bbf2823a53-exploitation-r6.md. Cost: about 20 tool calls, ~25 fetches, 111035 tokens, 9.8 min; no dollar figure."
+}

@@ -1,0 +1,18 @@
+{
+  "id": "15568bef93ba",
+  "created": "2026-09-16T03:11:00.208480+00:00",
+  "task": "Wording fixer for the bots survey (change 14d64950c0bc, already on pokerbot main at ea013b5): apply the round-6 F2 and round-7 W1-W5 wording findings in handover/findings-14d64950c0bc-bots-r7.md to RESOURCES_BOTS.md on a fresh branch from trunk. No review follows; the stoker lands it with bin/dispatch.py land --change 14d64950c0bc.",
+  "project": "pokerbot",
+  "done_when": "All six wording findings applied in RESOURCES_BOTS.md with every quotation verbatim or unquoted, 25 tests green, one commit on the fresh branch, working tree clean, report names the tip.",
+  "task_id": "",
+  "agent": "fixer",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/8c35f07b586f",
+  "lease_id": "8c35f07b586f",
+  "branch": "worker/15568bef93ba",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

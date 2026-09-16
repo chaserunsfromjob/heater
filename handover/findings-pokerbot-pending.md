@@ -1,41 +1,48 @@
 # pokerbot changes still in the review loop
 
-Delete each section in that change's landing commit. Every survey's open
-findings are in the fixer briefs whose agents were RUNNING at the handover;
-their reports arrive in the next context as messages. If a report never
-arrives, the findings are in the review store notes (`store/reviews`, by
-change id) and, for the engine survey, in `findings-7f09949cb56f-engine-r2.md`.
+Delete each section in that change's landing commit. Every open finding is
+in a `findings-<change>-<name>-r<N>.md` file beside this one; if a fixer's
+or reviewer's report never arrives, brief the next one from that file plus
+the store note (`store/reviews`, by change id). Snapshot as of
+2026-09-16T03:15Z; the agents named as RUNNING report into the stoker's
+context as "Subagent hand-back" messages.
 
-- Opponent-model design 36e2ae4be45b: LANDED on pokerbot main at 659c6b7 by
-  reconcile on a stale round-4 pass, without round 8. NOT DONE. Next: fresh
-  reviewer, round 8, default lens, against trunk's OPPONENT_MODEL_DESIGN.md
-  plus tools/check_design_numbers.py (680 figures, 25 tests). Wording-only:
-  record and done. Substantive: escalate the cost; no round 9 unasked.
-- Engine survey 7f09949cb56f: round-2 fixer RUNNING (branch at autosave
-  59022d1 + its work); findings in `findings-7f09949cb56f-engine-r2.md` with
-  the measurement rule. Then round 3.
-- Exploitation survey 76bbf2823a53: round-2 fixes at 5d274ee (all 16, six
-  networks counted by research/count_phh_networks.py, reproduced byte for
-  byte). Round-3 review RUNNING. Then land or fix.
-- Bots survey 14d64950c0bc: round 3 FAILED (a quotation attributed to
-  ENGINE_ALTERNATIVES.md that exists in no version of it; section 5 narrows
-  the forefront rule below CLAUDE.md's table; ppl-interpreter (a) ✓
-  contradicted by its code; the vendor-evidence rule applied inconsistently,
-  decided by the stoker: a vendor's technical manual or price page may carry a
-  labelled mark, a strength claim may not). Round-3 fixer RUNNING. Then round 4.
-- Solvers survey 048795519f43: round 2 FAILED (heads-up engine "settled";
-  opponent range in the settled plan is reserved to the engine; memory-bound
-  claim unmeasured; GTOpen misread cost quoted from two cells of a 0-461
-  table; 9 accuracy items; timings to re-run under the measurement rule).
-  Round-2 fixer RUNNING. Then round 3.
-- Evaluation strategy 45e49ce81e40: round 3 FAILED (8 findings, 4
-  substantive: assumes a 52-card conversion REFERENCE_NOTES.md says is out; a
-  4-seat figure in the summary; sha-gating rule stated inconsistently). Full
-  findings only in the previous session's reviewer transcript
-  (~/.claude/projects/-Users-chasethompson-heater/60db9bfd-…/subagents/agent-a7dfbff12396707c8.jsonl,
-  last assistant message). Lower priority.
-- Table-size notes 984aa6810a05: round-3 fixes at 9c4a168; needs round 4;
-  judge cross-references against companion commit 5aa40b8.
+- Opponent-model design 36e2ae4be45b: on pokerbot main (659c6b7, stale
+  round-4 pass; round-7 fixes at 72eff27, 5f7a1a8). Round 8 FAILED: two
+  substantive (warm-up gate not enforced by §4.5; exploit flags have no
+  path into play) and four wording, in `findings-36e2ae4be45b-design-r8.md`.
+  Escalated to the operator 2026-09-16 with the cost and a recommendation.
+  NO round 9 or fixer until the operator answers. If yes: fixer 8 from that
+  file on a fresh branch from trunk, then round 9; wording-only → confirming
+  round → `bin/dispatch.py land`.
+- Engine survey 7f09949cb56f: round-2 fixer RUNNING (long; started before
+  the context clear); findings in `findings-7f09949cb56f-engine-r2.md`.
+  Then round 3.
+- Exploitation survey 76bbf2823a53: round 6 FAILED on one price claim
+  (converter caveat generalises PT4's price to three other vendors) plus
+  three wording; `findings-76bbf2823a53-exploitation-r6.md`. Fixer 6
+  RUNNING at checkout 41a874aea055. Then round 7. Never run reconcile while
+  its pass is recorded and it is unlanded.
+- Bots survey 14d64950c0bc: DONE reviewing. Round 6 and confirming round 7
+  both wording-only; survey already on main at ea013b5. Wording fixer
+  RUNNING on fresh dispatch 15568bef93ba (branch worker/15568bef93ba,
+  checkout 8c35f07b586f) from `findings-14d64950c0bc-bots-r7.md`. On its
+  report: `bin/dispatch.py land 15568bef93ba --change 14d64950c0bc`, then
+  delete the r4, r5 and r7 findings files and this section. Finding
+  caa33b2cb9bf (r4/r5 files still present) was dismissed as in hand.
+- Solvers survey 048795519f43: fixer 4 done at 474402d (preflop bullet
+  moved to the open list; MonkerSolver scripting scoped; run-2 load note
+  added; Deepsolver pricing from the live pages, half of F6 judged
+  mistaken by the fixer). Round 5 RUNNING at checkout 85f4140c6fae.
+- Evaluation strategy 45e49ce81e40: fixer 3 done at fa819e5 (engine gating
+  rewritten against trunk REFERENCE_NOTES.md with X6 = yes, summary count,
+  four-seat comparison at 28.94, one release rule stated five times without
+  the SHA gate). Round 4 RUNNING at checkout 9fd7bd8ad257.
+- Table-size notes 984aa6810a05: round 4 FAILED (never engages
+  REFERENCE_NOTES.md; "computed by script" with no script; R6/Q4 one commit
+  stale; two wording); `findings-984aa6810a05-tablesize-r4.md`. Fixer 4
+  RUNNING at checkout 8b0b4064141f, adding tools/check_table_size_numbers.py.
+  Then round 5.
 - After all four surveys pass: dispatch ONE worker to reconcile them into a
   plan with measured numbers and record the forefront-rule decision in
   pokerbot/CLAUDE.md. Known unknown for that brief: how the bot sees a real

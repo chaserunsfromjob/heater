@@ -1,0 +1,17 @@
+{
+  "id": "df518a0f396c",
+  "created": "2026-09-16T03:09:57.742386+00:00",
+  "change": "14d64950c0bc",
+  "project": "pokerbot",
+  "round": 7,
+  "lens": "default",
+  "verdict": "pass",
+  "findings": 6,
+  "wording_only": true,
+  "files": 1,
+  "insertions": 1136,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 884.0,
+  "note": "reviewer a068b8802dca27852, confirming round against trunk ea013b5: PASS, wording only (second consecutive). ~20 live sources / ~45 facts re-sampled, two behavioural reproductions, 25 tests. Carried F2 :682-683 PokerScreenBot quote not verbatim. W1 :468 robopoker '-13.1 bb/100 ... 86K hands' not the source string (Unicode minus, '86 K'). W2 :471-472 action-translation quote is a reconstructed table row. W3 :172 'never will' quote is the fork's README.md:14, original has no README. W4 :607-609 decide_ppl returns (kind, amount); trace goes to PPLBot.thoughts. W5 :190-196 three OpenHoldem paths lack the OpenHoldem/ prefix. TexasSolver 2,547 vs 2,548 stars is drift. Filed finding caa33b2cb9bf (r4/r5 findings files still present after landing). Next: one fixer on a fresh branch from trunk applies F2+W1-W5, then land. Cost: ~40 tool calls, 135035 tokens, 14.7 min; no dollar figure."
+}

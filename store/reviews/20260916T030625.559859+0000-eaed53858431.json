@@ -1,0 +1,17 @@
+{
+  "id": "eaed53858431",
+  "created": "2026-09-16T03:06:25.559859+00:00",
+  "change": "36e2ae4be45b",
+  "project": "pokerbot",
+  "round": 8,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 6,
+  "wording_only": false,
+  "files": 3,
+  "insertions": 3700,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 720.0,
+  "note": "reviewer a3972a05c8d6254b9 against trunk pokerbot main (design landed at 659c6b7 on a stale pass): FAIL, 2 substantive + 4 wording. Checker (680 figures), 25 tests, all six primary citations, ~30 hand-recomputed figures, 300-token mutation sweep and a CLAUDE.md drift test all sound; forefront boundary clean. S1 :1505-1507 warm-up gate (WARMUP_HANDS=200) claimed enforced by s4.5 which clears UNKNOWN at 50 hands and never mentions warm-up; heads-up :1317 loads at classification. S2 :1022-1103 exploit flags have no path into play; the only effect table (:1425-1437) is marked do-not-implement while :1008/:1487/:1491/:1528 say flags fire and switch off. W1 1-Curve = s-Curve s=1 is stated in J&B 2009 s5.2, not an inference. W2 N_prior quote :538 drops 'at the given public history set'. W3 open_raise_by_seat 4-way at :315 vs open_raise 5-way at :676/:853. W4 :1260 cites ENGINE_ALTERNATIVES.md, only on unlanded worker/7f09949cb56f. Findings in handover/findings-36e2ae4be45b-design-r8.md. Reviewer: 24 tool calls, ~12 min at load 3.7-5.3, 137782 tokens; no dollar figure."
+}
