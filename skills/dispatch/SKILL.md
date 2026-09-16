@@ -85,7 +85,7 @@ What it does with each case, without asking:
 | Not yet reviewed | Left alone and listed as awaiting review, with its branch. Record a round; nothing lands unreviewed. |
 | The last review round failed | Left alone and reported as needing a fixer, naming the branch, the round and its review id. Only the highest round counts, so an earlier pass does not rescue it. |
 | A dispatch closes with no passing round | The alarm rides whichever line its commit state prints: landed WITHOUT a passing review for work in the trunk, and the failed round appended to the left-on-a-branch and could-not-check lines. A worker that did nothing raises none. |
-| Every worker in a run has closed | The run reads fully consolidated only when every member's commits reached the trunk or never existed. Anything else — left on a branch, unchecked, or never recorded — lists the run under work still to account for. |
+| Every worker in a run has closed | The run reads fully consolidated only when every member's commits reached the trunk or never existed; anything else lists it under work still to account for, and is re-asked of git at every sweep until it reads reached or no commits, so a branch merged by hand clears it. |
 | The trunk is dirty | Everything is held. The operator has uncommitted work there and mixing it in is not a call to make for them. |
 
 Nothing is deleted until its commits are provably reachable from the trunk. That
@@ -116,7 +116,15 @@ Landing does the whole end of the cycle in one step: it merges the branch back
 into the branch it was cut from, deletes the spent branch, removes the extra
 checkout, frees the slot, and closes the dispatch as `landed`. A merge that
 leaves the checkout behind and a checkout deleted before its merge are both ways
-to lose work, so neither half happens alone.
+to lose work, so neither half happens alone. It also asks git where the branch's
+commits ended up and records that on the dispatch, so a run every member of which
+landed this way reads fully consolidated. A worker who used the project's own
+checkout has no branch to ask about, and that dispatch records could not check.
+
+Closing a worker by hand with `bin/dispatch.py close --outcome landed` records
+nothing about where its commits went. The next sweep asks git about the slot it
+held, so the run's line clears once that work is in the trunk; with no slot to
+ask about, the run stays under work still to account for.
 
 It refuses, changing nothing, when the highest recorded review round is not a
 pass, when the worker left uncommitted changes, when the gate does not exit 0,

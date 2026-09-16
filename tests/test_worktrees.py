@@ -675,6 +675,41 @@ class TestReconcile(WorktreeCase):
         report = dispatch.reconcile()
         self.assertIn(first["run_id"], report["runs_finished"])
 
+    def test_a_run_landed_through_land_is_reported_fully_consolidated(self):
+        """`land` is the documented route for a worker that reports on its own,
+        and it proves where the commits went before it closes. A run every member
+        of which went that way has nothing left anywhere, so a sweep that lists
+        it under work to account for sends the operator looking for nothing."""
+        first, second = self.start()
+        self.work(first, "a.py", "from a\n")
+        self.work(second, "b.py", "from b\n")
+        self.approve(first, second)
+        dispatch.land(first["id"])
+        dispatch.land(second["id"])
+        report = dispatch.reconcile()
+        self.assertIn(first["run_id"], report["runs_finished"])
+        self.assertIn(f"runs fully consolidated: {first['run_id']}",
+                      dispatch.render_reconcile(report))
+
+    def test_a_branch_merged_by_hand_clears_the_run_line(self):
+        """Where the commits are is a question for git every sweep, not an
+        impression stored once. The operator merges the branch the sweep named;
+        the next sweep must see that and stop saying work is unaccounted for."""
+        landing, stranded = self.start()
+        self.work(landing, "a.py", "from a\n")
+        self.work(stranded, "b.py", "from b\n")
+        self.approve(landing)
+        store.record_review(stranded["id"], 1, "default", "fail", findings=2)
+        worktrees.release(stranded["lease_id"], "worktree gone", force=True)
+        first = dispatch.reconcile()
+        self.assertIn(landing["run_id"], first["runs_unaccounted"])
+        run("git", "merge", "--no-ff", "-m", "merged by hand", stranded["branch"],
+            cwd=self.repo)
+        report = dispatch.reconcile()
+        self.assertIn(landing["run_id"], report["runs_finished"])
+        self.assertIn(f"runs fully consolidated: {landing['run_id']}",
+                      dispatch.render_reconcile(report))
+
     def test_unreviewed_work_waits_and_is_kept(self):
         first, _ = self.start()
         self.work(first, "a.py", "from a\n")

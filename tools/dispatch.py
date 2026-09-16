@@ -119,6 +119,19 @@ def close_dispatch(dispatch_id: str, outcome: str, note: str = "") -> dict[str, 
     return record
 
 
+def close_landed(dispatch_id: str, consolidated: str, note: str = "") -> dict[str, Any]:
+    """Close a dispatch as landed and keep the answer to where its commits went.
+
+    One act, not two. A dispatch closed without that answer is a member of its
+    run nobody can vouch for, and the sweep walks live dispatches only, so
+    nothing that comes later ever fills the gap in on its own.
+    """
+    record = close_dispatch(dispatch_id, "landed", note)
+    record["consolidated"] = consolidated
+    jsonstore.write(dispatches_dir(), record)
+    return record
+
+
 class NotReadyToLand(RuntimeError):
     """A landing condition is unmet. Never a reason to merge anyway."""
 
@@ -241,9 +254,10 @@ def land(dispatch_id: str, *, gate: str = "", change: str = "",
 
     if lease is None:
         # The worker used the project's own checkout, so there is nothing to
-        # merge from and nothing to clean up.
-        return close_dispatch(dispatch_id, "landed",
-                              f"worked in the project checkout; {rested['on']}")
+        # merge from, nothing to clean up, and no branch to ask git about: the
+        # honest answer to where the commits went is that nobody can say.
+        return close_landed(dispatch_id, UNKNOWN,
+                            f"worked in the project checkout; {rested['on']}")
 
     path, repo = Path(lease["path"]), Path(lease["repo"])
     branch, trunk = lease["branch"], lease.get("base_branch") or "main"
@@ -271,10 +285,14 @@ def land(dispatch_id: str, *, gate: str = "", change: str = "",
         worktrees.git(repo, "merge", "--abort")
         raise NotReadyToLand(f"merge of {branch} into {trunk} failed and was aborted:\n{output}")
 
-    worktrees.release(lease["id"], "landed")
+    released = worktrees.release(lease["id"], "landed")
     worktrees.git(repo, "branch", "-d", branch)
-    return close_dispatch(dispatch_id, "landed",
-                          f"merged {branch} into {trunk} {rested['on']}")
+    # Ask git where this slot's commits ended up and keep the answer, exactly as
+    # the sweep does. Without it a run landed by this route — the documented one
+    # for a worker that reports on its own — closes with nothing recorded, and
+    # every later sweep reads that silence as work still to account for.
+    return close_landed(dispatch_id, commits_reached_trunk(released, trunk),
+                        f"merged {branch} into {trunk} {rested['on']}")
 
 
 def start_run(task: str, *, repo: str, project: str = "", workers: int = 2,
@@ -501,6 +519,27 @@ def finish(record: dict[str, Any], lease: dict[str, Any], branch: str,
     close_dispatch(record["id"], "landed", why)
 
 
+def consolidated_now(record: dict[str, Any], leases: dict[str, dict[str, Any]]) -> str:
+    """Where a closed dispatch's commits are now, asked again rather than recalled.
+
+    REACHED and NO_COMMITS are settled: commits in the trunk stay in the trunk
+    and a branch that never had any cannot grow some after it closed. Every other
+    answer is about a branch that still exists, and the operator merging it by
+    hand is the ordinary next step, so the question is put to git at every sweep
+    and the new answer written back. A slot keeps the two shas after it is
+    released, which is what makes the question still answerable.
+    """
+    state = record.get("consolidated")
+    lease = leases.get(record.get("lease_id", ""))
+    if state in (REACHED, NO_COMMITS) or lease is None:
+        return state or UNKNOWN
+    asked = commits_reached_trunk(lease, lease.get("base_branch") or "main")
+    if asked != state:
+        record["consolidated"] = asked
+        jsonstore.write(dispatches_dir(), record)
+    return asked
+
+
 def finished_runs() -> tuple[list[str], list[str]]:
     """Runs whose every worker has closed, split by whether their work is all in.
 
@@ -510,19 +549,28 @@ def finished_runs() -> tuple[list[str], list[str]]:
     nobody could check. Closing as landed is not the same as landing the work,
     and a run with a branch still holding commits must never be called
     consolidated two lines under the line naming that branch.
+
+    Every unsettled member is re-asked of git here, so a branch merged by hand
+    after the sweep that reported it clears the run's line on the next sweep
+    instead of standing as an alarm nothing can ever turn off.
     """
     runs: dict[str, list[dict[str, Any]]] = {}
     for record in jsonstore.load(dispatches_dir()):
         if record.get("run_id"):
             runs.setdefault(record["run_id"], []).append(record)
+    leases = {l["id"]: l for l in jsonstore.load(worktrees.leases_dir())}
     finished, unaccounted = [], []
     for run, members in runs.items():
         if not all(m.get("outcome") == "landed" for m in members):
             continue
-        # A member with nothing recorded is a member nobody can vouch for: it
-        # closed before the sweep kept this answer, or by a route that never
-        # asked git. That is doubt, and doubt belongs in the second list.
-        if all(m.get("consolidated") in (REACHED, NO_COMMITS) for m in members):
+        # A member nothing can be asked about is a member nobody can vouch for:
+        # it closed by a route that never asked git and left no slot to ask
+        # about now. That is doubt, and doubt belongs in the second list.
+        # Every member is asked, not just those up to the first unsettled one:
+        # the answers are written back, and which ones get refreshed must not
+        # depend on what order the members happened to load in.
+        states = [consolidated_now(m, leases) for m in members]
+        if all(state in (REACHED, NO_COMMITS) for state in states):
             finished.append(run)
         else:
             unaccounted.append(run)
