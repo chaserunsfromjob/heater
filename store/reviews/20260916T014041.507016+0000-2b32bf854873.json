@@ -1,0 +1,17 @@
+{
+  "id": "2b32bf854873",
+  "created": "2026-09-16T01:40:41.507016+00:00",
+  "change": "14d64950c0bc",
+  "project": "pokerbot",
+  "round": 5,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 9,
+  "wording_only": false,
+  "files": 1,
+  "insertions": 1128,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "2 substantive, both in the two sentences the round-4 fixer added on its own at :1037-1042: 'the pairing is the whole limit' asserts an exhaustiveness CLAUDE.md does not record and is false against CLAUDE.md:31 (archetypes from measured frequencies alone, never hand-written, never referencing cards or hand strength); the gloss of 'observed population' drops CLAUDE.md:30's clause 'seated players' stored rows included, being seated never the criterion' and so narrows the rule it claims to reproduce. 7 wording: a quotation cited to two files with different text, an inexact vendor quote, spaces dropped in a quoted source line, 'measures' overstating OpenHoldem's lookup, GTO/GUI/YOLO/SAM2/FastAPI unexplained, an 18-day/147 GiB figure with no source (REFERENCE_NOTES.md:414,:427), a trial page miscredited. Round-4 F1/F2/W3-W9 all applied; seven-row enumeration exact; ~20 citations, prices and reproductions exact; Slumbot live. Reviewer tool uses ~40 (no token count in the hand-back yet)."
+}

@@ -8,5 +8,9 @@
   "origin": "",
   "summary": "pokerbot has no bin/gate.sh, so the landing rule's 'exit 0 from bin/gate.sh' cannot be satisfied for any pokerbot change",
   "delivered_at": null,
-  "resolution": null
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-16T01:40:41.534505+00:00",
+    "reason": "Already on the task list as 5283f76b00b9 (score 40): add pokerbot/bin/gate.sh that builds the venv and runs tests/ground_truth and vendor/poker_ai/test. Until it lands, reviewers say no gate exists rather than claiming one ran, which is what this reviewer did."
+  }
 }

@@ -27,7 +27,7 @@ Act on each as it lands; do not re-dispatch a round that is already out.
 | Review automatic handoff round 8 | `46e285e1bfd0` | review 8 (default + failure-mode; round-7 fixes at b0f9878 on origin: bounded hold, one session named once, unwritten note logged and its claim not counted; a stale round-7 reviewer worktree still holds the branch name, task 418b4396b9f7, so reviewers use `worktree add --detach`) | record; fail → fixer; wording-only → confirming round → merge from trunk, tell the operator to start `bin/stoker.sh` once |
 | Fix exploitation survey round 4 | `76bbf2823a53` | fixer 4 (round 4 failed: 3 substantive, two of the over-claim class; see `handover/findings-76bbf2823a53-exploitation-r4.md`) | dispatch review round 5 |
 | Fix engine survey round 2 | `7f09949cb56f` | fixer 2 | dispatch review round 3 |
-| Review bots survey round 5 | `14d64950c0bc` | review 5 (round-4 fixes at 5e5bbb9: rollout hook restated as unbuilt and unruled, seventh forefront row, seven wording) | record; fail → fixer; wording-only → confirming round |
+| Fix bots survey round 5 | `14d64950c0bc` | fixer 5 (round 5 failed on the two sentences the round-4 fixer added on its own; see `handover/findings-14d64950c0bc-bots-r5.md`; brief forbids adding anything beyond the findings) | dispatch review round 6 |
 | Review solvers survey round 3 | `048795519f43` | review 3 (round-2 fixes at 25948cc: heads-up engine choice handed back to the reconciliation, every timing re-taken with load recorded, GTO Wizard re-verified against dated patch notes) | record; fail → fixer; wording-only → confirming round |
 
 Every review round so far is recorded in the store. Record each new one
