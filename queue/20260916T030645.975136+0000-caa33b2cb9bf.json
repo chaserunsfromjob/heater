@@ -7,7 +7,7 @@
   "path": "handover/findings-14d64950c0bc-bots-r4.md",
   "origin": "",
   "summary": "Bots-survey round-4/round-5 findings files (handover/findings-14d64950c0bc-bots-r4.md, -r5.md) still present after 14d64950c0bc landed; each says to delete it in the landing commit",
-  "delivered_at": null,
+  "delivered_at": "2026-09-16T03:13:34.709226+00:00",
   "resolution": {
     "action": "dismissed",
     "at": "2026-09-16T03:10:04.414418+00:00",
