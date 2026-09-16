@@ -124,7 +124,8 @@ class NotReadyToLand(RuntimeError):
 
 
 def round_order(record: dict[str, Any]) -> tuple[int, int, str, int]:
-    """Sort key for review rounds: usable last, then number, stamp, then verdict.
+    """Sort key for review rounds: a round nobody can place sorts last, and among
+    the rest the highest number, then the later stamp, then the fail.
 
     Rounds are not always written in the order they ran, and two lenses can
     share a round number, so the later of the two is the one that stands.
@@ -148,18 +149,22 @@ def usable_round(record: dict[str, Any]) -> bool:
 
 
 def latest_round(change: str) -> dict[str, Any] | None:
-    """The last review round recorded for this change, or None if there is none."""
+    """The highest-numbered round recorded for this change, or None if there is none.
+
+    Two rounds sharing a number are broken apart by which was recorded later.
+    """
     rounds = [r for r in jsonstore.load(store.reviews_dir()) if r.get("change") == change]
     return max(rounds, key=round_order) if rounds else None
 
 
 def reviewed(change: str) -> bool:
-    """True when the LAST recorded round for this change passed.
+    """True when the HIGHEST-numbered recorded round for this change passed.
 
-    Read from the store rather than taken on trust, and only the last round is
+    Read from the store rather than taken on trust, and only the highest round is
     read: an earlier pass describes a change that no longer exists. Counting any
     pass lands work that later rounds rejected, and lands it while the next round
-    is still running.
+    is still running. Two rounds recorded under the same number are settled by
+    which was written later, so recording order breaks a tie and nothing else.
 
     A round whose number cannot be read is never a pass, whatever its verdict:
     nothing can be said about where it sits among the others.
@@ -188,8 +193,14 @@ def resting_on(change: str) -> dict[str, Any]:
     if usable_round(last):
         why = f"rejected at {said}"
     else:
-        said += ", an unreadable round number"
-        why = f"the last round cannot be read, so it cannot count as a pass: {said}"
+        if last.get("round") is None:
+            # Printing the blank as "round None" invents a round by that name;
+            # what happened is that nobody wrote a number down.
+            said = (f"a review round with no round number recorded, "
+                    f"{last['id']} ({last.get('verdict')})")
+        else:
+            said += ", an unreadable round number"
+        why = f"the highest round cannot be read, so it cannot count as a pass: {said}"
     return {"round": last.get("round"), "review": last["id"], "verdict": last.get("verdict"),
             "said": said, "on": f"on {said}", "why": why}
 
@@ -310,23 +321,39 @@ def merge_into_trunk(repo: Path, path: Path, branch: str, trunk: str,
     return False, f"merge failed even after catching up: {output[-400:]}"
 
 
-def commits_reached_trunk(lease: dict[str, Any], trunk: str) -> bool:
-    """True when commits made on this slot's branch are reachable from the trunk.
+REACHED = "reached"
+NO_COMMITS = "no commits"
+LEFT_BEHIND = "left behind"
+UNKNOWN = "unknown"
 
-    Asked of git rather than inferred from how a dispatch was closed. Two ways a
-    dispatch closes having moved nothing: a worker that committed nothing, and a
-    slot whose checkout was released without its work ever being merged. Neither
-    put anything in the trunk, and saying they did is how "landed without a
-    passing review" comes to mean nothing.
+
+def commits_reached_trunk(lease: dict[str, Any], trunk: str) -> str:
+    """Where this slot's own commits ended up, as one of four answers.
+
+    REACHED, NO_COMMITS and LEFT_BEHIND are three different things and the
+    difference decides what the operator is told: work merged, a worker that did
+    nothing, and a branch still holding work nobody merged. UNKNOWN is the fourth
+    and it is never folded into the others: answering "nothing to consolidate"
+    for a question git was never able to answer is how a dispatch that put
+    unreviewed commits in the trunk passes in silence.
+
+    Asked of the sha the branch stood at, not of the branch name, because the
+    sweep deletes the branch before it closes the dispatch: a sweep resumed in
+    between has nothing left to resolve the name against.
     """
-    repo, branch, base = lease.get("repo", ""), lease.get("branch", ""), lease.get("base_sha", "")
-    if not (repo and branch and base):
-        return False
-    code, output = worktrees.git(Path(repo), "rev-list", "--count", f"{base}..{branch}")
-    if code != 0 or output.strip() in ("", "0"):
-        return False
-    code, _ = worktrees.git(Path(repo), "merge-base", "--is-ancestor", branch, trunk)
-    return code == 0
+    repo, base = lease.get("repo", ""), lease.get("base_sha", "")
+    ref = lease.get("tip_sha") or lease.get("branch", "")
+    if not (repo and ref and base and trunk):
+        return UNKNOWN
+    code, output = worktrees.git(Path(repo), "rev-list", "--count", f"{base}..{ref}")
+    if code != 0 or not output.strip().isdigit():
+        return UNKNOWN
+    if output.strip() == "0":
+        return NO_COMMITS
+    # is-ancestor answers 0 for yes and 1 for no; anything else is git failing to
+    # read the question, which is not the same as an answer of no.
+    code, _ = worktrees.git(Path(repo), "merge-base", "--is-ancestor", ref, trunk)
+    return {0: REACHED, 1: LEFT_BEHIND}.get(code, UNKNOWN)
 
 
 def reconcile(*, run_id: str = "", project: str = "", require_review: bool = True,
@@ -342,17 +369,17 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
     report: dict[str, Any] = {"at": jsonstore.now(), "landed": [], "landed_on": [], "held": [],
                               "awaiting_review": [], "needs_fix": [], "runs_finished": []}
 
-    def record_landing(record: dict[str, Any], rested: dict[str, Any],
-                       consolidated: bool) -> None:
-        """Report one landing, the round it rested on, and whether work moved.
+    def record_landing(record: dict[str, Any], rested: dict[str, Any], consolidated: str,
+                       branch: str = "", trunk: str = "the trunk") -> None:
+        """Report one landing, the round it rested on, and where its work ended up.
 
-        `consolidated` is what separates work put into the trunk from a dispatch
-        closed with nothing to put there, so a stale pass shows and an idle
-        worker does not read as one.
+        `consolidated` is one of the four answers `commits_reached_trunk` gives,
+        so a stale pass shows, an idle worker does not read as one, a branch left
+        holding work says so, and a question nobody could answer says that.
         """
         report["landed"].append(record["id"])
-        report["landed_on"].append({"dispatch": record["id"],
-                                    "consolidated": consolidated, **rested})
+        report["landed_on"].append({"dispatch": record["id"], "consolidated": consolidated,
+                                    "branch": branch, "trunk": trunk, **rested})
 
     leases = {l["id"]: l for l in jsonstore.load(worktrees.leases_dir())}
 
@@ -367,12 +394,14 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
         if lease is None or lease.get("released_at"):
             # No checkout to merge from. A released slot may still have had its
             # commits merged by an earlier sweep, so git is asked rather than
-            # assumed either way.
-            moved = bool(lease) and commits_reached_trunk(
-                lease, lease.get("base_branch") or "main")
+            # assumed either way. With no lease at all there is nothing to ask
+            # git about, and the report says that rather than guessing.
+            where = (lease.get("base_branch") or "main") if lease else "the trunk"
+            gone = lease.get("branch", "") if lease else ""
+            moved = commits_reached_trunk(lease, where) if lease else UNKNOWN
             close_dispatch(record["id"], "landed",
                            f"no checkout to consolidate; {rested['on']}")
-            record_landing(record, rested, moved)
+            record_landing(record, rested, moved, branch=gone, trunk=where)
             continue
 
         repo, path = Path(lease["repo"]), Path(lease["path"])
@@ -395,7 +424,7 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
             moved = commits_reached_trunk(lease, trunk)
             finish(record, lease, branch, repo, trunk,
                    f"already in the trunk; {rested['on']}")
-            record_landing(record, rested, moved)
+            record_landing(record, rested, moved, branch=branch, trunk=trunk)
             continue
 
         if require_review and not reviewed(record["id"]):
@@ -428,7 +457,7 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
         # The branch was not in the trunk a moment ago and the merge succeeded,
         # so this dispatch's commits are in the trunk now.
         finish(record, lease, branch, repo, trunk, f"{why} {rested['on']}")
-        record_landing(record, rested, True)
+        record_landing(record, rested, REACHED, branch=branch, trunk=trunk)
 
     report["runs_finished"] = finished_runs()
     return report
@@ -483,35 +512,57 @@ def age_minutes(record: dict[str, Any]) -> float | None:
 
 
 def render_reconcile(result: dict[str, Any]) -> str:
-    # What `landed` counts is dispatches closed and cleaned up, and only some of
-    # them had commits to move. Glossing the whole count as merged work tells the
-    # operator a worker who did nothing put something in the trunk.
-    merged = [e for e in result.get("landed_on", []) if e.get("consolidated")]
-    empty = len(result["landed"]) - len(merged)
-    gloss = (f"({len(merged)} merged into the trunk, {empty} with nothing to "
-             "consolidate; all cleaned up after)")
+    # What `landed` counts is dispatches closed, and only some of them had
+    # commits to move. Glossing the whole count as merged work tells the operator
+    # a worker who did nothing put something in the trunk.
+    landings = result.get("landed_on", [])
+    counted = {state: len([e for e in landings if e.get("consolidated") == state])
+               for state in (REACHED, NO_COMMITS, LEFT_BEHIND, UNKNOWN)}
+    gloss = (f"({counted[REACHED]} merged into the trunk, {counted[NO_COMMITS]} with "
+             "nothing to consolidate")
+    if counted[LEFT_BEHIND]:
+        gloss += f"; {counted[LEFT_BEHIND]} with work left on a branch"
+    if counted[UNKNOWN]:
+        gloss += f"; {counted[UNKNOWN]} that could not be checked"
+    # Only claimed when every landing was accounted for: a branch still holding
+    # work, or one nobody could check, is the opposite of cleaned up after.
+    if not (counted[LEFT_BEHIND] or counted[UNKNOWN]):
+        gloss += "; all cleaned up after"
+    gloss += ")"
+    # A breakdown of nothing is noise, and its zeroes read as the real thing.
+    landed = f"  landed           {len(result['landed'])}"
     lines = [f"reconcile as of {result['at']}",
-             f"  landed           {len(result['landed'])}  {gloss}",
+             f"{landed}  {gloss}" if result["landed"] else landed,
              f"  awaiting review  {len(result['awaiting_review'])}  (nobody has reviewed these yet)",
              f"  needs a fixer    {len(result['needs_fix'])}",
              f"  held             {len(result['held'])}"]
     # Which round each landing rested on, so a stale pass is visible in the
     # report rather than only in the store. The loud line is kept for work that
-    # actually reached the trunk without a pass behind it; a dispatch that merged
-    # nothing says that instead, or the alarm stops meaning anything.
-    for entry in result.get("landed_on", []):
-        if not entry.get("consolidated"):
-            lines.append(f"    {entry['dispatch']} closed with nothing to consolidate")
+    # actually reached the trunk without a pass behind it; the other three states
+    # say which one they are, or the alarm stops meaning anything.
+    for entry in landings:
+        who, state = entry["dispatch"], entry.get("consolidated")
+        if state == NO_COMMITS:
+            lines.append(f"    {who} closed with nothing to consolidate")
+        elif state == LEFT_BEHIND:
+            lines.append(f"    {who} closed with commits left on {entry.get('branch')} "
+                         f"that never reached {entry.get('trunk')}")
+        elif state == UNKNOWN:
+            lines.append(f"    {who} closed; could not check whether its commits "
+                         f"reached {entry.get('trunk')}")
         elif entry.get("verdict") == "pass":
-            lines.append(f"    {entry['dispatch']} landed on {entry['said']}")
+            lines.append(f"    {who} landed on {entry['said']}")
         else:
-            lines.append(f"    {entry['dispatch']} landed WITHOUT a passing review: {entry['said']}")
+            lines.append(f"    {who} landed WITHOUT a passing review: {entry['said']}")
     # Named, not just counted: the next step is a review round on one of these.
+    # One shape for both lists, because two bare codes side by side say nothing
+    # about which is the dispatch to name and which is the branch to work on.
     for entry in result["awaiting_review"]:
-        lines.append(f"    {entry['dispatch']} {entry['branch']}: nobody has reviewed this yet")
+        lines.append(f"    dispatch {entry['dispatch']}, branch {entry['branch']}: "
+                     "nobody has reviewed this yet")
     # Every line here is a branch to hand a fixer, so every line names one.
     for entry in result["needs_fix"]:
-        lines.append(f"    {entry['branch']}: {entry['why']}")
+        lines.append(f"    dispatch {entry['dispatch']}, branch {entry['branch']}: {entry['why']}")
     for entry in result["held"]:
         lines.append(f"    {entry['dispatch']}: {entry['why']}")
     if result["runs_finished"]:

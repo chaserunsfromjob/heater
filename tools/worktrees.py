@@ -51,6 +51,8 @@ STALE_MINUTES = 240
 
 SAFE = re.compile(r"[^A-Za-z0-9_-]")
 
+SHA = re.compile(r"[0-9a-f]{7,40}")
+
 
 class NoSlotAvailable(RuntimeError):
     """The machine has no room for another checkout. Wait for room, or free some."""
@@ -183,6 +185,10 @@ def lease(repo: Path, project: str, branch: str, *, dispatch_id: str = "",
         "dispatch_id": dispatch_id, "base_sha": base_sha if code == 0 else "",
         # The branch this slot was cut from, and the one its work lands back into.
         "base_branch": base_branch if branch_code == 0 else "",
+        # Where the branch stood when the slot was given back. Written at release
+        # because the branch itself is deleted moments later, and a name that no
+        # longer resolves cannot answer "did this work reach the trunk?".
+        "tip_sha": "",
         "path": "", "released_at": None, "released_how": "",
     }
     path = worktree_root() / slug(record["project"]) / record["id"]
@@ -243,6 +249,24 @@ def work_at_risk(record: dict[str, Any]) -> bool:
 unpushed = work_at_risk
 
 
+def branch_tip(record: dict[str, Any]) -> str:
+    """The commit this slot's branch points at, as a sha, or "" if it cannot be read.
+
+    The checkout answers first because it is the slot's own copy; the repository
+    answers when the checkout is already gone, which is how a slot whose folder
+    vanished is reclaimed. Only a real sha is returned: git prints the name back
+    when it cannot resolve one, and a name is exactly what this is replacing.
+    """
+    for where, ref in ((record.get("path", ""), "HEAD"),
+                       (record.get("repo", ""), record.get("branch", ""))):
+        if not (where and ref and Path(where).exists()):
+            continue
+        code, output = git(Path(where), "rev-parse", ref)
+        if code == 0 and SHA.fullmatch(output.strip()):
+            return output.strip()
+    return ""
+
+
 def release(lease_id: str, how: str = "released", *, force: bool = False) -> dict[str, Any]:
     """Give a slot back. Refuses while the branch holds work nobody else has."""
     record = next((l for l in jsonstore.load(leases_dir()) if l["id"] == lease_id), None)
@@ -255,6 +279,10 @@ def release(lease_id: str, how: str = "released", *, force: bool = False) -> dic
             f"{lease_id} still holds work on {record['branch']} that exists nowhere else; "
             "land it or push it before releasing the slot")
 
+    # Read before anything is removed: after this the checkout is gone and the
+    # branch is usually deleted right behind it.
+    tip = record.get("tip_sha") or branch_tip(record)
+
     path = Path(record.get("path", ""))
     if path.exists():
         code, _ = git(Path(record["repo"]), "worktree", "remove", "--force", str(path))
@@ -262,7 +290,7 @@ def release(lease_id: str, how: str = "released", *, force: bool = False) -> dic
             shutil.rmtree(path, ignore_errors=True)
     git(Path(record["repo"]), "worktree", "prune")
 
-    record.update(released_at=jsonstore.now(), released_how=how)
+    record.update(released_at=jsonstore.now(), released_how=how, tip_sha=tip)
     jsonstore.write(leases_dir(), record)
     return record
 

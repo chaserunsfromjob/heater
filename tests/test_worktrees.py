@@ -309,6 +309,32 @@ class TestReleasing(WorktreeCase):
         worktrees.release(held["id"], force=True)
         self.assertEqual(worktrees.active("api"), [])
 
+    def test_release_records_where_the_branch_stood(self):
+        """The branch name stops answering the moment the branch is deleted, so
+        the commit it pointed at is written down while it can still be read."""
+        held = worktrees.lease(self.repo, "api", "worker/one")
+        path = Path(held["path"])
+        (path / "done.txt").write_text("real work\n")
+        run("git", "add", "-A", cwd=path)
+        run("git", "commit", "-qm", "work", cwd=path)
+        tip = subprocess.run(["git", "-C", str(path), "rev-parse", "HEAD"],
+                             capture_output=True, text=True, timeout=30).stdout.strip()
+        released = worktrees.release(held["id"], "test", force=True)
+        self.assertEqual(released["tip_sha"], tip)
+
+    def test_release_records_the_tip_even_when_the_checkout_is_gone(self):
+        """reclaim releases a slot whose folder vanished; the branch is still there."""
+        held = worktrees.lease(self.repo, "api", "worker/one")
+        path = Path(held["path"])
+        (path / "done.txt").write_text("real work\n")
+        run("git", "add", "-A", cwd=path)
+        run("git", "commit", "-qm", "work", cwd=path)
+        tip = subprocess.run(["git", "-C", str(path), "rev-parse", "HEAD"],
+                             capture_output=True, text=True, timeout=30).stdout.strip()
+        subprocess.run(["rm", "-rf", str(path)], check=True, timeout=30)
+        released = worktrees.release(held["id"], "worktree gone", force=True)
+        self.assertEqual(released["tip_sha"], tip)
+
 
 class TestReclaim(WorktreeCase):
     def test_reclaims_a_slot_whose_checkout_vanished(self):
@@ -493,6 +519,13 @@ class TestTheRoundThatCounts(WorktreeCase):
         self.raw_round("auth", "9", "pass")
         self.assertIn("round '9'", dispatch.resting_on("auth")["said"])
 
+    def test_a_round_with_no_number_says_the_number_is_missing(self):
+        """'review round None' reads as a round called None rather than as a gap."""
+        self.raw_round("auth", None, "fail")
+        said = dispatch.resting_on("auth")["said"]
+        self.assertIn("no round number recorded", said)
+        self.assertNotIn("None", said)
+
     def test_an_unreadable_round_is_not_described_as_a_rejection(self):
         """A round nobody can place was not a rejection; it is simply unusable."""
         self.raw_round("auth", "9", "pass")
@@ -655,7 +688,7 @@ class TestReconcile(WorktreeCase):
         report = dispatch.reconcile()
         text = dispatch.render_reconcile(report)
         for entry in report["needs_fix"]:
-            self.assertIn(f"    {entry['branch']}: ", text)
+            self.assertIn(f"branch {entry['branch']}: ", text)
 
     def test_an_unreadable_round_is_not_reported_as_a_rejection(self):
         """Nobody rejected it; its round number simply cannot be placed."""
@@ -710,19 +743,88 @@ class TestReconcile(WorktreeCase):
         self.assertNotIn("WITHOUT a passing review", text)
         self.assertIn(f"{idle['id']} closed with nothing to consolidate", text)
 
-    def test_a_dispatch_whose_checkout_is_gone_consolidated_nothing(self):
-        """Its commits never reached the trunk, so it did not land work unreviewed."""
+    def test_a_slot_released_with_its_work_unmerged_names_the_branch(self):
+        """Its commits never reached the trunk and the branch still holds them,
+        which is neither a landing nor nothing to consolidate."""
         first, _ = self.start()
         self.work(first, "a.py", "from a\n")
         store.record_review(first["id"], 1, "default", "fail", findings=2)
-        worktrees.release(first["lease_id"], "test", force=True)
+        worktrees.release(first["lease_id"], "worktree gone", force=True)
         report = dispatch.reconcile()
         text = dispatch.render_reconcile(report)
         landed = next(e for e in report["landed_on"] if e["dispatch"] == first["id"])
-        self.assertFalse(landed["consolidated"])
+        self.assertEqual(landed["consolidated"], dispatch.LEFT_BEHIND)
         self.assertFalse((self.repo / "a.py").is_file())
-        self.assertIn(f"{first['id']} closed with nothing to consolidate", text)
+        self.assertIn(f"commits left on {first['branch']} that never reached main", text)
+        self.assertNotIn(f"{first['id']} closed with nothing to consolidate", text)
         self.assertNotIn("WITHOUT a passing review", text)
+
+    def test_a_branch_left_holding_work_is_not_called_cleaned_up(self):
+        """The slot went back but the work did not move; the count must not claim it did."""
+        first, _ = self.start()
+        self.work(first, "a.py", "from a\n")
+        store.record_review(first["id"], 1, "default", "fail", findings=2)
+        worktrees.release(first["lease_id"], "worktree gone", force=True)
+        text = dispatch.render_reconcile(dispatch.reconcile())
+        self.assertNotIn("all cleaned up after", text)
+
+    def test_a_sweep_resumed_after_the_branch_went_still_sees_what_moved(self):
+        """The sweep deletes the branch before it closes the dispatch, so a sweep
+        interrupted in between has no branch left to ask about."""
+        first, _ = self.start()
+        self.work(first, "a.py", "from a\n")
+        self.approve(first)
+        lease = next(l for l in worktrees.active("api") if l["id"] == first["lease_id"])
+        run("git", "merge", "--no-ff", "-q", "-m", "land it", lease["branch"], cwd=self.repo)
+        worktrees.release(lease["id"], "consolidated")
+        run("git", "branch", "-qd", lease["branch"], cwd=self.repo)
+        text = dispatch.render_reconcile(dispatch.reconcile())
+        self.assertIn(f"{first['id']} landed on review round 1", text)
+        self.assertNotIn(f"{first['id']} closed with nothing to consolidate", text)
+
+    def test_a_sweep_that_cannot_tell_says_so_rather_than_nothing(self):
+        """An older lease recorded no tip, so once the branch goes the question
+        has no answer; the alarm must not fall silent on unreviewed work."""
+        first, _ = self.start()
+        self.work(first, "a.py", "from a\n")
+        store.record_review(first["id"], 1, "default", "fail", findings=2)
+        lease = next(l for l in worktrees.active("api") if l["id"] == first["lease_id"])
+        run("git", "merge", "--no-ff", "-q", "-m", "land it", lease["branch"], cwd=self.repo)
+        worktrees.release(lease["id"], "consolidated")
+        run("git", "branch", "-qd", lease["branch"], cwd=self.repo)
+        stored = next(l for l in jsonstore.load(worktrees.leases_dir()) if l["id"] == lease["id"])
+        stored.pop("tip_sha", None)
+        jsonstore.write(worktrees.leases_dir(), stored)
+        text = dispatch.render_reconcile(dispatch.reconcile())
+        self.assertIn(f"{first['id']} closed; could not check whether its commits "
+                      "reached main", text)
+        self.assertNotIn(f"{first['id']} closed with nothing to consolidate", text)
+
+    def test_a_dispatch_with_no_slot_of_its_own_is_not_called_empty(self):
+        """Nothing about it can be asked of git, and silence is the one wrong answer."""
+        record = dispatch.open_dispatch("straight into the trunk", project="api")
+        store.record_review(record["id"], 1, "default", "fail", findings=2)
+        text = dispatch.render_reconcile(dispatch.reconcile())
+        self.assertIn(f"{record['id']} closed; could not check", text)
+        self.assertNotIn(f"{record['id']} closed with nothing to consolidate", text)
+
+    def test_a_sweep_that_landed_nothing_does_not_gloss_an_empty_count(self):
+        """Nothing landed, so there is nothing to break down into merged and empty."""
+        text = dispatch.render_reconcile(dispatch.reconcile())
+        self.assertIn("landed           0", text)
+        self.assertNotIn("merged into the trunk", text)
+
+    def test_a_waiting_line_and_a_fixer_line_read_the_same_way(self):
+        """Two bare codes in a row cannot be told apart; each is labelled instead."""
+        waiting, rejected = self.start()
+        self.work(waiting, "a.py", "from a\n")
+        self.work(rejected, "b.py", "from b\n")
+        store.record_review(rejected["id"], 1, "default", "fail", findings=1)
+        text = dispatch.render_reconcile(dispatch.reconcile())
+        self.assertIn(f"dispatch {waiting['id']}, branch {waiting['branch']}: "
+                      "nobody has reviewed this yet", text)
+        self.assertIn(f"dispatch {rejected['id']}, branch {rejected['branch']}: "
+                      "rejected at review round 1", text)
 
     def test_the_landed_count_says_how_many_reached_the_trunk(self):
         """The count is read as work merged, so it must say what part of it was."""
@@ -742,6 +844,9 @@ class TestReconcile(WorktreeCase):
         self.assertNotIn(f"{first['id']} landed WITHOUT", text)
 
     def test_the_report_says_what_landing_means(self):
+        first, _ = self.start()
+        self.work(first, "a.py", "from a\n")
+        self.approve(first)
         self.assertIn("merged into the trunk", dispatch.render_reconcile(dispatch.reconcile()))
 
     def test_a_later_pass_clears_an_earlier_fail(self):

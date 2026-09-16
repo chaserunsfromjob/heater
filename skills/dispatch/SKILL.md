@@ -79,6 +79,8 @@ What it does with each case, without asking:
 | The trunk moved while the worker was out | The trunk is merged into the worker's branch, then the landing is retried. |
 | A real conflict | The branch, its checkout and its slot are all kept, and it is reported as needing a fixer. Dispatch one. |
 | Nothing was done | The slot and branch are cleared away, and the sweep reports it as closed with nothing to consolidate rather than as work that reached the trunk. |
+| The slot went back with its work unmerged | Reported as commits left on the named branch. The branch still holds the work, so the sweep does not say it cleaned up after it. |
+| Git cannot say where the commits went | Reported as could not check, never as nothing to consolidate. An unanswered question and an empty branch look identical in silence. |
 | Not yet reviewed | Left alone and listed as awaiting review, with its branch. Record a round; nothing lands unreviewed. |
 | The last review round failed | Left alone and reported as needing a fixer, naming the branch, the round and its review id. Only the highest round counts, so an earlier pass does not rescue it. |
 | The trunk is dirty | Everything is held. The operator has uncommitted work there and mixing it in is not a call to make for them. |
@@ -96,7 +98,11 @@ clean up a branch that has not landed.
    reads the store for the highest round number recorded against the change, so
    an unrecorded round did not happen, and writing round 1 down after round 2
    does not make round 1 the answer. When two rounds share a number, the one
-   recorded later is the one that stands.
+   recorded later is the one that stands. When they share the recorded time as
+   well, the fail stands, so which file happens to load first never decides
+   whether work merges. A round number that is not a whole number — missing,
+   written as text, or a decimal — cannot be placed against the others, so it
+   never counts as a pass and it blocks landing whatever its verdict says.
 4. Land it:
 
 ```sh
