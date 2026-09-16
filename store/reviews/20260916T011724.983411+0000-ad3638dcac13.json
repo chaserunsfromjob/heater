@@ -1,0 +1,17 @@
+{
+  "id": "ad3638dcac13",
+  "created": "2026-09-16T01:17:24.983411+00:00",
+  "change": "14d64950c0bc",
+  "project": "pokerbot",
+  "round": 4,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 9,
+  "wording_only": false,
+  "files": 1,
+  "insertions": 1051,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 1953.0,
+  "note": "2 substantive: second 'shipped example' at :982-992 files the ENGINE_ALTERNATIVES.md Hook A (our chooser code, needing a carve-out) as engine-side and shipped; :972-974 enumerates six engine-side forefront rows where CLAUDE.md:28 has seven. 7 wording (mark-rule gaps for vendor-negative and third-party evidence, 7-9 seat bullet qualifier, Shanky Opponent= vs 'exactly one shipped design', acronyms, recommendation absent from section 1, unlanded siblings named as files, quotation punctuation). Round-3 failures all confirmed fixed; ppl-interpreter reproduced, every sampled citation and price page exact. Reviewer tokens 128534, tool uses 41 (no cost rate)."
+}

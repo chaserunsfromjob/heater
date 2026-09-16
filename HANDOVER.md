@@ -27,7 +27,7 @@ Act on each as it lands; do not re-dispatch a round that is already out.
 | Review automatic handoff round 7 | `46e285e1bfd0` | review 7 (default + failure-mode; round-6 fixes at 029057a: un-ended child announced, locked record, atomic write) | record; wording-only → confirming round → merge from trunk, tell the operator to start `bin/stoker.sh` once |
 | Review exploitation survey round 4 | `76bbf2823a53` | review 4 (round-3 fixes at f8566ab: all 12 findings applied, script re-run byte for byte; fixer asks whether the plain-words item 3 now carries too much of §3.1's detail) | record; fail → fixer; wording-only → confirming round |
 | Fix engine survey round 2 | `7f09949cb56f` | fixer 2 | dispatch review round 3 |
-| Review bots survey round 4 | `14d64950c0bc` | review 4 (round-3 fixes at fd21a22) | record; fail → fixer; wording-only → confirming round |
+| Fix bots survey round 4 | `14d64950c0bc` | fixer 4 (round 4 failed: 2 substantive in section 5's forefront-rule paragraph; see `handover/findings-14d64950c0bc-bots-r4.md`) | dispatch review round 5 |
 | Fix solvers survey round 2 | `048795519f43` | fixer 2 | dispatch review round 3 |
 
 Every review round so far is recorded in the store. Record each new one
