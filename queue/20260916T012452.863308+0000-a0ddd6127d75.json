@@ -7,7 +7,7 @@
   "path": "OPINIONS.md",
   "origin": "",
   "summary": "No per-change cost budget is recorded anywhere (OPINIONS.md, rules/global.md Cost, skills/adversarial-review), so 'escalate a change that exceeds its cost budget' cannot fire: the handoff 46e285e1bfd0 is at review round 7 with no number to compare against. Record a budget in OPINIONS.md (rounds per change, or tokens once task 8053187cb74e records them) and have bin/store.py query flag changes over it",
-  "delivered_at": null,
+  "delivered_at": "2026-09-16T01:25:22.340227+00:00",
   "resolution": {
     "action": "promoted",
     "at": "2026-09-16T01:24:52.894743+00:00",
