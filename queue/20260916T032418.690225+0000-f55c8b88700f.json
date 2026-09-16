@@ -1,0 +1,17 @@
+{
+  "id": "f55c8b88700f",
+  "created": "2026-09-16T03:24:18.690225+00:00",
+  "kind": "finding",
+  "urgency": "low",
+  "project": "pokerbot",
+  "path": "tools/check_table_size_numbers.py",
+  "origin": "",
+  "summary": "Consolidate the two number-checkers into one once both documents are on trunk: tools/check_design_numbers.py (OPPONENT_MODEL_DESIGN.md, on trunk) and tools/check_table_size_numbers.py (TABLE_SIZE_AND_SIZING_NOTES.md, added on branch worker/984aa6810a05 by fixer 4). They duplicate the half-up rounding helpers, the markdown table reader, the Checker equal/prose/every_occurrence surface and the exit-code contract. Kept separate deliberately: the table-size branch predates trunk's checker and must not merge trunk in. Do this after the table-size notes land, not before.",
+  "delivered_at": "2026-09-16T03:25:13.688738+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-16T03:25:59.779303+00:00",
+    "score": 30,
+    "task_id": "8edd19d47712"
+  }
+}

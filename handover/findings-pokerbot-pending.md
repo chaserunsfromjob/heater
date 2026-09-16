@@ -38,11 +38,14 @@ context as "Subagent hand-back" messages.
   unattributed, a false "not yet on main"; plus no number checker and six
   wording); `findings-45e49ce81e40-evaluation-r4.md`. Fixer 4 HELD behind
   the surveys (operator 2026-09-16). Then round 5.
-- Table-size notes 984aa6810a05: round 4 FAILED (never engages
-  REFERENCE_NOTES.md; "computed by script" with no script; R6/Q4 one commit
-  stale; two wording); `findings-984aa6810a05-tablesize-r4.md`. Fixer 4
-  RUNNING at checkout 8b0b4064141f, adding tools/check_table_size_numbers.py.
-  Then round 5.
+- Table-size notes 984aa6810a05: fixer 4 done at c859c66 (new §1.0 states
+  the vendored engine's answers from REFERENCE_NOTES.md and splits R1-R14
+  into reachable-now and waits-on-engine; tools/check_table_size_numbers.py
+  pins 232 figures with 13 tests, 33 tests total; R6 gains a sentence on
+  72eff27; F4, F5 applied; Q4 now states 24 runs on the vendored engine).
+  Review round 5 HELD behind the surveys (operator 2026-09-16); brief it
+  from `findings-984aa6810a05-tablesize-r4.md` plus this note. Checker
+  consolidation filed and promoted (f55c8b88700f).
 - After all four surveys pass: dispatch ONE worker to reconcile them into a
   plan with measured numbers and record the forefront-rule decision in
   pokerbot/CLAUDE.md. Known unknown for that brief: how the bot sees a real
