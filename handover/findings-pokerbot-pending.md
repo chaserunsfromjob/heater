@@ -1,5 +1,11 @@
 # pokerbot changes still in the review loop
 
+pokerbot now HAS a private remote (created 2026-09-16 at the operator's
+request): https://github.com/chaserunsfromjob/pokerbot, origin, all seven
+branches pushed. Every brief from now on tells workers to push their branch;
+landing pushes main. The HANDOVER trap saying "pokerbot has no remote" is
+stale.
+
 Delete each section in that change's landing commit. Every open finding is
 in a `findings-<change>-<name>-r<N>.md` file beside this one; if a fixer's
 or reviewer's report never arrives, brief the next one from that file plus
