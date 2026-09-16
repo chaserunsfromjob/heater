@@ -32,10 +32,12 @@ context as "Subagent hand-back" messages.
   moved to the open list; MonkerSolver scripting scoped; run-2 load note
   added; Deepsolver pricing from the live pages, half of F6 judged
   mistaken by the fixer). Round 5 RUNNING at checkout 85f4140c6fae.
-- Evaluation strategy 45e49ce81e40: fixer 3 done at fa819e5 (engine gating
-  rewritten against trunk REFERENCE_NOTES.md with X6 = yes, summary count,
-  four-seat comparison at 28.94, one release rule stated five times without
-  the SHA gate). Round 4 RUNNING at checkout 9fd7bd8ad257.
+- Evaluation strategy 45e49ce81e40: round 4 FAILED at fa819e5 (5
+  substantive: the today's-engine grid unsized, the seat sweep misquoted and
+  X6/X1 overstated, a stale 56,414 hands/s figure, the release gate
+  unattributed, a false "not yet on main"; plus no number checker and six
+  wording); `findings-45e49ce81e40-evaluation-r4.md`. Fixer 4 HELD behind
+  the surveys (operator 2026-09-16). Then round 5.
 - Table-size notes 984aa6810a05: round 4 FAILED (never engages
   REFERENCE_NOTES.md; "computed by script" with no script; R6/Q4 one commit
   stale; two wording); `findings-984aa6810a05-tablesize-r4.md`. Fixer 4

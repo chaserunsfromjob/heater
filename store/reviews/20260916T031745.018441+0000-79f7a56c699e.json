@@ -1,0 +1,17 @@
+{
+  "id": "79f7a56c699e",
+  "created": "2026-09-16T03:17:45.018441+00:00",
+  "change": "45e49ce81e40",
+  "project": "pokerbot",
+  "round": 4,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 12,
+  "wording_only": false,
+  "files": 1,
+  "insertions": 1850,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 780.0,
+  "note": "reviewer a2267cd1cd33281e8 at fa819e5: FAIL, 5 substantive + 1 structural + 6 wording. Every derived figure recomputed and correct; fixer 3's 28.94 confirmed (round-3's 28.97 was wrong); five gate statements byte-identical; both window examples consistent; no broken anchors; trunk cross-refs resolve. F1 :1571-1583 the 'buildable now' grid (n=2-7) has no weights (0.30 band orphaned), cell count 24 not 20, no hours line, family size wrong. F2 :1547-1558 'seat sweep at every seat count' is false (8 and 9 fail Deck is empty, REFERENCE_NOTES.md:479-483); X6 yes and X1 partly-yes upgrade 'ran' to 'verified' (I3/I5 still needed). F3 :950-953/:1601-1605/:1846 56,414 hands/s is a stale draft figure (54afe67) and menu-mode; current tip gives 47,564 fcpa / 4,438 fullgame. F4 :1618 release gate (four-run window, cadence, cycle, no SHA gate) attributed as the operator's answer, no provenance row. F5 :1403 says OPPONENT_MODEL_DESIGN.md not on main; it landed at a640a2d before the branch was cut. F6 no number checker like tools/check_design_numbers.py. W1 mBB/h undefined; W2 HUNL, W3 MIVAT, W4 CFR unexpanded; W5 p-value, PPAD-complete, 80% power, percentile bootstrap before plain words; W6 '4.9 hours exactly' is 4.906. Findings in handover/findings-45e49ce81e40-evaluation-r4.md. Fixer HELD behind the surveys (operator 2026-09-16). Cost: 19 tool calls, ~13 min, no dollar figure."
+}
