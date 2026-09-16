@@ -282,6 +282,14 @@ class TestBearings(UsageCase):
         self.assertIn("freshly reset with nothing used", text)
         self.assertNotIn("not reported", text)
 
+    def test_a_window_with_no_reset_time_says_nothing_about_resets(self):
+        """"resets reset time unknown" is the machinery talking to itself."""
+        self.at(seven=42, five=18)
+        line = next(l for l in usage.lines() if "last 5 hours" in l)
+        self.assertIn("18% used", line)
+        self.assertNotIn("reset time unknown", line)
+        self.assertNotIn("resets", line)
+
     def test_the_time_left_is_written_for_a_person(self):
         self.at(seven=42, five=1, resets_in_days=0.25)
         self.assertIn("about 6 hours left", "\n".join(usage.lines()))

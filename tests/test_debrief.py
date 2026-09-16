@@ -53,10 +53,10 @@ class DebriefCase(unittest.TestCase):
 
     def job(self, task: str, *, minutes_ago: float = 60, agent: str = "worker",
             outcome: str | None = None, closed_minutes_ago: float | None = None,
-            note: str = "") -> dict:
+            note: str = "", done_when: str = "") -> dict:
         record = {
             "id": jsonstore.new_id(), "created": self.stamp(minutes_ago), "task": task,
-            "project": "heater", "done_when": "", "task_id": "", "agent": agent,
+            "project": "heater", "done_when": done_when, "task_id": "", "agent": agent,
             "repo": "", "workdir": "", "lease_id": "", "branch": "", "run_id": "",
             "part": "",
             "closed_at": self.stamp(closed_minutes_ago) if outcome else None,
@@ -78,11 +78,12 @@ class DebriefCase(unittest.TestCase):
         jsonstore.write(store.reviews_dir(), record)
         return record
 
-    def workspace(self, *, released: bool = False, minutes_ago: float = 60) -> dict:
+    def workspace(self, *, released: bool = False, minutes_ago: float = 60,
+                  released_minutes_ago: float = 1) -> dict:
         record = {"id": jsonstore.new_id(), "created": self.stamp(minutes_ago),
                   "project": "heater", "repo": "", "branch": "b", "dispatch_id": "",
                   "base_sha": "", "base_branch": "main", "path": "",
-                  "released_at": self.stamp(1) if released else None,
+                  "released_at": self.stamp(released_minutes_ago) if released else None,
                   "released_how": "landed" if released else ""}
         jsonstore.write(worktrees.leases_dir(), record)
         return record
@@ -133,9 +134,95 @@ class TestAFullWindow(DebriefCase):
         text = " ".join(debrief.write(hours=5).split())
         self.assertIn("One note was left for you", text)
         self.assertIn("a decision an agent needs from you", text)
-        self.assertIn("One separate working copy of a project is still checked out", text)
+        self.assertIn("One separate working copy of a project is still set aside", text)
         self.assertIn("one other was handed back", text)
         self.assertNotIn("(s)", text, "a person does not read 'note(s)'")
+
+    def test_a_brief_full_of_machinery_is_said_in_plain_words(self):
+        """One fixture with all three: an absolute path, a branch name, a file name."""
+        self.job("Resolve the merge conflict between worker/36e2ae4be45b and main, "
+                 "working in the checkout at "
+                 "/Users/someone/.heater/worktrees/pokerbot/4c952047cdd3, keeping "
+                 "both sides of CLAUDE.md and running bin/gate.sh afterwards.")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertNotIn("worker/36e2ae4be45b", text)
+        self.assertNotIn("/Users/someone", text)
+        self.assertNotIn("CLAUDE.md", text)
+        self.assertNotIn("bin/gate.sh", text)
+        self.assertNotIn("4c952047cdd3", text)
+        self.assertIn("Resolve the merge conflict", text)
+
+    def test_a_bare_record_number_in_a_brief_is_not_shown(self):
+        self.job("Close out dispatch 059566b3e160 and report what it cost.")
+        self.assertNotIn("059566b3e160", debrief.write(hours=5))
+
+    def test_a_brief_that_opens_by_saying_what_it_is_not_still_says_what_it_was(self):
+        """Six live entries read only "Research task, not code", three identically."""
+        self.job("Research task, not code. Survey open-source poker engines that "
+                 "deal every table size from two to nine players.")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("Survey open-source poker engines", text)
+        self.assertNotIn("Research task, not code", text)
+
+    def test_a_meta_clause_that_names_a_file_is_still_stepped_over(self):
+        """The live entry that got through: the clause carries a file name in it."""
+        self.job("This is research and design-writing, not poker-decision code "
+                 "(that stays banned per this repo's CLAUDE.md). Survey how a bot "
+                 "reads its opponents.")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("Survey how a bot reads its opponents", text)
+        self.assertNotIn("design-writing", text)
+
+    def test_a_file_name_that_owns_the_next_word_reads_as_the_project(self):
+        self.job("Raise tools/worktrees.py's MAX_SLOTS constant from 3 to 6.")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("Raise the project's MAX_SLOTS constant from 3 to 6", text)
+
+    def test_two_briefs_that_open_alike_do_not_read_alike(self):
+        self.job("Research and design-writing, not code. Survey how a bot beats "
+                 "human opponents.")
+        self.job("Research and design-writing, not code. Work out how to test "
+                 "whether the bot is any good.")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("Survey how a bot beats human opponents", text)
+        self.assertIn("Work out how to test whether the bot is any good", text)
+
+    def test_a_brief_that_says_only_what_it_is_not_falls_back_to_what_done_means(self):
+        self.job("Research task, not code.",
+                 done_when="a survey of four real engines is written down")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("a survey of four real engines is written down", text)
+
+    def test_a_general_purpose_agent_is_said_by_what_it_was_there_to_do(self):
+        self.job("Write up the ready-made bots we could adopt", agent="general-purpose")
+        self.assertIn("to look something up and write up what it found",
+                      " ".join(debrief.write(hours=5).split()))
+
+    def test_an_agent_kind_the_account_does_not_know_still_gets_a_purpose(self):
+        self.job("Anything at all", agent="cartographer")
+        self.assertIn("to carry out a piece of work",
+                      " ".join(debrief.write(hours=5).split()))
+
+    def test_a_workspace_opened_before_the_window_and_handed_back_inside_it_counts(self):
+        """The store said ten handed back where the account said seven."""
+        self.job("Anything at all")
+        self.workspace(minutes_ago=600, released=True, released_minutes_ago=10)
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("one other was handed back", text)
+
+    def test_a_workspace_handed_back_before_the_window_is_left_out(self):
+        self.job("Anything at all")
+        self.workspace(minutes_ago=3000, released=True, released_minutes_ago=2000)
+        self.assertNotIn("handed back", debrief.write(hours=5))
+
+    def test_a_word_from_version_control_is_explained_before_it_is_named(self):
+        """Plain words first, the term last: the reader has never used either."""
+        self.job("Anything at all", outcome="pushed", closed_minutes_ago=5)
+        self.workspace()
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("saved on its own copy of the project", text)
+        self.assertLess(text.index("its own copy of the project"), text.index("merging"))
+        self.assertLess(text.index("set aside for these agents"), text.index("checkout"))
 
     def test_it_says_when_no_cost_was_recorded(self):
         record = self.job("Anything at all")

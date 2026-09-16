@@ -43,21 +43,48 @@ WIDTH = 78
 # followed by a capital. "e.g." and a file name with a suffix both fail it.
 SENTENCE_END = re.compile(r"(?<=[a-z0-9)\"'])\.\s+(?=[A-Z])")
 
+# A brief is written by one machine's operator for another machine's agent, so
+# it carries four things the reader has no use for and could not act on: where a
+# file sits on this machine, which copy of the work a job was sent to, the
+# number a record is filed under, and the name of a file. Each is swapped for
+# what it is. Order matters: a path may end in a record number, and a file name
+# that owns the word after it reads better as the project owning that word.
+_FILE = (r"\b[\w.\-]*(?:/[\w.\-]+)*"
+         r"\.(?:py|md|sh|json|ya?ml|toml|txt|cfg|ini|lock|ts|js)\b")
+PLAIN_WORDS = (
+    (re.compile(r"(?:~|\B/)[\w.\-]+(?:/[\w.\-]+)+/?"), "a folder on this machine"),
+    (re.compile(r"\b(?:worker|fixer|reviewer|agent)/[\w.\-]+"), "a separate copy of the work"),
+    (re.compile(_FILE + r"'s"), "the project's"),
+    (re.compile(_FILE), "a file in the project"),
+    (re.compile(r"\b(?=[0-9a-f]*\d)[0-9a-f]{8,}\b"), "a record number"),
+)
+
+# An opening clause that says what kind of work this is not -- "Research task,
+# not code" -- has said nothing about the job, and several briefs in a row can
+# say it in the same words. Stepped over in favour of what follows it. The tail
+# is left unanchored because such a clause often ends by naming a file, and a
+# file name has a full stop inside it.
+META_CLAUSE = re.compile(r"^(?:this is\s+)?[^.]{0,120}?\bnot\b[^.]{0,60}?\bcode\b", re.I)
+
 # What each ending means, said the way it would be said out loud.
 OUTCOME_WORDS = {
     "landed": "finished, and the work is now part of the project",
-    "pushed": "finished, and the work is saved on its own copy, waiting to be merged in",
+    "pushed": "finished, and the work is saved on its own copy of the project, "
+              "waiting to be joined onto the shared one (joining it on is called merging)",
     "escalated": "stopped partway and asked for a decision",
     "failed": "could not finish",
     "abandoned": "was called off",
 }
 
-# What kind of agent it was, by what it was there to do.
+# What kind of agent it was, by what it was there to do. Any kind may be
+# dispatched, so one that is not named here is still given a purpose.
 AGENT_WORDS = {
     "worker": "to build something",
     "reviewer": "to check someone else's work",
     "fixer": "to apply the corrections a check asked for",
+    "general-purpose": "to look something up and write up what it found",
 }
+AGENT_FALLBACK = "to carry out a piece of work"
 
 # What each note in the queue is, by what it is for.
 KIND_WORDS = {
@@ -84,15 +111,18 @@ def since(hours: float, now: datetime | None = None) -> datetime:
     return (now or datetime.now(timezone.utc)) - timedelta(hours=hours)
 
 
-def _started_or_ended_since(record: dict[str, Any], cutoff: datetime) -> bool:
+def _started_or_ended_since(record: dict[str, Any], cutoff: datetime,
+                            ended_key: str = "closed_at") -> bool:
     """In the window if it began in it, ended in it, or has not ended at all.
 
     A job that is still running belongs in the account whatever hour it started,
-    because the account is written at the moment those jobs are stopped.
+    because the account is written at the moment those jobs are stopped. A
+    working copy handed back inside the window belongs to it for the same
+    reason, however long before the window it was opened.
     """
-    if not record.get("closed_at"):
+    if not record.get(ended_key):
         return True
-    began, ended = _moment(record.get("created")), _moment(record.get("closed_at"))
+    began, ended = _moment(record.get("created")), _moment(record.get(ended_key))
     return bool((began and began >= cutoff) or (ended and ended >= cutoff))
 
 
@@ -116,8 +146,7 @@ def gather(hours: float = DEFAULT_HOURS, now: datetime | None = None) -> dict[st
              if (when := _moment(i.get("created"))) and when >= cutoff]
 
     workspaces = [l for l in jsonstore.load(worktrees.leases_dir())
-                  if not l.get("released_at")
-                  or ((when := _moment(l.get("created"))) and when >= cutoff)]
+                  if _started_or_ended_since(l, cutoff, ended_key="released_at")]
 
     return {"at": now or datetime.now(timezone.utc), "hours": hours, "cutoff": cutoff,
             "jobs": jobs, "checks": checks, "checks_by_change": by_change,
@@ -139,19 +168,46 @@ def _ago(when: datetime | None, now: datetime) -> str:
     return f"{stem} ago" if rest == 0 else f"{stem} {rest} minutes ago"
 
 
-def _first_sentence(text: str, limit: int = 220) -> str:
-    """The opening of the brief, which is the part that says what it was for.
+def _sentences(text: str) -> list[str]:
+    """The brief, split into sentences.
 
     Split only where a full stop is followed by a capital, so that "e.g." and
-    "bin/gate.sh" do not cut the sentence off in the middle of itself.
+    "bin/gate.sh" do not cut a sentence off in the middle of itself.
     """
     flat = " ".join((text or "").split())
-    if not flat:
-        return "no task was recorded"
-    head = SENTENCE_END.split(flat)[0].rstrip(".")
-    if len(head) > limit:
-        head = head[:limit].rsplit(" ", 1)[0] + "..."
-    return head
+    return [part for part in (s.strip().rstrip(".") for s in SENTENCE_END.split(flat)) if part]
+
+
+def _plainly(text: str) -> str:
+    """The sentence with the machinery in it said as what the machinery is."""
+    for pattern, plain in PLAIN_WORDS:
+        text = pattern.sub(plain, text)
+    return " ".join(text.split())
+
+
+def _clip(text: str, limit: int) -> str:
+    return text if len(text) <= limit else text[:limit].rsplit(" ", 1)[0] + "..."
+
+
+def _describe(record: dict[str, Any], limit: int = 220) -> str:
+    """What the job was, in the brief's own words with the machinery taken out.
+
+    The first sentence of a brief often says what kind of work it is rather than
+    what the work was, and several briefs can say that in identical words, so a
+    clause like that is passed over for the sentence that says what was wanted.
+    Where the whole brief is such a clause, what finishing would look like says
+    more than repeating it would.
+    """
+    said = _sentences(record.get("task", ""))
+    wanted = next((s for s in said if not META_CLAUSE.match(s)), "")
+    if wanted:
+        return _clip(_plainly(wanted), limit)
+    done = _sentences(record.get("done_when", ""))
+    if done:
+        return _clip(_plainly(f"Done when {done[0][:1].lower() + done[0][1:]}"), limit)
+    if said:
+        return _clip(_plainly(said[0]), limit)
+    return "no task was recorded"
 
 
 def _count(number: int, singular: str, plural: str) -> str:
@@ -209,10 +265,10 @@ def _tally(jobs: int, done: int, landed: int, running: int) -> str:
 
 
 def _job_lines(record: dict[str, Any], rounds: list[dict[str, Any]], now: datetime) -> list[str]:
-    out = [_wrap(_first_sentence(record.get("task", "")), indent="   ")]
-    purpose = AGENT_WORDS.get(record.get("agent", ""), "")
+    out = [_wrap(_describe(record), indent="   ")]
+    purpose = AGENT_WORDS.get(record.get("agent", ""), AGENT_FALLBACK)
     began = _ago(_moment(record.get("created")), now)
-    out.append(_wrap(f"Sent out {began}" + (f", {purpose}." if purpose else ".")))
+    out.append(_wrap(f"Sent out {began}, {purpose}."))
 
     if record.get("closed_at"):
         # The closing note is the machinery talking to itself -- branch names and
@@ -295,8 +351,9 @@ def render(data: dict[str, Any]) -> str:
     if data["workspaces"]:
         body += ["", _wrap(_upper(
             f"{_count(len(open_spaces), 'separate working copy', 'separate working copies')} "
-            f"of a project {'is' if len(open_spaces) == 1 else 'are'} still checked out for "
-            f"these agents, and {_count(handed_back, 'other was', 'others were')} "
+            f"of a project {'is' if len(open_spaces) == 1 else 'are'} still set aside for "
+            f"these agents to work in (a copy set aside like that is called a checkout), "
+            f"and {_count(handed_back, 'other was', 'others were')} "
             "handed back."), indent="")]
 
     if running:

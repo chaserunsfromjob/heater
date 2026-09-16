@@ -117,7 +117,9 @@ warning to treat it as a guess, but it is not by itself something to act on:
 every reading goes stale overnight and the next session's first reply refreshes
 it, so raising the flag for age alone would mean an alarm every morning.
 
-`NOTHING_NEW` is a full stop, not a slow-down. At 95% of either clock every agent
+`NOTHING_NEW` is a full stop, not a slow-down. Once either clock crosses the
+percentage `tools/usage.py` holds for that band — the band `bin/bearings.py`
+prints, so the figure never has to be quoted from memory — every agent
 still running is stopped, and `bin/debrief.py --hours 5 --queue` writes the
 operator one plain account of what the five hours bought — what each agent was
 sent to do, what came back, what the checks found, what is unfinished, and what

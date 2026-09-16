@@ -14,7 +14,7 @@ rules apply and are not repeated here.
 - Read `bin/inbox.py tasks` and work the top of the list.
 - Pull the week's review load from `bin/store.py query --days 7` before deciding that review is or is not expensive.
 - Stop the lowest-priority dispatches still running once the band tightens, and spend the window that is left on the top of the list.
-- Stop every running agent where the band reads NOTHING_NEW, then send the operator what `bin/debrief.py --hours 5 --queue` writes.
+- Stop every running agent with `bin/dispatch.py close <id> --outcome abandoned` where the band reads NOTHING_NEW, then send the operator what `bin/debrief.py --hours 5 --queue` writes.
 
 ## Dispatching
 

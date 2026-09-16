@@ -253,7 +253,13 @@ def _age_words(age: float | None) -> str:
 
 
 def _clock(when: datetime | None) -> str:
-    return when.astimezone().strftime("%a %d %b %H:%M %Z") if when else "reset time unknown"
+    """When the window starts again, or nothing at all.
+
+    A reading that carries a percentage without a reset time is common, and
+    "resets reset time unknown" is the machinery talking to itself, so the
+    clause is dropped rather than filled in with an apology.
+    """
+    return f", resets {when.astimezone().strftime('%a %d %b %H:%M %Z')}" if when else ""
 
 
 def _time_left(days: float | None) -> str:
@@ -277,7 +283,7 @@ def _window_line(reading: dict[str, Any], window: str, label: str, tail: str = "
     if used is None:
         return (f"  {label}: no figure given, which is what arrives once that window has "
                 "reset; treat it as freshly reset with nothing used")
-    return f"  {label}: {used:.0f}% used, resets {_clock(resets_at(reading, window))}{tail}"
+    return f"  {label}: {used:.0f}% used{_clock(resets_at(reading, window))}{tail}"
 
 
 def lines(reading: dict[str, Any] | None = None, now: datetime | None = None) -> list[str]:
