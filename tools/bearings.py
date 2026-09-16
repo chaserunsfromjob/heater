@@ -24,6 +24,7 @@ import dispatch
 import inbox
 import jsonstore
 import queue
+import stoker
 import store
 import worktrees
 from heater_hook import heartbeat_dir
@@ -52,6 +53,20 @@ def fleet() -> tuple[list[str], bool]:
     ]
     lines += [f"    {n}. [{t['score']:>3}] {t['title']}" for n, t in enumerate(tasks[:TOP_TASKS], 1)]
     return lines, bool(undelivered or unjudged)
+
+
+def left_running() -> tuple[list[str], bool]:
+    """A Claude session in this folder that nothing is watching any more.
+
+    bin/stoker.sh says this on screen when it finds one, and the session it
+    opens a second later paints its own display over that. Two sessions working
+    one folder undo each other's changes, so it is worth a line of its own here
+    for as long as the session is still running.
+    """
+    lines = [f"  a session nothing is watching is still going: pid {entry['pid']} "
+             f"(close its window, or run `kill {entry['pid']}`)"
+             for entry in stoker.orphan_sessions() if isinstance(entry.get("pid"), int)]
+    return lines, bool(lines)
 
 
 def out() -> tuple[list[str], bool]:
@@ -139,6 +154,7 @@ def report() -> tuple[str, bool]:
     blocks, attention = [], False
     for title, (lines, needs) in (
         ("Fleet", fleet()),
+        ("A session left running", left_running()),
         ("Dispatches out", out()),
         ("Heartbeats", heartbeats()),
         ("Worktree slots", slots()),

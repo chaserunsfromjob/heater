@@ -279,8 +279,8 @@ class TestHooksFailOpen(unittest.TestCase):
 class TestBearings(StoreCase):
     def test_reports_every_section(self):
         text, _ = bearings.report()
-        for heading in ("Fleet", "Dispatches out", "Heartbeats", "This machine",
-                        "Fleet repository", "Review load"):
+        for heading in ("Fleet", "A session left running", "Dispatches out", "Heartbeats",
+                        "This machine", "Fleet repository", "Review load"):
             self.assertIn(f"## {heading}", text)
 
     def test_is_stamped_with_when_it_ran(self):
@@ -303,6 +303,26 @@ class TestBearings(StoreCase):
     def test_survives_empty_stores(self):
         text, _ = bearings.report()
         self.assertIn("0 queue item(s) undelivered", text)
+
+    def test_a_session_left_running_is_reported_until_somebody_closes_it(self):
+        """bin/stoker.sh says it on screen, and the session it opens a moment
+        later paints its own display over that. This is where it can still be
+        read, for as long as the session is still running."""
+        state = Path(os.environ["HEATER_STATE_DIR"])
+        state.mkdir(parents=True, exist_ok=True)
+        spent = subprocess.Popen([sys.executable, "-c", "pass"])
+        spent.wait()
+        # This test process stands in for the session left running: really
+        # alive, with a start time the system really reports.
+        (state / stoker.CHILD_RECORD_NAME).write_text(json.dumps({
+            "a-supervisor-that-is-gone": {
+                "pid": os.getpid(), "start": stoker.process_start(os.getpid()),
+                "token": "t", "owner_pid": spent.pid,
+                "owner_start": "Thu Jan  1 00:00:00 1970"}}) + "\n", encoding="utf-8")
+        text, attention = bearings.report()
+        self.assertIn("## A session left running", text)
+        self.assertIn(str(os.getpid()), text)
+        self.assertTrue(attention, "two sessions in one folder undo each other's work")
 
 
 class TestRoutingIsNowEnforced(unittest.TestCase):
@@ -548,6 +568,9 @@ class TestStokerSupervisor(unittest.TestCase):
                 "PATH": f"{self.binaries}{os.pathsep}{os.environ.get('PATH', '')}",
                 "HEATER_STATE_DIR": str(self.state),
                 "HEATER_LOG_DIR": str(Path(self.tmp.name) / "logs"),
+                # The supervisor files for the stoker, so a run of this must
+                # never reach the queue the real fleet is woken with.
+                "HEATER_QUEUE_DIR": str(Path(self.tmp.name) / "queue"),
                 "STUB_LOG": str(self.log),
                 "STUB_REPO": str(ROOT),
                 "HEATER_STOKER_POLL": "0.05",
@@ -841,6 +864,94 @@ class TestStokerSupervisor(unittest.TestCase):
         self.assertIn("still going", err, "it never said what the old session was")
         self.assertTrue(any(e["event"] == "stoker_orphan_session" for e in self.hook_events()),
                         "nothing was written down about the session left running")
+
+    def queued(self) -> list[dict]:
+        """What the supervisor filed for the stoker, oldest first."""
+        directory = Path(self.tmp.name) / "queue"
+        if not directory.exists():
+            return []
+        return [json.loads(p.read_text(encoding="utf-8")) for p in sorted(directory.glob("*.json"))]
+
+    def orphaned(self) -> int:
+        """Leave a session running with nobody watching it. Hands back its number."""
+        running = self.supervisor(STUB_MODE="sleep", HEATER_STOKER_MIN_LIFETIME="30")
+        first = self.wait_for_launches(1, running)
+        orphan = first[0]["pid"]
+        self.addCleanup(self.end_process, orphan)
+        os.kill(running.pid, signal.SIGKILL)
+        # Not communicate(): the session is still holding the pipes open, which
+        # is exactly the situation under test.
+        running.wait(timeout=30)
+        running.stdout.close()
+        running.stderr.close()
+        self.assertTrue(self.still_running(orphan), "the test never made an orphan")
+        return orphan
+
+    def test_a_session_another_supervisor_is_watching_is_never_called_an_orphan(self):
+        """Two bin/stoker.sh in one folder is ordinary: the operator starts a
+        second one. The second must not report the first's live session as
+        unwatched and hand the operator a `kill` for the conversation the first
+        one is working in — nor write over the first's note about it."""
+        watched = self.supervisor(STUB_MODE="sleep", HEATER_STOKER_MIN_LIFETIME="30")
+        self.wait_for_launches(1, watched)
+        try:
+            code, _, err = self.run_supervisor(
+                STUB_MODE="exit", HEATER_STOKER_MIN_LIFETIME="0",
+                STUB_LOG=str(Path(self.tmp.name) / "launches-b.jsonl"))
+            self.assertEqual(code, 0, err)
+            self.assertNotIn("still going", err,
+                             "it named a session another supervisor is watching")
+            self.assertEqual(self.queued(), [],
+                             "it woke the stoker about a session nothing is wrong with")
+            self.assertFalse(any(e["event"] == "stoker_orphan_session"
+                                 for e in self.hook_events()))
+            self.assertIsNone(watched.poll(), "the live supervisor was stopped")
+        finally:
+            watched.terminate()
+            try:
+                watched.communicate(timeout=20)
+            except subprocess.TimeoutExpired:
+                watched.kill()
+                watched.communicate()
+
+    def test_the_session_a_killed_supervisor_left_survives_another_launch(self):
+        """One record slot meant the next supervisor's own session wrote over the
+        note about the one left running, and after a single launch nothing knew
+        about it any more — which is exactly when nobody had read it yet."""
+        orphan = self.orphaned()
+        self.run_supervisor(STUB_MODE="exit", HEATER_STOKER_MIN_LIFETIME="0",
+                            STUB_LOG=str(Path(self.tmp.name) / "launches-b.jsonl"))
+        _, _, err = self.run_supervisor(STUB_MODE="exit", HEATER_STOKER_MIN_LIFETIME="0",
+                                        STUB_LOG=str(Path(self.tmp.name) / "launches-c.jsonl"))
+        self.assertIn(str(orphan), err,
+                      "a later supervisor's own session erased the note about this one")
+
+    def test_a_session_left_running_is_filed_where_the_screen_cannot_lose_it(self):
+        """The warning is printed and then a fresh session takes the terminal and
+        paints its own display over it. The fleet queue is what is still there
+        afterwards, and the next session is woken with it."""
+        orphan = self.orphaned()
+        code, _, err = self.run_supervisor(STUB_MODE="exit", HEATER_STOKER_MIN_LIFETIME="0",
+                                           STUB_LOG=str(Path(self.tmp.name) / "launches-b.jsonl"))
+        self.assertEqual(code, 0, err)
+        filed = self.queued()
+        self.assertEqual(len(filed), 1, "nothing was left for the stoker to act on")
+        self.assertEqual(filed[0]["urgency"], "high")
+        self.assertIn(str(orphan), filed[0]["summary"])
+        self.assertIsNone(filed[0]["delivered_at"], "it was filed as already delivered")
+        self.run_supervisor(STUB_MODE="exit", HEATER_STOKER_MIN_LIFETIME="0",
+                            STUB_LOG=str(Path(self.tmp.name) / "launches-c.jsonl"))
+        self.assertEqual(len(self.queued()), 1, "every launch filed the same session again")
+
+    def test_the_warning_about_it_says_only_what_is_known(self):
+        """From here a `kill -9`, a crash, and a machine that went down all look
+        the same: the session is running and the program that was watching it is
+        not. Stating a cause nothing can see is how a message stops being read."""
+        text = stoker.orphan_message(4242)
+        self.assertIn("4242", text)
+        self.assertIn("still going", text)
+        for guess in ("killed outright", "crash", "-9"):
+            self.assertNotIn(guess, text, "it named a cause it cannot see")
 
     def test_a_session_this_run_ended_is_never_called_an_orphan(self):
         """The ordinary handoff ends the session before opening the next one.

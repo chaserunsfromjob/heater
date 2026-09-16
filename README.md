@@ -122,12 +122,22 @@ belonging to nobody and cleared away the next time `bin/stoker.sh` runs. One
 left by a `bin/stoker.sh` that is still running is left exactly where it is,
 because that one is still waiting on it. Nothing has to be deleted by hand.
 
-Beside it, `~/.heater/stoker-session` records which session `bin/stoker.sh`
-started last. Normally that session is long gone by the time anything reads it.
-If it is still going, the `bin/stoker.sh` that was watching it was killed
-outright and the session has been running unwatched since, so the next
-`bin/stoker.sh` says so on screen and names it before opening a fresh one — two
-sessions working this folder at once would undo each other's changes.
+Beside it, `~/.heater/stoker-session` records the session each `bin/stoker.sh`
+running here last started, one entry per `bin/stoker.sh`. Normally every one of
+those sessions has ended by the time anything reads the file. One that is still
+going whose `bin/stoker.sh` is no longer running has nothing watching it, so the
+next `bin/stoker.sh` names it on screen before opening a fresh one — two sessions
+working this folder at once would undo each other's changes. The screen is not
+where it stays: it is also filed in the queue the next session is woken with, and
+`bin/bearings.py` reports it under "A session left running" until it is closed.
+Why the `bin/stoker.sh` watching it stopped is not something any of this can see,
+so none of it says.
+
+All of this needs the machine to report when a program started — `ps` is what
+answers that, and it is how a `bin/stoker.sh` that is still running is told apart
+from whatever else is wearing its old number — so on a machine that will not
+answer, the finished session says on screen that nothing is set to replace it and
+the operator opens the next one with `bin/stoker.sh`.
 
 All logic lives in `tools/`; `bin/` holds only entry points. Nothing in `bin/` is
 imported, because a module there sharing a name with one in `tools/` shadows it

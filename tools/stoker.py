@@ -43,12 +43,20 @@ from typing import Any, Callable, NamedTuple
 REPO = Path(__file__).resolve().parents[1]
 
 sys.path.insert(0, str(REPO / "hooks"))
+sys.path.insert(0, str(REPO / "tools"))
 
 try:  # Logging is never worth failing a launch over.
     from heater_hook import log as _log
 except Exception:  # pragma: no cover - only when the hooks directory is gone
     def _log(event: str, payload: dict[str, Any]) -> None:
         return None
+
+try:  # The fleet queue: tools/queue.py, which stands ahead of the standard
+    # library's module of that name on the path above. It is where a warning
+    # outlives the screen, and never a reason to fail a launch.
+    import queue as fleet_queue
+except Exception:  # pragma: no cover - only when the tools directory is gone
+    fleet_queue = None
 
 
 def log(event: str, payload: dict[str, Any]) -> None:
@@ -110,10 +118,15 @@ DEFAULT_HANDOFF_WINDOW = 3600.0
 
 MARKER_NAME = "handover-complete"
 
-# Which session the supervisor last started, kept beside the marker. A kill the
-# supervisor cannot catch leaves that session running with nobody watching it,
-# and the next run would open a second one in the same folder without a word.
-# This file is how a later run can see the first one and say so.
+# Which session each supervisor here last started, kept beside the marker. A
+# kill the supervisor cannot catch leaves that session running with nobody
+# watching it, and the next run would open a second one in the same folder
+# without a word. This file is how a later run can see the first one and say so.
+#
+# One entry per supervisor, keyed by that supervisor's own identity. A single
+# entry meant the second supervisor in a folder wrote over the first's, which
+# both hid a session left running and made the first's live session look like
+# one — an operator told to `kill` a session somebody is working in.
 CHILD_RECORD_NAME = "stoker-session"
 
 # Set on the session the supervisor launches, and on nothing else. The marker is
@@ -250,7 +263,7 @@ def owner_identity() -> tuple[int | None, str]:
 
 
 def owner_alive(marker: dict[str, Any]) -> bool:
-    """Is the supervisor this marker names still running?
+    """Is the supervisor this mark — or this session record — names still running?
 
     Both halves have to match. A pid that is alive but started at a different
     moment is a different program that inherited the number, and a marker naming
@@ -414,48 +427,122 @@ def record_child(pid: int, token: str) -> None:
 
     The supervisor holds this in memory as well, and memory is what a kill takes
     away. What is on disk is all a later run has to go on.
+
+    This supervisor writes its own entry and leaves every other supervisor's
+    where it is, except the ones whose session has ended: those are nothing to
+    anybody, and dropping them as they are passed is what keeps the file to the
+    handful of sessions actually still running.
     """
-    payload = json.dumps({"pid": pid, "start": process_start(pid), "token": token,
-                          "owner_pid": os.getpid()}) + "\n"
+    started = process_start(os.getpid())
+    records = {key: entry for key, entry in read_child_records().items()
+               if child_alive(entry)}
+    records[f"{os.getpid()} {started}"] = {
+        "pid": pid, "start": process_start(pid), "token": token,
+        "owner_pid": os.getpid(), "owner_start": started}
+    write_child_records(records)
+
+
+def write_child_records(records: dict[str, Any]) -> None:
+    """Put the sessions back on disk. Never raises: this is a note, not the work."""
     try:
         path = child_record_path()
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(payload, encoding="utf-8")
+        path.write_text(json.dumps(records) + "\n", encoding="utf-8")
     except OSError:
         pass
 
 
-def read_child_record() -> dict[str, Any]:
-    """The session a supervisor last started here, as far as disk knows."""
+def read_child_records() -> dict[str, Any]:
+    """Every session a supervisor started here, as far as disk knows.
+
+    Keyed by the identity of the supervisor that started it. Anything in the
+    file that is not a session is skipped rather than raising, because a file
+    somebody edited by hand is not a reason to refuse to open a session.
+    """
     try:
         parsed = json.loads(child_record_path().read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return {}
-    return parsed if isinstance(parsed, dict) else {}
+    if not isinstance(parsed, dict):
+        return {}
+    return {key: entry for key, entry in parsed.items() if isinstance(entry, dict)}
 
 
-def orphan_session() -> int | None:
-    """A session a supervisor started here that is still running. None normally.
+def child_alive(entry: dict[str, Any]) -> bool:
+    """Is the session in this entry — that number, started at that moment — running?"""
+    return process_alive(entry.get("pid"), entry.get("start"))
 
-    Normally there is none: the supervisor ends its session before opening the
-    next one, so the process named here is gone by the time anybody asks. One
-    that is still running means the supervisor that was watching it was killed
-    outright — `kill -9`, or a crash — and nothing has been watching it since.
+
+def orphan_sessions() -> list[dict[str, Any]]:
+    """Sessions still running here that no supervisor is watching. Empty normally.
+
+    Normally there are none: a supervisor ends its session before opening the
+    next one, so the process in its entry is gone by the time anybody asks.
+
+    Two things have to hold. The session is still running, and the supervisor
+    that started it is not. A session whose supervisor is still running is that
+    supervisor doing its job, however much it looks like a leftover from here —
+    naming it would send the operator to close a session somebody is working in.
+
+    What happened to the supervisor is not something this can see. `kill -9`, a
+    fault, and a machine that went down all leave exactly this behind.
     """
-    record = read_child_record()
-    pid = record.get("pid")
-    if not process_alive(pid, record.get("start")):
-        return None
-    return pid if isinstance(pid, int) else None
+    return [entry for entry in read_child_records().values()
+            if child_alive(entry) and not owner_alive(entry)]
+
+
+def mark_orphan_reported(entry: dict[str, Any]) -> None:
+    """Remember that this one has been filed, so it is filed once and not once
+    a launch. The screen message is repeated; a queue item the stoker has to
+    judge is not."""
+    records = read_child_records()
+    touched = False
+    for candidate in records.values():
+        if (candidate.get("pid") == entry.get("pid")
+                and candidate.get("start") == entry.get("start")
+                and not candidate.get("reported")):
+            candidate["reported"] = True
+            touched = True
+    if touched:
+        write_child_records(records)
+
+
+def file_orphan_note(pid: int) -> bool:
+    """Put the warning where the screen cannot lose it. True when it landed.
+
+    stderr is read by whoever is watching at that second, and a fresh session
+    opens on top of it and paints its own display over the lot. The fleet queue
+    is the other half: the next session is woken with it, and bin/bearings.py
+    reports it for as long as the session is still running.
+    """
+    if fleet_queue is None:  # pragma: no cover - only when the tools directory is gone
+        return False
+    try:
+        fleet_queue.add("failure", orphan_message(pid), project="heater",
+                        urgency="high", origin="stoker.sh")
+        return True
+    except Exception:
+        return False
+
+
+def announce_orphan(entry: dict[str, Any]) -> None:
+    """Say, in both places, that a session here was left running."""
+    pid = entry.get("pid")
+    if not isinstance(pid, int):  # pragma: no cover - a session with no number
+        return
+    print(orphan_message(pid), file=sys.stderr)
+    log("stoker_orphan_session", {"pid": pid, "owner_pid": entry.get("owner_pid")})
+    if not entry.get("reported") and file_orphan_note(pid):
+        mark_orphan_reported(entry)
 
 
 def orphan_message(pid: int) -> str:
     return (
-        f"bin/stoker.sh: the Claude session that was running here last is still going, and "
-        f"nothing is watching it any more — whatever was watching it was killed outright. A "
-        f"fresh session is being opened now, so two of them will be working this folder at "
-        f"once and they will undo each other's changes. Close the old one: find its window and "
-        f"quit it, or run `kill {pid}` in a terminal."
+        f"bin/stoker.sh: the Claude session that was running here last is still going, and the "
+        f"program that was watching it is not running any more, so nothing is watching it now. A "
+        f"fresh session is being opened, so two of them will be working this folder at once and "
+        f"they will undo each other's changes. Close the old one: find its window and quit it, or "
+        f"run `kill {pid}` in a terminal."
     )
 
 
@@ -773,11 +860,10 @@ def _run_sessions(extra: list[str] | None, spawn: Callable[..., subprocess.Popen
         # A session still running with nobody watching it is about to be joined
         # by a second one in the same folder. Opening it anyway is right — this
         # is how the stoker comes back after a crash — but it is never right to
-        # do it silently, because the two will undo each other's work.
-        orphan = orphan_session()
-        if orphan is not None:
-            print(orphan_message(orphan), file=sys.stderr)
-            log("stoker_orphan_session", {"pid": orphan})
+        # do it silently, because the two will undo each other's work. A session
+        # another supervisor is watching is not one of these and is never named.
+        for orphan in orphan_sessions():
+            announce_orphan(orphan)
 
         # A marker left by this supervisor's own last session would kill the
         # next one on its first poll, and one left by a supervisor that is gone
