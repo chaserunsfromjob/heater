@@ -25,13 +25,9 @@ context as "Subagent hand-back" messages.
   separately sourced figures, two log entries). Round 7 RUNNING at checkout
   41a874aea055. Wording-only → confirming round 8 → `bin/dispatch.py land`.
   Never run reconcile while its pass is recorded and it is unlanded.
-- Bots survey 14d64950c0bc: DONE reviewing. Round 6 and confirming round 7
-  both wording-only; survey already on main at ea013b5. Wording fixer
-  RUNNING on fresh dispatch 15568bef93ba (branch worker/15568bef93ba,
-  checkout 8c35f07b586f) from `findings-14d64950c0bc-bots-r7.md`. On its
-  report: `bin/dispatch.py land 15568bef93ba --change 14d64950c0bc`, then
-  delete the r4, r5 and r7 findings files and this section. Finding
-  caa33b2cb9bf (r4/r5 files still present) was dismissed as in hand.
+- Bots survey 14d64950c0bc: LANDED and DONE. Wording fixer landed on
+  pokerbot main at 3fbd279 (2026-09-16 23:15Z) after rounds 6 and 7 both
+  came back wording-only; findings files deleted. Nothing left to do.
 - Solvers survey 048795519f43: fixer 4 done at 474402d (preflop bullet
   moved to the open list; MonkerSolver scripting scoped; run-2 load note
   added; Deepsolver pricing from the live pages, half of F6 judged
