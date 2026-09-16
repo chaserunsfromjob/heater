@@ -1,0 +1,17 @@
+{
+  "id": "239d6c352d98",
+  "created": "2026-09-16T01:24:02.361531+00:00",
+  "change": "46e285e1bfd0",
+  "project": "heater",
+  "round": 7,
+  "lens": "failure-mode",
+  "verdict": "fail",
+  "findings": 7,
+  "wording_only": false,
+  "files": 14,
+  "insertions": 2673,
+  "deletions": 58,
+  "cost_usd": null,
+  "duration_s": 859.0,
+  "note": "Default + failure-mode lenses in one round. 3 behavioural, all in round-6 code: record_child holds an unbounded LOCK_EX flock and runs a ps subprocess per entry inside it, so a stopped holder blocks the launch path before watch() (stoker.py:457,490-494,1001); keep_unended writes a second record for the same pid so a dead supervisor's un-ended session is reported twice (:540-558,:577-578, bearings.py:66-69); write_child_records swallows OSError silently and claim_orphan_report returns True on a claim never persisted, so an unwritable state dir files one queue item per launch (:512-516,:458-460,:581-602). 4 wording: orphan message claims the watcher is gone on the un-ended path (:632-639), failed-launch message leads with Errno 2 (:993), queue item says kill <pid> without a liveness caveat, README omits stoker-session.lock. Every round-6 fix reproduced as fixed; merge with main 6c61aa9 clean, revert restores main byte for byte, 491 tests OK, gate 0. Reviewer tokens 101359, tool uses 33 (no cost rate)."
+}
