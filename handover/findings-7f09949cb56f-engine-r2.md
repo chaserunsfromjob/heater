@@ -44,3 +44,7 @@ Paths in ENGINE_ALTERNATIVES.md unless stated.
   needs a translation nobody has built".
 - F12 :53-55 "every measured number has a committed script" overstated for the
   candidate sections; commit bench_requirements.py or narrow the sentence.
+
+Extra for the next fixer or reviewer (filed by the bots fixer, dismissed into
+this loop): ENGINE_ALTERNATIVES.md:87 cites the forefront rule as
+"CLAUDE.md:13-15"; cite it by section, since trunk's line numbers moved.

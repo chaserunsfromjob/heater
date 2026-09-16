@@ -1,0 +1,16 @@
+{
+  "id": "62c1c2cab931",
+  "created": "2026-09-16T00:41:29.171057+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "ENGINE_ALTERNATIVES.md",
+  "origin": "",
+  "summary": "ENGINE_ALTERNATIVES.md:87 cites the forefront rule as 'CLAUDE.md:13-15'; line numbers go stale, cite by section name (same defect fixed in RESOURCES_BOTS.md round 3)",
+  "delivered_at": null,
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-16T00:43:20.207828+00:00",
+    "reason": "ENGINE_ALTERNATIVES.md is inside its own review loop (7f09949cb56f, round-2 fixer running); a CLAUDE.md line-number citation there is for its next reviewer or fixer, not a separate task. Noted in handover/findings-7f09949cb56f-engine-r2.md."
+  }
+}
