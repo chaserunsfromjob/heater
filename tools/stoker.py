@@ -654,7 +654,10 @@ def claim_orphan_report(entry: dict[str, Any], reported: bool = True) -> bool:
     Taken before the item is written rather than after, because two supervisors
     that both read "not filed yet" in the same moment both go on to file one,
     and the stoker is woken twice about one session. Only one call can be told
-    it took it, so only one files anything.
+    it took it, so only one files anything — for as long as the hold is held.
+    The wait for it has a couple of seconds in it, and past that the note is
+    written unheld and the log says so, because a second item beats a handoff
+    that stalls.
 
     Handing it back — reported False — is what a write that failed does, so the
     next launch files it instead of the item being lost for good.
@@ -702,18 +705,22 @@ def announce_orphan(entry: dict[str, Any]) -> None:
 
 
 def orphan_message(pid: int) -> str:
-    """What is true on both paths that reach it, and nothing beyond that.
+    """What is true on every path that reaches it, and nothing beyond that.
 
     A supervisor that is gone and a supervisor that gave up on ending the
     session leave the same thing behind: a session nobody is waiting on. Only
-    one of those two has stopped running, so neither is said. The number is good
-    only while the session is: the machine hands it out again afterwards, so the
-    message says what confirms it rather than leaving it to be trusted.
+    one of those two has stopped running, so neither is said. Nor is a fresh
+    session promised: two of the four callers are a supervisor on its way out,
+    which opens nothing. What is left is the part that is always true and is
+    always trouble — a session working this folder with nobody watching it. The
+    number is good only while the session is: the machine hands it out again
+    afterwards, so the message says what confirms it rather than leaving it to
+    be trusted.
     """
     return (
         f"bin/stoker.sh: the Claude session that was running here last is still going, and "
-        f"nothing is watching it now. A fresh session is being opened, so two of them will be "
-        f"working this folder at once and they will undo each other's changes. Close the old "
+        f"nothing is watching it now. Nobody will close it when it is done, and anything else "
+        f"opened in this folder will undo its changes while it undoes theirs. Close the old "
         f"one: find its window and quit it. Run bin/bearings.py to see whether it is still "
         f"going; while it is, the machine knows it by the number {pid}, so `kill {pid}` in a "
         f"terminal closes it too. Once it has closed, that number is handed to something else, "

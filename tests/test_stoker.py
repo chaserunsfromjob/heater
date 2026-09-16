@@ -968,6 +968,15 @@ class TestStokerSupervisor(unittest.TestCase):
         for guess in ("killed outright", "crash", "-9"):
             self.assertNotIn(guess, text, "it named a cause it cannot see")
 
+    def test_the_warning_never_promises_a_fresh_session(self):
+        """Two of the paths that reach it are a supervisor on its way out: a
+        Ctrl-C, and a stop that landed while a session was being spawned.
+        Neither opens anything, so a message that says one is being opened is
+        telling the operator something that is not happening."""
+        text = stoker.orphan_message(4242)
+        for promise in ("fresh session is being opened", "fresh session", "is being opened"):
+            self.assertNotIn(promise, text, "it promised a session nothing will open")
+
     def test_a_session_this_run_ended_is_never_called_an_orphan(self):
         """The ordinary handoff ends the session before opening the next one.
         Warning about that one would train the warning out."""

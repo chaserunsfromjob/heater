@@ -123,7 +123,8 @@ left by a `bin/stoker.sh` that is still running is left exactly where it is,
 because that one is still waiting on it. Nothing has to be deleted by hand.
 
 Beside it, `~/.heater/stoker-session` records the session each `bin/stoker.sh`
-running here last started, one entry per `bin/stoker.sh`. Normally every one of
+running here last started — usually one entry each, and a second one as well for
+a session that would not end when it was asked to. Normally every one of
 those sessions has ended by the time anything reads the file. One that is still
 going whose `bin/stoker.sh` is no longer running has nothing watching it, so the
 next `bin/stoker.sh` names it on screen before opening a fresh one — two sessions
@@ -133,14 +134,20 @@ where it stays: it is also filed in the queue the next session is woken with, an
 Why the `bin/stoker.sh` watching it stopped is not something any of this can see,
 so none of it says. Beside that again sits `~/.heater/stoker-session.lock`, a
 small companion file that keeps two copies of `bin/stoker.sh` from writing the
-record at the same moment and erasing each other's entry; it stays there
-empty between runs and is never anything to tidy up.
+record at the same moment and erasing each other's entry. It waits a couple of
+seconds for its turn and then writes anyway, saying in the log that it did,
+because an entry lost that way is better than a handoff that stops dead. It
+stays there empty between runs and is never anything to tidy up.
 
 All of this needs the machine to report when a program started — `ps` is what
 answers that, and it is how a `bin/stoker.sh` that is still running is told apart
 from whatever else is wearing its old number — so on a machine that will not
 answer, the finished session says on screen that nothing is set to replace it and
-the operator opens the next one with `bin/stoker.sh`.
+the operator opens the next one with `bin/stoker.sh`. In the same way, when the
+folder the stoker keeps its notes in can be read but not written to, a session
+left running is still said on screen and still reported by `bin/bearings.py`, but
+it is not filed in the queue the next session is woken with, and the log says
+why.
 
 All logic lives in `tools/`; `bin/` holds only entry points. Nothing in `bin/` is
 imported, because a module there sharing a name with one in `tools/` shadows it
