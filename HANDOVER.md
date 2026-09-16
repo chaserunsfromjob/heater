@@ -27,7 +27,7 @@ Act on each as it lands; do not re-dispatch a round that is already out.
 | Fix automatic handoff round 7 | `46e285e1bfd0` | fixer 7 (round 7 failed: unbounded flock in the launch path, one session reported twice, silent note failure; see `handover/findings-46e285e1bfd0-handoff-r7.md`; fixer makes its own worktree, pushes to origin) | dispatch review round 8 (default + failure-mode); wording-only → confirming round → merge from trunk, tell the operator to start `bin/stoker.sh` once |
 | Review exploitation survey round 4 | `76bbf2823a53` | review 4 (round-3 fixes at f8566ab: all 12 findings applied, script re-run byte for byte; fixer asks whether the plain-words item 3 now carries too much of §3.1's detail) | record; fail → fixer; wording-only → confirming round |
 | Fix engine survey round 2 | `7f09949cb56f` | fixer 2 | dispatch review round 3 |
-| Fix bots survey round 4 | `14d64950c0bc` | fixer 4 (round 4 failed: 2 substantive in section 5's forefront-rule paragraph; see `handover/findings-14d64950c0bc-bots-r4.md`) | dispatch review round 5 |
+| Review bots survey round 5 | `14d64950c0bc` | review 5 (round-4 fixes at 5e5bbb9: rollout hook restated as unbuilt and unruled, seventh forefront row, seven wording) | record; fail → fixer; wording-only → confirming round |
 | Fix solvers survey round 2 | `048795519f43` | fixer 2 | dispatch review round 3 |
 
 Every review round so far is recorded in the store. Record each new one

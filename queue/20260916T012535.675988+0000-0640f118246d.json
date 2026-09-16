@@ -1,0 +1,16 @@
+{
+  "id": "0640f118246d",
+  "created": "2026-09-16T01:25:35.675988+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "/Users/chasethompson/.heater/worktrees/pokerbot/b1f72dd635fa",
+  "origin": "",
+  "summary": "Autosave hook commits a worker's mid-session edits (93c2b8a on worker/14d64950c0bc), forcing a fixer to reset the branch pointer to produce the single commit its brief requires",
+  "delivered_at": null,
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-16T01:26:29.144642+00:00",
+    "reason": "Intentional, judged three times now: reconcile's autosave commits a live worker's half-edited tree so that nothing a worker wrote is ever lost when a checkout is released. Reviewers judge the branch tip against main as one change, never commit by commit, so an autosave commit on the branch costs nothing. A fixer that wants one commit may reset the pointer as this one did; a brief that asks for one commit means one commit of the fixer's own on top of whatever the hook left."
+  }
+}
