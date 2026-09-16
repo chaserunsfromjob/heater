@@ -96,6 +96,18 @@ class WorktreeCase(unittest.TestCase):
         trees = Path(os.environ["HEATER_WORKTREE_ROOT"])
         return len([p for p in trees.glob("*/*") if p.is_dir()]) if trees.exists() else 0
 
+    def raw_round(self, change: str, number, verdict: str, created: str = "") -> dict:
+        """A round written straight into the store, past the checks recording makes.
+
+        Records written by an older tool, or by hand, are the only way a round
+        number that is not a whole number reaches the store now.
+        """
+        record = {"id": jsonstore.new_id(), "created": created or jsonstore.now(),
+                  "change": change, "round": number, "lens": "default",
+                  "verdict": verdict, "findings": 0}
+        jsonstore.write(store.reviews_dir(), record)
+        return record
+
     def tearDown(self):
         for record in worktrees.active():
             try:
@@ -432,6 +444,12 @@ class TestTheRoundThatCounts(WorktreeCase):
         store.record_review("auth", 1, "default", "pass")
         self.assertFalse(dispatch.reviewed("auth"))
 
+    def test_a_lower_round_written_afterwards_does_not_take_the_answer(self):
+        """Recording order does not decide it, which is what the skill must say."""
+        store.record_review("auth", 2, "default", "pass")
+        store.record_review("auth", 1, "default", "fail", findings=1)
+        self.assertTrue(dispatch.reviewed("auth"))
+
     def test_the_later_of_two_rounds_sharing_a_number_answers(self):
         store.record_review("auth", 3, "default", "pass")
         store.record_review("auth", 3, "failure-mode", "fail", findings=1)
@@ -444,18 +462,6 @@ class TestTheRoundThatCounts(WorktreeCase):
 
     def test_a_change_nobody_reviewed_is_not_reviewed(self):
         self.assertFalse(dispatch.reviewed("never-seen"))
-
-    def raw_round(self, change: str, number, verdict: str, created: str = "") -> dict:
-        """A round written straight into the store, past the checks recording makes.
-
-        Records written by an older tool, or by hand, are the only way a round
-        number that is not a whole number reaches the store now.
-        """
-        record = {"id": jsonstore.new_id(), "created": created or jsonstore.now(),
-                  "change": change, "round": number, "lens": "default",
-                  "verdict": verdict, "findings": 0}
-        jsonstore.write(store.reviews_dir(), record)
-        return record
 
     def test_a_round_with_no_number_is_read_as_the_newest(self):
         """An unreadable round must fail closed, not hand an old pass the answer."""
@@ -481,6 +487,24 @@ class TestTheRoundThatCounts(WorktreeCase):
     def test_the_refusal_says_the_round_number_could_not_be_read(self):
         self.raw_round("auth", "3", "pass")
         self.assertIn("unreadable round number", dispatch.resting_on("auth")["said"])
+
+    def test_an_unreadable_round_is_quoted_so_it_does_not_read_as_a_number(self):
+        """Text that looks like a number must not be printed as if it were one."""
+        self.raw_round("auth", "9", "pass")
+        self.assertIn("round '9'", dispatch.resting_on("auth")["said"])
+
+    def test_an_unreadable_round_is_not_described_as_a_rejection(self):
+        """A round nobody can place was not a rejection; it is simply unusable."""
+        self.raw_round("auth", "9", "pass")
+        why = dispatch.resting_on("auth")["why"]
+        self.assertIn("cannot be read", why)
+        self.assertNotIn("rejected", why)
+
+    def test_a_readable_fail_is_described_as_a_rejection(self):
+        latest = store.record_review("auth", 2, "default", "fail", findings=1)
+        why = dispatch.resting_on("auth")["why"]
+        self.assertIn("rejected at review round 2", why)
+        self.assertIn(latest["id"], why)
 
     def test_a_fail_outranks_a_pass_when_everything_else_ties(self):
         """Same round, same stamp: the answer cannot depend on which file loads first."""
@@ -564,8 +588,26 @@ class TestReconcile(WorktreeCase):
         first, _ = self.start()
         self.work(first, "a.py", "from a\n")
         report = dispatch.reconcile()
-        self.assertIn(first["id"], report["awaiting_review"])
+        self.assertIn(first["id"], [e["dispatch"] for e in report["awaiting_review"]])
         self.assertTrue(Path(first["workdir"]).exists(), "waiting must never mean discarding")
+
+    def test_the_sweep_names_every_dispatch_nobody_has_reviewed(self):
+        """A count alone leaves the stoker hunting for which one still needs a round."""
+        first, second = self.start()
+        self.work(first, "a.py", "from a\n")
+        self.work(second, "b.py", "from b\n")
+        text = dispatch.render_reconcile(dispatch.reconcile())
+        for record in (first, second):
+            self.assertIn(record["id"], text)
+            self.assertIn(record["branch"], text)
+        self.assertIn("nobody has reviewed this yet", text)
+
+    def test_the_branch_of_a_waiting_dispatch_is_reported(self):
+        first, _ = self.start()
+        self.work(first, "a.py", "from a\n")
+        report = dispatch.reconcile()
+        waiting = next(e for e in report["awaiting_review"] if e["dispatch"] == first["id"])
+        self.assertEqual(waiting["branch"], first["branch"])
 
     def test_a_stale_pass_does_not_consolidate_work_a_later_round_failed(self):
         first, _ = self.start()
@@ -586,7 +628,7 @@ class TestReconcile(WorktreeCase):
         latest = store.record_review(rejected["id"], 2, "default", "fail", findings=2)
         report = dispatch.reconcile()
 
-        self.assertEqual(report["awaiting_review"], [waiting["id"]])
+        self.assertEqual([e["dispatch"] for e in report["awaiting_review"]], [waiting["id"]])
         named = next(e for e in report["needs_fix"] if e["dispatch"] == rejected["id"])
         self.assertEqual(named["round"], 2)
         self.assertEqual(named["review"], latest["id"])
@@ -598,10 +640,33 @@ class TestReconcile(WorktreeCase):
         self.work(waiting, "b.py", "from b\n")
         latest = store.record_review(rejected["id"], 2, "default", "fail", findings=2)
         text = dispatch.render_reconcile(dispatch.reconcile())
-        self.assertIn(f"{rejected['id']} rejected at review round 2", text)
+        self.assertIn(f"{rejected['branch']}: rejected at review round 2", text)
         self.assertIn(latest["id"], text)
         self.assertIn("needs a fixer", text)
-        self.assertNotIn(waiting["id"], text, "nobody has reviewed it; there is no round to name")
+
+    def test_every_line_that_wants_a_fixer_names_the_branch_to_hand_over(self):
+        """A fixer is dispatched onto a branch, so every such line must name one."""
+        rejected, first, second = self.start(workers=3)
+        self.work(rejected, "a.py", "from a\n")
+        self.work(first, "clash.txt", "one version\n")
+        self.work(second, "clash.txt", "another version\n")
+        store.record_review(rejected["id"], 1, "default", "fail", findings=2)
+        self.approve(first, second)
+        report = dispatch.reconcile()
+        text = dispatch.render_reconcile(report)
+        for entry in report["needs_fix"]:
+            self.assertIn(f"    {entry['branch']}: ", text)
+
+    def test_an_unreadable_round_is_not_reported_as_a_rejection(self):
+        """Nobody rejected it; its round number simply cannot be placed."""
+        first, _ = self.start()
+        self.work(first, "a.py", "from a\n")
+        self.raw_round(first["id"], "9", "pass")
+        report = dispatch.reconcile()
+        named = next(e for e in report["needs_fix"] if e["dispatch"] == first["id"])
+        self.assertIn("cannot be read", named["why"])
+        self.assertNotIn("rejected", named["why"])
+        self.assertIn("cannot be read", dispatch.render_reconcile(report))
 
     def test_a_rejected_change_keeps_its_work_and_its_checkout(self):
         rejected, _ = self.start()
@@ -612,19 +677,61 @@ class TestReconcile(WorktreeCase):
         self.assertTrue(Path(rejected["workdir"]).exists())
 
     def test_a_landing_with_no_passing_review_stands_out(self):
-        """Nothing was done, so it lands on no round at all; the report must say so."""
-        records = self.start()
-        text = dispatch.render_reconcile(dispatch.reconcile())
-        self.assertIn("landed WITHOUT a passing review", text)
-        self.assertNotIn(f"{records[0]['id']} landed on", text)
+        """Work merged into the trunk with no round behind it is the loud case."""
+        first, _ = self.start()
+        self.work(first, "a.py", "from a\n")
+        text = dispatch.render_reconcile(dispatch.reconcile(require_review=False))
+        self.assertTrue((self.repo / "a.py").is_file(), "this test needs a real merge")
+        self.assertIn(f"{first['id']} landed WITHOUT a passing review", text)
 
     def test_a_landing_on_a_failed_round_stands_out(self):
         first, _ = self.start()
         self.work(first, "a.py", "from a\n")
         store.record_review(first["id"], 1, "default", "fail", findings=2)
-        worktrees.release(first["lease_id"], "test", force=True)
-        text = dispatch.render_reconcile(dispatch.reconcile())
+        text = dispatch.render_reconcile(dispatch.reconcile(require_review=False))
+        self.assertTrue((self.repo / "a.py").is_file(), "this test needs a real merge")
         self.assertIn(f"{first['id']} landed WITHOUT a passing review", text)
+
+    def test_a_worker_that_did_nothing_is_not_called_an_unreviewed_landing(self):
+        """Nothing of its own reached the trunk, so nothing was landed unreviewed."""
+        working, idle = self.start()
+        self.work(working, "a.py", "from a\n")
+        self.approve(working, idle)
+        text = dispatch.render_reconcile(dispatch.reconcile())
+        self.assertIn(f"{idle['id']} closed with nothing to consolidate", text)
+        self.assertNotIn("WITHOUT a passing review", text)
+
+    def test_an_idle_worker_beside_a_reviewed_one_raises_no_alarm(self):
+        """The two-worker run the operator actually sees: one worked, one did not."""
+        working, idle = self.start()
+        self.work(working, "a.py", "from a\n")
+        self.approve(working)
+        text = dispatch.render_reconcile(dispatch.reconcile())
+        self.assertNotIn("WITHOUT a passing review", text)
+        self.assertIn(f"{idle['id']} closed with nothing to consolidate", text)
+
+    def test_a_dispatch_whose_checkout_is_gone_consolidated_nothing(self):
+        """Its commits never reached the trunk, so it did not land work unreviewed."""
+        first, _ = self.start()
+        self.work(first, "a.py", "from a\n")
+        store.record_review(first["id"], 1, "default", "fail", findings=2)
+        worktrees.release(first["lease_id"], "test", force=True)
+        report = dispatch.reconcile()
+        text = dispatch.render_reconcile(report)
+        landed = next(e for e in report["landed_on"] if e["dispatch"] == first["id"])
+        self.assertFalse(landed["consolidated"])
+        self.assertFalse((self.repo / "a.py").is_file())
+        self.assertIn(f"{first['id']} closed with nothing to consolidate", text)
+        self.assertNotIn("WITHOUT a passing review", text)
+
+    def test_the_landed_count_says_how_many_reached_the_trunk(self):
+        """The count is read as work merged, so it must say what part of it was."""
+        working, idle = self.start()
+        self.work(working, "a.py", "from a\n")
+        self.approve(working, idle)
+        text = dispatch.render_reconcile(dispatch.reconcile())
+        self.assertIn("landed           2  (1 merged into the trunk, "
+                      "1 with nothing to consolidate", text)
 
     def test_a_landing_on_a_pass_reads_plainly(self):
         first, _ = self.start()
@@ -819,6 +926,21 @@ class TestLanding(WorktreeCase):
         with self.assertRaises(dispatch.NotReadyToLand):
             dispatch.land(record["id"])
         self.assertTrue(Path(record["workdir"]).exists(), "a refusal must change nothing")
+
+    def test_the_refusal_reads_as_a_sentence_when_nothing_was_reviewed(self):
+        """The operator reads this line; it has to be English."""
+        record = self.second_worker()
+        self.do_work(record)
+        with self.assertRaises(dispatch.NotReadyToLand) as caught:
+            dispatch.land(record["id"])
+        self.assertIn(f"nothing has been reviewed for {record['id']} yet", str(caught.exception))
+        self.assertNotIn("is no recorded review round", str(caught.exception))
+
+    def test_the_closing_note_reads_as_a_sentence_with_no_round_on_record(self):
+        record = dispatch.open_dispatch("no repo", project="api")
+        landed = dispatch.land(record["id"], skip_review=True)
+        self.assertIn("with no review round on record", landed["note"])
+        self.assertNotIn("on no recorded review round", landed["note"])
 
     def test_a_failed_review_does_not_count_as_a_pass(self):
         record = self.second_worker()

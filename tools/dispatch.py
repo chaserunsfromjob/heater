@@ -169,16 +169,29 @@ def reviewed(change: str) -> bool:
 
 
 def resting_on(change: str) -> dict[str, Any]:
-    """The round a landing rests on, named so the record says what was read."""
+    """The round a landing rests on, named so the record says what was read.
+
+    Three ways of saying it, because the same fact is read in three places:
+    `said` names the round, `on` is that name as a phrase a sentence can end
+    with, and `why` says what the round means for the work in the words the
+    reader needs — a rejection is not the same thing as a round nobody can read.
+    """
     last = latest_round(change)
     if last is None:
         return {"round": None, "review": "", "verdict": None,
-                "said": "no recorded review round"}
-    said = f"review round {last.get('round')} {last['id']} ({last.get('verdict')})"
-    if not usable_round(last):
+                "said": "no recorded review round",
+                "on": "with no review round on record",
+                "why": "nothing has been reviewed yet"}
+    # The round number is written exactly as it was stored: a round recorded as
+    # the text '9' is not round 9, and printing it bare hides the difference.
+    said = f"review round {last.get('round')!r} {last['id']} ({last.get('verdict')})"
+    if usable_round(last):
+        why = f"rejected at {said}"
+    else:
         said += ", an unreadable round number"
+        why = f"the last round cannot be read, so it cannot count as a pass: {said}"
     return {"round": last.get("round"), "review": last["id"], "verdict": last.get("verdict"),
-            "said": said}
+            "said": said, "on": f"on {said}", "why": why}
 
 
 def land(dispatch_id: str, *, gate: str = "", change: str = "",
@@ -194,10 +207,17 @@ def land(dispatch_id: str, *, gate: str = "", change: str = "",
     if record.get("closed_at"):
         raise NotReadyToLand(f"{dispatch_id} is already closed as {record['outcome']}")
 
-    rested = resting_on(change or dispatch_id)
-    if not skip_review and not reviewed(change or dispatch_id):
+    named = change or dispatch_id
+    rested = resting_on(named)
+    if not skip_review and not reviewed(named):
+        # Nothing reviewed at all and a round that did not pass are different
+        # sentences; one of them has no round to name.
+        if rested["verdict"] is None:
+            raise NotReadyToLand(
+                f"nothing has been reviewed for {named} yet; "
+                "run the adversarial-review loop and record a passing round before landing")
         raise NotReadyToLand(
-            f"the last review of {change or dispatch_id} is {rested['said']}; "
+            f"the last review of {named} is {rested['said']}; "
             "run the adversarial-review loop and record a passing round before landing")
 
     lease = None
@@ -209,7 +229,7 @@ def land(dispatch_id: str, *, gate: str = "", change: str = "",
         # The worker used the project's own checkout, so there is nothing to
         # merge from and nothing to clean up.
         return close_dispatch(dispatch_id, "landed",
-                              f"worked in the project checkout; on {rested['said']}")
+                              f"worked in the project checkout; {rested['on']}")
 
     path, repo = Path(lease["path"]), Path(lease["repo"])
     branch, trunk = lease["branch"], lease.get("base_branch") or "main"
@@ -240,7 +260,7 @@ def land(dispatch_id: str, *, gate: str = "", change: str = "",
     worktrees.release(lease["id"], "landed")
     worktrees.git(repo, "branch", "-d", branch)
     return close_dispatch(dispatch_id, "landed",
-                          f"merged {branch} into {trunk} on {rested['said']}")
+                          f"merged {branch} into {trunk} {rested['on']}")
 
 
 def start_run(task: str, *, repo: str, project: str = "", workers: int = 2,
@@ -290,6 +310,25 @@ def merge_into_trunk(repo: Path, path: Path, branch: str, trunk: str,
     return False, f"merge failed even after catching up: {output[-400:]}"
 
 
+def commits_reached_trunk(lease: dict[str, Any], trunk: str) -> bool:
+    """True when commits made on this slot's branch are reachable from the trunk.
+
+    Asked of git rather than inferred from how a dispatch was closed. Two ways a
+    dispatch closes having moved nothing: a worker that committed nothing, and a
+    slot whose checkout was released without its work ever being merged. Neither
+    put anything in the trunk, and saying they did is how "landed without a
+    passing review" comes to mean nothing.
+    """
+    repo, branch, base = lease.get("repo", ""), lease.get("branch", ""), lease.get("base_sha", "")
+    if not (repo and branch and base):
+        return False
+    code, output = worktrees.git(Path(repo), "rev-list", "--count", f"{base}..{branch}")
+    if code != 0 or output.strip() in ("", "0"):
+        return False
+    code, _ = worktrees.git(Path(repo), "merge-base", "--is-ancestor", branch, trunk)
+    return code == 0
+
+
 def reconcile(*, run_id: str = "", project: str = "", require_review: bool = True,
               gate: str = "") -> dict[str, Any]:
     """Consolidate every finished worker into the trunk, then clean up after it.
@@ -303,10 +342,17 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
     report: dict[str, Any] = {"at": jsonstore.now(), "landed": [], "landed_on": [], "held": [],
                               "awaiting_review": [], "needs_fix": [], "runs_finished": []}
 
-    def record_landing(record: dict[str, Any], rested: dict[str, Any]) -> None:
-        """Report one landing and the round it rested on, so a stale pass shows."""
+    def record_landing(record: dict[str, Any], rested: dict[str, Any],
+                       consolidated: bool) -> None:
+        """Report one landing, the round it rested on, and whether work moved.
+
+        `consolidated` is what separates work put into the trunk from a dispatch
+        closed with nothing to put there, so a stale pass shows and an idle
+        worker does not read as one.
+        """
         report["landed"].append(record["id"])
-        report["landed_on"].append({"dispatch": record["id"], **rested})
+        report["landed_on"].append({"dispatch": record["id"],
+                                    "consolidated": consolidated, **rested})
 
     leases = {l["id"]: l for l in jsonstore.load(worktrees.leases_dir())}
 
@@ -319,9 +365,14 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
         lease = leases.get(record.get("lease_id", ""))
         rested = resting_on(record["id"])
         if lease is None or lease.get("released_at"):
+            # No checkout to merge from. A released slot may still have had its
+            # commits merged by an earlier sweep, so git is asked rather than
+            # assumed either way.
+            moved = bool(lease) and commits_reached_trunk(
+                lease, lease.get("base_branch") or "main")
             close_dispatch(record["id"], "landed",
-                           f"no checkout to consolidate; on {rested['said']}")
-            record_landing(record, rested)
+                           f"no checkout to consolidate; {rested['on']}")
+            record_landing(record, rested, moved)
             continue
 
         repo, path = Path(lease["repo"]), Path(lease["path"])
@@ -339,10 +390,12 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
 
         if worktrees.landed(lease, trunk):
             # Either nothing was done, or a previous sweep merged it and stopped
-            # before cleaning up. Both end the same way.
+            # before cleaning up. Both end the same way, but only the second put
+            # commits in the trunk, and the branch is read before it is deleted.
+            moved = commits_reached_trunk(lease, trunk)
             finish(record, lease, branch, repo, trunk,
-                   f"already in the trunk; on {rested['said']}")
-            record_landing(record, rested)
+                   f"already in the trunk; {rested['on']}")
+            record_landing(record, rested, moved)
             continue
 
         if require_review and not reviewed(record["id"]):
@@ -351,11 +404,11 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
             # needs_fix is where a branch that needs a fixer is reported, so a
             # rejection belongs there beside a conflict and a failing gate.
             if rested["verdict"] is None:
-                report["awaiting_review"].append(record["id"])
+                report["awaiting_review"].append(
+                    {"dispatch": record["id"], "branch": branch})
             else:
                 report["needs_fix"].append(
-                    {"dispatch": record["id"], "branch": branch,
-                     "why": f"rejected at {rested['said']}", **rested})
+                    {"dispatch": record["id"], "branch": branch, **rested})
             continue
 
         if gate:
@@ -372,8 +425,10 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
             report["needs_fix"].append({"dispatch": record["id"], "branch": branch, "why": why})
             continue
 
-        finish(record, lease, branch, repo, trunk, f"{why} on {rested['said']}")
-        record_landing(record, rested)
+        # The branch was not in the trunk a moment ago and the merge succeeded,
+        # so this dispatch's commits are in the trunk now.
+        finish(record, lease, branch, repo, trunk, f"{why} {rested['on']}")
+        record_landing(record, rested, True)
 
     report["runs_finished"] = finished_runs()
     return report
@@ -428,25 +483,35 @@ def age_minutes(record: dict[str, Any]) -> float | None:
 
 
 def render_reconcile(result: dict[str, Any]) -> str:
+    # What `landed` counts is dispatches closed and cleaned up, and only some of
+    # them had commits to move. Glossing the whole count as merged work tells the
+    # operator a worker who did nothing put something in the trunk.
+    merged = [e for e in result.get("landed_on", []) if e.get("consolidated")]
+    empty = len(result["landed"]) - len(merged)
+    gloss = (f"({len(merged)} merged into the trunk, {empty} with nothing to "
+             "consolidate; all cleaned up after)")
     lines = [f"reconcile as of {result['at']}",
-             f"  landed           {len(result['landed'])}  "
-             "(merged into the trunk, then cleaned up after)",
+             f"  landed           {len(result['landed'])}  {gloss}",
              f"  awaiting review  {len(result['awaiting_review'])}  (nobody has reviewed these yet)",
              f"  needs a fixer    {len(result['needs_fix'])}",
              f"  held             {len(result['held'])}"]
     # Which round each landing rested on, so a stale pass is visible in the
-    # report rather than only in the store. A landing that rested on a failed
-    # round or on no round at all is written so a reader stops at it.
+    # report rather than only in the store. The loud line is kept for work that
+    # actually reached the trunk without a pass behind it; a dispatch that merged
+    # nothing says that instead, or the alarm stops meaning anything.
     for entry in result.get("landed_on", []):
-        if entry.get("verdict") == "pass":
+        if not entry.get("consolidated"):
+            lines.append(f"    {entry['dispatch']} closed with nothing to consolidate")
+        elif entry.get("verdict") == "pass":
             lines.append(f"    {entry['dispatch']} landed on {entry['said']}")
         else:
             lines.append(f"    {entry['dispatch']} landed WITHOUT a passing review: {entry['said']}")
+    # Named, not just counted: the next step is a review round on one of these.
+    for entry in result["awaiting_review"]:
+        lines.append(f"    {entry['dispatch']} {entry['branch']}: nobody has reviewed this yet")
+    # Every line here is a branch to hand a fixer, so every line names one.
     for entry in result["needs_fix"]:
-        if entry.get("review"):
-            lines.append(f"    {entry['dispatch']} rejected at {entry['said']}; needs a fixer")
-        else:
-            lines.append(f"    {entry['branch']}: {entry['why']}")
+        lines.append(f"    {entry['branch']}: {entry['why']}")
     for entry in result["held"]:
         lines.append(f"    {entry['dispatch']}: {entry['why']}")
     if result["runs_finished"]:
