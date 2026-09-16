@@ -24,7 +24,7 @@ Act on each as it lands; do not re-dispatch a round that is already out.
 | --- | --- | --- | --- |
 | Fix usage taper round 3 | `c79a35661f9c` | fixer 3 (round 3 failed on the debrief prose and a bearings crash; see `handover/findings-c79a35661f9c-taper-r3.md`) | dispatch review round 4; wording-only → confirming round → `bin/dispatch.py land` |
 | Fix reconcile change round 3 | `059566b3e160` | fixer 3 (round 3 failed on the alarm gate's could-not-check case; see `handover/findings-059566b3e160-reconcile-r3.md`) | dispatch review round 4; wording-only → land by merging from trunk with the gate |
-| Fix handoff round-6 findings | `46e285e1bfd0` | fixer 6 (round 6 failed: F1 un-ended child silent, F2 unlocked record; see `handover/findings-heater-pending.md`) | dispatch review round 7 (default + failure-mode); wording-only → confirming round → merge from trunk, tell the operator to start `bin/stoker.sh` once |
+| Review automatic handoff round 7 | `46e285e1bfd0` | review 7 (default + failure-mode; round-6 fixes at 029057a: un-ended child announced, locked record, atomic write) | record; wording-only → confirming round → merge from trunk, tell the operator to start `bin/stoker.sh` once |
 | Fix exploitation survey round 3 | `76bbf2823a53` | fixer 3 (round 3 failed: 4 substantive; see `handover/findings-76bbf2823a53-exploitation-r3.md`) | dispatch review round 4 |
 | Fix engine survey round 2 | `7f09949cb56f` | fixer 2 | dispatch review round 3 |
 | Review bots survey round 4 | `14d64950c0bc` | review 4 (round-3 fixes at fd21a22) | record; fail → fixer; wording-only → confirming round |
