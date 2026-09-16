@@ -1,0 +1,17 @@
+{
+  "id": "9b903790f273",
+  "created": "2026-09-16T01:27:27.221279+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "hooks/statusline.py",
+  "origin": "",
+  "summary": "hooks/statusline.py main() reads sys.stdin with the default UTF-8 decoder inside a try that catches only JSONDecodeError and OSError, so non-UTF-8 bytes on stdin raise UnicodeDecodeError and the hook exits 1 with a traceback instead of failing open and printing a status line (reproduced on main: printf '\\xff\\xfe{\"model\":1}' | python3 hooks/statusline.py -> exit 1). Pre-existing on main, not introduced by the usage taper change c79a35661f9c; found while fixing the same class of bug in tools/usage.py read().",
+  "delivered_at": "2026-09-16T01:27:30.367572+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-16T01:31:47.503427+00:00",
+    "score": 35,
+    "task_id": "abeec6683057"
+  }
+}

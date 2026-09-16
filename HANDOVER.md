@@ -22,13 +22,13 @@ Act on each as it lands; do not re-dispatch a round that is already out.
 
 | Agent name (as its report will show) | Change | Round out | On its report |
 | --- | --- | --- | --- |
-| Fix usage taper round 3 | `c79a35661f9c` | fixer 3 (round 3 failed on the debrief prose and a bearings crash; see `handover/findings-c79a35661f9c-taper-r3.md`) | dispatch review round 4; wording-only → confirming round → `bin/dispatch.py land` |
-| Review reconcile change round 4 | `059566b3e160` | review 4 (round-3 fixes at f1a4543 on origin: four named states for where commits went, tip_sha recorded at release, 465 tests, gate 0; reviewer makes its own worktree) | record; fail → fixer; wording-only → failure-mode lens, then land by merging from trunk with the gate |
+| Review usage taper round 4 | `c79a35661f9c` | review 4 (round-3 fixes at 53338df on origin: debrief page free of code shapes, clause-aware trimming, 95 band and `bin/debrief.py` present, 512 tests, gate 0) | record; fail → fixer; wording-only → confirming round → `bin/dispatch.py land`; at landing mark task 32cbdf129bdf done (the 95 STOP band and debrief are in this branch) |
+| Fix reconcile change round 4 | `059566b3e160` | fixer 4 (round 4 failed: two summary lines contradict the new alarm; see `handover/findings-059566b3e160-reconcile-r4.md`; fixer makes its own worktree, pushes to origin) | dispatch review round 5; wording-only → failure-mode lens, then land by merging from trunk with the gate |
 | Fix automatic handoff round 7 | `46e285e1bfd0` | fixer 7 (round 7 failed: unbounded flock in the launch path, one session reported twice, silent note failure; see `handover/findings-46e285e1bfd0-handoff-r7.md`; fixer makes its own worktree, pushes to origin) | dispatch review round 8 (default + failure-mode); wording-only → confirming round → merge from trunk, tell the operator to start `bin/stoker.sh` once |
-| Review exploitation survey round 4 | `76bbf2823a53` | review 4 (round-3 fixes at f8566ab: all 12 findings applied, script re-run byte for byte; fixer asks whether the plain-words item 3 now carries too much of §3.1's detail) | record; fail → fixer; wording-only → confirming round |
+| Fix exploitation survey round 4 | `76bbf2823a53` | fixer 4 (round 4 failed: 3 substantive, two of the over-claim class; see `handover/findings-76bbf2823a53-exploitation-r4.md`) | dispatch review round 5 |
 | Fix engine survey round 2 | `7f09949cb56f` | fixer 2 | dispatch review round 3 |
 | Review bots survey round 5 | `14d64950c0bc` | review 5 (round-4 fixes at 5e5bbb9: rollout hook restated as unbuilt and unruled, seventh forefront row, seven wording) | record; fail → fixer; wording-only → confirming round |
-| Fix solvers survey round 2 | `048795519f43` | fixer 2 | dispatch review round 3 |
+| Review solvers survey round 3 | `048795519f43` | review 3 (round-2 fixes at 25948cc: heads-up engine choice handed back to the reconciliation, every timing re-taken with load recorded, GTO Wizard re-verified against dated patch notes) | record; fail → fixer; wording-only → confirming round |
 
 Every review round so far is recorded in the store. Record each new one
 with `bin/store.py review` the moment it returns (a pass with any

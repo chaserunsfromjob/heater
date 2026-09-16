@@ -1,0 +1,17 @@
+{
+  "id": "b15e6c2b0624",
+  "created": "2026-09-16T01:30:43.251069+00:00",
+  "change": "76bbf2823a53",
+  "project": "pokerbot",
+  "round": 4,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 8,
+  "wording_only": false,
+  "files": 3,
+  "insertions": 1473,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 922.0,
+  "note": "3 substantive, two of the recurring over-claim class: 'ACPC support is on by default in global_variables.sh' is the reverse (OFF at :27,:40; ON only in the PyPI wheel per wheels.yml:74, verified by installing it) (:568); 'the toolkit alone is the whole reason for the failure' contradicts \u00a71.6's own measurement that colorlog AND PySide6 are both needed (:36-40, :369-370); (a) \u2714 for PokerTracker 4, Hand2Note 4 and Poker Copilot 8 rests on no visited page while \u00a71.2/\u00a71.4 mark the same cell ? for that absence (:186,:229,:271). 5 wording: plain-words item 3 carries \u00a73.1's arithmetic (fixer's own flag, reviewer agrees), seat range 2-10 stated for the whole archive but measured on samples, 'the one worth using' reads as a recommendation to run fpdb-3, ACPC total has two provenances, byte-for-byte claim holds only on the day (script prints today's date). All 12 round-3 fixes applied; script reproduced byte for byte; IRC archive re-counted from the 1 GB download; 20+ citations exact. Reviewer tokens 150179, tool uses 68 (no cost rate)."
+}

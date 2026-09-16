@@ -7,7 +7,7 @@
   "path": "hooks",
   "origin": "",
   "summary": "A hook stamps queue items delivered_at only after the stoker has committed them, so every filing leaves the fleet tree dirty and the next reconcile reports the taper branch held until a second commit; stamp on filing, or have reconcile ignore delivered_at-only diffs",
-  "delivered_at": null,
+  "delivered_at": "2026-09-16T01:27:30.367572+00:00",
   "resolution": {
     "action": "promoted",
     "at": "2026-09-16T01:27:19.994783+00:00",

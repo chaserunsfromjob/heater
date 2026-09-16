@@ -7,7 +7,7 @@
   "path": "/Users/chasethompson/.heater/worktrees/pokerbot/b1f72dd635fa",
   "origin": "",
   "summary": "Autosave hook commits a worker's mid-session edits (93c2b8a on worker/14d64950c0bc), forcing a fixer to reset the branch pointer to produce the single commit its brief requires",
-  "delivered_at": null,
+  "delivered_at": "2026-09-16T01:27:30.367574+00:00",
   "resolution": {
     "action": "dismissed",
     "at": "2026-09-16T01:26:29.144642+00:00",
