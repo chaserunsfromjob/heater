@@ -1,0 +1,17 @@
+{
+  "id": "de9b9e42c959",
+  "created": "2026-09-16T01:27:19.963195+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "hooks",
+  "origin": "",
+  "summary": "A hook stamps queue items delivered_at only after the stoker has committed them, so every filing leaves the fleet tree dirty and the next reconcile reports the taper branch held until a second commit; stamp on filing, or have reconcile ignore delivered_at-only diffs",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-16T01:27:19.994783+00:00",
+    "score": 30,
+    "task_id": "18be1d1979b8"
+  }
+}
