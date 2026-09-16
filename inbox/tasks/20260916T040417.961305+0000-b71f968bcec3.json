@@ -1,0 +1,10 @@
+{
+  "id": "b71f968bcec3",
+  "created": "2026-09-16T04:04:17.961305+00:00",
+  "score": 69,
+  "title": "Operator's classmate's addition 2026-09-16, relayed by the operator: 'before an agent starts working on something it should push it to github so that the other model always knows what we are working on'. Mechanism: at task start, create the branch, push it at once, and open a DRAFT pull request titled with the task; the PR list is the live board of who is working on what; check it before starting anything; mark ready when done and land through it. Goes into pokerbot/CLAUDE.md with tasks 97733f026a8a and ecb013e70573; bin/dispatch.py open should push the branch and open the draft PR itself.",
+  "source_finding": "22a7779f1865",
+  "project": "pokerbot",
+  "path": "CLAUDE.md",
+  "done_at": null
+}
