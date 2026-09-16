@@ -113,8 +113,23 @@ class TestAFullWindow(DebriefCase):
         self.check(record["id"], round_number=1, verdict="fail", findings=2)
         self.check(record["id"], round_number=2, verdict="pass")
         text = debrief.write(hours=5)
-        self.assertIn("Checked over 2 times", text)
+        self.assertIn("Checked over twice", text)
         self.assertIn("the last check passed it", text)
+
+    def test_a_second_check_is_said_as_twice_not_as_a_figure(self):
+        """"2 times" is a log line. A person says twice."""
+        record = self.job("Write the handover")
+        self.check(record["id"], round_number=1, verdict="fail", findings=2)
+        self.check(record["id"], round_number=2, verdict="fail", findings=1)
+        text = debrief.write(hours=5)
+        self.assertIn("Checked over twice", text)
+        self.assertNotIn("2 times", text)
+
+    def test_a_third_check_is_counted_in_figures(self):
+        record = self.job("Write the handover")
+        for number in (1, 2, 3):
+            self.check(record["id"], round_number=number, verdict="fail", findings=1)
+        self.assertIn("Checked over 3 times", debrief.write(hours=5))
 
     def test_a_job_still_out_from_before_the_window_is_still_named(self):
         """It is about to be stopped, so leaving it out would hide the stop."""
@@ -137,6 +152,61 @@ class TestAFullWindow(DebriefCase):
         self.assertIn("One separate working copy of a project is still set aside", text)
         self.assertIn("one other was handed back", text)
         self.assertNotIn("(s)", text, "a person does not read 'note(s)'")
+
+    def test_one_minute_is_not_said_as_one_minutes(self):
+        self.job("Just started", minutes_ago=1.2)
+        self.job("Started an hour and a minute back", minutes_ago=61)
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("Sent out 1 minute ago", text)
+        self.assertIn("Sent out 1 hour 1 minute ago", text)
+        self.assertNotIn("1 minutes", text)
+
+    def test_a_finding_is_not_counted_as_a_note_left_for_the_operator(self):
+        """29 of 31 were findings for the stoker. They are a different thing."""
+        self.job("Anything at all")
+        queue.add("finding", "something an agent noticed")
+        judged = queue.add("finding", "something already judged")
+        judged["resolution"] = {"action": "dismissed", "reason": "already known"}
+        queue.write(judged)
+        queue.add("report", "an account for the operator")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("2 things were noticed in passing by an agent and written "
+                      "down for the stoker to judge", text)
+        self.assertIn("one has been judged and one is still waiting", text)
+        self.assertIn("One note was left for you in this window", text)
+        self.assertIn("an account an agent wrote for you", text)
+        self.assertNotIn("3 notes were left for you", text)
+        self.assertNotIn("something an agent noticed in passing and wrote down.",
+                         text, "a finding is not one of the notes written for you")
+
+    def test_a_job_that_began_before_the_window_was_not_sent_out_in_it(self):
+        """The count said 19 went out where 5 did; the rest were already running."""
+        self.job("Older work, still running", minutes_ago=600)
+        self.job("Newer work", minutes_ago=10)
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("2 agents were working in this window, one of them sent out "
+                      "inside it and one already running when it began", text)
+        self.assertNotIn("2 jobs went out", text)
+
+    def test_the_same_brief_sent_out_twice_is_named_as_one_piece_of_work(self):
+        """Four of nineteen live entries were a brief dispatched a second time."""
+        for _ in range(2):
+            self.job("Survey the engines", minutes_ago=30)
+        self.job("Something else", minutes_ago=20)
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("One of the entries below describes work already listed "
+                      "above it: the same brief was sent out more than once, so "
+                      "this window covers 2 separate pieces of work, not 3", text)
+
+    def test_two_briefs_that_only_differ_in_machinery_read_as_one_repeat(self):
+        """The live pair differed only in which checkout the second was sent to."""
+        self.job("Resolve the merge conflict in pokerbot.", minutes_ago=40)
+        self.job("Resolve the merge conflict in pokerbot, working IN THE EXISTING "
+                 "checkout /Users/someone/.heater/worktrees/pokerbot/4c952047cdd3.",
+                 minutes_ago=30)
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("One of the entries below describes work already listed "
+                      "above it", text)
 
     def test_a_brief_full_of_machinery_is_said_in_plain_words(self):
         """One fixture with all three: an absolute path, a branch name, a file name."""
@@ -174,9 +244,66 @@ class TestAFullWindow(DebriefCase):
         self.assertNotIn("design-writing", text)
 
     def test_a_file_name_that_owns_the_next_word_reads_as_the_project(self):
-        self.job("Raise tools/worktrees.py's MAX_SLOTS constant from 3 to 6.")
+        self.job("Raise tools/worktrees.py's limit on working copies from 3 to 6.")
         text = " ".join(debrief.write(hours=5).split())
-        self.assertIn("Raise the project's MAX_SLOTS constant from 3 to 6", text)
+        self.assertIn("Raise the project's limit on working copies from 3 to 6", text)
+
+    def test_a_brief_written_in_code_shapes_carries_none_of_them(self):
+        """Every shape the live page leaked: a class, a call, a command, a
+        constant, a folder inside a project and a repository somebody owns."""
+        self.job("Stub TestStopHook so context.state(None) is not read live, run "
+                 "`bin/gate.sh`, raise MAX_SLOTS, and vendor "
+                 "github.com/fedden/poker_ai under vendor/poker_ai/.",
+                 done_when="the suite passes on this machine")
+        text = " ".join(debrief.write(hours=5).split())
+        for shape in ("TestStopHook", "context.state(", "`", "MAX_SLOTS",
+                      "vendor/poker_ai/", "github.com/fedden/poker_ai"):
+            self.assertNotIn(shape, text, f"{shape} is machinery")
+        self.assertIn("Done when the suite passes on this machine", text)
+
+    def test_an_aside_that_is_all_machinery_is_dropped_not_translated(self):
+        """"(already on branch a separate copy of the work)" says nothing."""
+        self.job("Resolve the merge conflict between worker/36e2ae4be45b and main "
+                 "(already on branch worker/36e2ae4be45b; do not create another).")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("Resolve the merge conflict between a separate copy of the "
+                      "work and main.", text)
+        self.assertNotIn("already on branch", text)
+
+    def test_a_clause_that_only_says_where_to_work_is_dropped(self):
+        self.job("Resolve the merge conflict in pokerbot, working IN THE EXISTING "
+                 "checkout /Users/someone/.heater/worktrees/pokerbot/4c952047cdd3.")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("Resolve the merge conflict in pokerbot.", text)
+        self.assertNotIn("a folder on this machine", text)
+
+    def test_a_brief_that_is_all_machinery_says_so_honestly(self):
+        """No sentence survives and nothing says what done looks like."""
+        self.job("TestStopHook calls context.state(None) and reads MAX_SLOTS.")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("written for another agent and does not translate", text)
+        self.assertNotIn("TestStopHook", text)
+
+    def test_a_long_sentence_is_never_cut_off_mid_clause(self):
+        self.job("Survey the field of open-source poker engines that deal every "
+                 "table size from two to nine players, weigh each one against the "
+                 "two hard requirements the operator named, and end with a single "
+                 "recommendation a later worker could act on without asking.")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("Survey the field of open-source poker engines that deal "
+                      "every table size from two to nine players, weigh each one "
+                      "against the two hard requirements the operator named.", text)
+        self.assertNotIn("...", text)
+        self.assertNotIn("end with a single recommendation", text)
+
+    def test_a_cut_sentence_does_not_end_on_a_clause_that_cannot_stand_alone(self):
+        """"...: when a session has written, committed and pushed." is a fragment."""
+        self.job("Make the handover fully automatic: when a session has written, "
+                 "committed and pushed it, the same `bin/stoker.sh` command must "
+                 "end that session and open a fresh one.")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("Make the handover fully automatic.", text)
+        self.assertNotIn("when a session has written", text)
 
     def test_two_briefs_that_open_alike_do_not_read_alike(self):
         self.job("Research and design-writing, not code. Survey how a bot beats "
@@ -242,10 +369,13 @@ class TestAFullWindow(DebriefCase):
         self.assertIn("the work is now part of the project", text)
 
     def test_a_task_written_with_an_abbreviation_is_not_cut_in_half(self):
+        """The abbreviation must not end the sentence; the folder must not survive."""
         self.job("Vendor the solver into this repo (e.g. under vendor/) so it "
                  "builds without the network. The rest does not matter.")
         text = " ".join(debrief.write(hours=5).split())
-        self.assertIn("(e.g. under vendor/) so it builds without the network", text)
+        self.assertIn("Vendor the solver into this repo so it builds without the "
+                      "network.", text)
+        self.assertNotIn("vendor/", text)
         self.assertNotIn("The rest does not matter", text)
 
 

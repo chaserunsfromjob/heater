@@ -173,6 +173,26 @@ class TestOverrides(UsageCase):
         for name, *_ in usage.THRESHOLDS:
             self.assertIn(name, usage.ALLOWS, "every band needs a plain-words line")
 
+    def test_how_many_agents_the_middle_band_leaves_out_moves_too(self):
+        """Every other figure in the taper moves with a variable; so does this one."""
+        self.assertIn(f"at most {usage.TOP_OF_LIST_AGENTS} agents",
+                      usage.allows(usage.TOP_OF_LIST_ONLY))
+        os.environ["HEATER_TAPER_TOP_OF_LIST_AGENTS"] = "5"
+        self.addCleanup(os.environ.pop, "HEATER_TAPER_TOP_OF_LIST_AGENTS", None)
+        self.assertIn("at most 5 agents", usage.allows(usage.TOP_OF_LIST_ONLY))
+
+    def test_a_nonsense_agent_count_falls_back_to_the_built_in_figure(self):
+        os.environ["HEATER_TAPER_TOP_OF_LIST_AGENTS"] = "a few"
+        self.addCleanup(os.environ.pop, "HEATER_TAPER_TOP_OF_LIST_AGENTS", None)
+        self.assertIn(f"at most {usage.TOP_OF_LIST_AGENTS} agents",
+                      usage.allows(usage.TOP_OF_LIST_ONLY))
+
+    def test_the_band_line_bearings_prints_carries_the_moved_figure(self):
+        os.environ["HEATER_TAPER_TOP_OF_LIST_AGENTS"] = "6"
+        self.addCleanup(os.environ.pop, "HEATER_TAPER_TOP_OF_LIST_AGENTS", None)
+        self.at(seven=80, five=0)
+        self.assertIn("at most 6 agents", "\n".join(usage.lines()))
+
 
 class TestWeeklyCountdown(UsageCase):
     def test_days_left_comes_from_the_reset_time(self):
@@ -321,6 +341,17 @@ class TestBearings(UsageCase):
         self.assertIn("present but unreadable", text)
         self.assertNotIn("nothing has written", text)
 
+    def test_a_reading_that_is_not_text_at_all_still_leaves_bearings_readable(self):
+        """Bytes that are not text ended the run in a traceback and printed no
+        report at all: the one file that says how much of the plan is left took
+        everything else down with it."""
+        usage.snapshot_path().write_bytes(b'{"seven_day": {"used_percentage": 96}'
+                                          b', "note": "\xff\xfe"}')
+        self.assertEqual(usage.read(), {})
+        text, attention = self.quiet_report()
+        self.assertIn("present but unreadable", text)
+        self.assertTrue(attention, "a band nobody can read is not a safe band")
+
     def test_the_usage_section_comes_before_the_fleet(self):
         self.at(seven=10, five=10)
         with mock.patch.object(bearings, "fleet", return_value=([], False)), \
@@ -415,8 +446,9 @@ class TestTheWakeSurvivesABadReading(UsageCase):
 
     The stop hook swallows any exception and ends the turn, so an item stamped
     before the throw is an item the stoker is never told about and never will be.
-    A usage file with bytes that are not text is the cheapest way to make the
-    read throw: the reader catches a missing or malformed file, not that.
+    The reader itself now answers "nothing known" to every broken file there is,
+    so the throw is forced here instead: what is pinned is the ordering, not any
+    one way of breaking the reading.
     """
 
     def setUp(self):
@@ -434,15 +466,17 @@ class TestTheWakeSurvivesABadReading(UsageCase):
             os.environ["HEATER_QUEUE_DIR"] = self.previous_queue
 
     def break_the_reading(self):
-        path = usage.snapshot_path()
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(b'{"seven_day": {"used_percentage": 96}, "note": "\xff\xfe"}')
+        """Make the read throw, whatever it is that one day makes it throw."""
+        patch = mock.patch.object(stop_hook.usage, "read",
+                                  side_effect=OSError("the reading could not be read"))
+        patch.start()
+        self.addCleanup(patch.stop)
 
     def test_an_unreadable_reading_leaves_the_items_undelivered(self):
         item = stop_hook.queue.add("finding", "something the stoker must judge")
         self.break_the_reading()
         with mock.patch.object(stop_hook, "handover_decision", return_value=None):
-            with self.assertRaises(UnicodeDecodeError):
+            with self.assertRaises(OSError):
                 stop_hook.handle({})
         self.assertEqual([i["id"] for i in stop_hook.queue.pending()], [item["id"]],
                          "the wake was lost: the item is marked as though it arrived")
@@ -454,6 +488,17 @@ class TestTheWakeSurvivesABadReading(UsageCase):
              mock.patch.object(sys, "stdin", io.StringIO("{}")):
             self.assertEqual(stop_hook.run(stop_hook.handle, "stop"), 0)
         self.assertEqual(len(stop_hook.queue.pending()), 1)
+
+    def test_a_reading_that_is_not_text_no_longer_throws_at_all(self):
+        """The file that used to force the throw is now answered, not raised on."""
+        path = usage.snapshot_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b'{"seven_day": {"used_percentage": 96}, "note": "\xff\xfe"}')
+        stop_hook.queue.add("finding", "something the stoker must judge")
+        with mock.patch.object(stop_hook, "handover_decision", return_value=None):
+            reason = stop_hook.handle({})["hookSpecificOutput"]["reason"]
+        self.assertIn("fleet queue", reason)
+        self.assertEqual(stop_hook.queue.pending(), [])
 
     def test_a_readable_reading_still_delivers(self):
         stop_hook.queue.add("finding", "something the stoker must judge")

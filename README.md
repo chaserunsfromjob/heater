@@ -123,7 +123,9 @@ prints, so the figure never has to be quoted from memory — every agent
 still running is stopped, and `bin/debrief.py --hours 5 --queue` writes the
 operator one plain account of what the five hours bought — what each agent was
 sent to do, what came back, what the checks found, what is unfinished, and what
-it cost — and puts it in the queue. Run it without `--queue` to read it first.
+it cost where a round recorded a cost — and puts it in the queue. Where no round
+recorded one, the account says so rather than implying the window was free. Run
+it without `--queue` to read it first.
 
 The reading only exists on a Pro or Max subscription, and only once an
 interactive session has had a reply back from the model. With an API key, or
@@ -135,14 +137,17 @@ name is the band, then the window:
 
 | Variable | Moves |
 | --- | --- |
-| `HEATER_TAPER_NOTHING_NEW_SEVEN_DAY` | Weekly percentage at which nothing new may start |
-| `HEATER_TAPER_NOTHING_NEW_FIVE_HOUR` | Five-hour percentage for the same band |
-| `HEATER_TAPER_REVIEWS_ONLY_SEVEN_DAY` | Weekly percentage at which only reviews and landings run |
-| `HEATER_TAPER_REVIEWS_ONLY_FIVE_HOUR` | Five-hour percentage for the same band |
-| `HEATER_TAPER_TOP_OF_LIST_SEVEN_DAY` | Weekly percentage at which only the top task runs |
-| `HEATER_TAPER_TOP_OF_LIST_FIVE_HOUR` | Five-hour percentage for the same band |
+| `HEATER_TAPER_NOTHING_NEW_SEVEN_DAY` | The `NOTHING_NEW` band's weekly percentage |
+| `HEATER_TAPER_NOTHING_NEW_FIVE_HOUR` | The `NOTHING_NEW` band's five-hour percentage |
+| `HEATER_TAPER_REVIEWS_ONLY_SEVEN_DAY` | The `REVIEWS_AND_LANDINGS_ONLY` band's weekly percentage |
+| `HEATER_TAPER_REVIEWS_ONLY_FIVE_HOUR` | The `REVIEWS_AND_LANDINGS_ONLY` band's five-hour percentage |
+| `HEATER_TAPER_TOP_OF_LIST_SEVEN_DAY` | The `TOP_OF_LIST_ONLY` band's weekly percentage |
+| `HEATER_TAPER_TOP_OF_LIST_FIVE_HOUR` | The `TOP_OF_LIST_ONLY` band's five-hour percentage |
+| `HEATER_TAPER_TOP_OF_LIST_AGENTS` | How many agents `TOP_OF_LIST_ONLY` leaves out at once — a count, not a percentage |
 
-Anything that is not a number is ignored, and the built-in figure is used.
+What each band allows is written once, in `tools/usage.py`, and printed by
+`bin/bearings.py`. Anything that is not a number is ignored, and the built-in
+figure is used.
 
 ## Build order
 

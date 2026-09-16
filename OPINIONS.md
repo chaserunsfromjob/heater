@@ -183,7 +183,9 @@ At 95% of the five-hour window the fleet stops outright. Every agent still
 running is stopped, not allowed to finish, and the operator is sent one
 plain-English account of what those five hours bought: what each agent was sent
 to do, what came back, what the checks found, what is still unfinished, and what
-it cost. `bin/debrief.py` writes that account and the queue carries it.
+it cost where a round recorded a cost. Where none did, the account says that
+outright rather than pretending to a figure nothing measured.
+`bin/debrief.py` writes that account and the queue carries it.
 
 The barriers themselves sit high, because cutting work off early wastes the plan
 just as surely as running out does. The five-hour stop is the figure the operator

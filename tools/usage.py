@@ -26,9 +26,10 @@ The bands
 ---------
 `THRESHOLDS` below holds every band and the percentage on each window that
 triggers it, tightest first, and `ALLOWS` holds the one plain-words line each
-band says about what may still be started. Those two are the definition; this
-docstring deliberately does not restate them, because a paraphrase that drifts
-from the code is worse than no paraphrase at all.
+band says about what may still be started, which `allows()` fills in with the
+figures that move. Those two are the definition; this docstring deliberately
+does not restate them, because a paraphrase that drifts from the code is worse
+than no paraphrase at all.
 
 Weekly leads, because the weekly window is the one that runs out. The tightest
 band stops the fleet: every agent still running is stopped there rather than
@@ -40,7 +41,9 @@ band so that judgment about what is worth spending can tighten as they climb.
 
 Every threshold moves with an environment variable, named for its band and its
 window: HEATER_TAPER_NOTHING_NEW_SEVEN_DAY, HEATER_TAPER_TOP_OF_LIST_FIVE_HOUR,
-and so on. A value that is not a number is ignored in favour of the default.
+and so on. How many agents the middle band leaves out at once moves the same
+way, with HEATER_TAPER_TOP_OF_LIST_AGENTS, which is a count and not a
+percentage. A value that is not a number is ignored in favour of the default.
 
 A missing reading reads as OPEN. A taper that halts the fleet because a file was
 never written would be a fleet halt caused by the guard against one.
@@ -75,9 +78,11 @@ THRESHOLDS: tuple[tuple[str, float, float, str], ...] = (
 # constantly; six hours of silence outlasts a whole five-hour window.
 STALE_HOURS = 6.0
 
-# How many agents the middle band leaves out at once. Not a standing cap:
-# opinion 11 refuses one of those. It applies only inside TOP_OF_LIST_ONLY.
+# How many agents the middle band leaves out at once, and the variable that
+# moves it: HEATER_TAPER_TOP_OF_LIST_AGENTS. Not a standing cap, which opinion
+# 11 refuses; it applies only inside TOP_OF_LIST_ONLY.
 TOP_OF_LIST_AGENTS = 3
+TOP_OF_LIST_AGENTS_VAR = "HEATER_TAPER_TOP_OF_LIST_AGENTS"
 
 ALLOWS = {
     NOTHING_NEW:
@@ -87,8 +92,8 @@ ALLOWS = {
         "Only rounds that close a change already in flight. No new research, no new features. "
         "Stop the lowest-priority agents still running rather than letting them run on.",
     TOP_OF_LIST_ONLY:
-        f"Only the top task on the list and rounds already in flight, "
-        f"at most {TOP_OF_LIST_AGENTS} agents out at once; stop the least important first.",
+        "Only the top task on the list and rounds already in flight, "
+        "at most {agents} agents out at once; stop the least important first.",
     OPEN: "Dispatch whatever the task list justifies.",
 }
 
@@ -104,9 +109,16 @@ def snapshot_path() -> Path:
 
 
 def read() -> dict[str, Any]:
+    """Nothing known, for every shape of broken file there is.
+
+    A file whose bytes are not text is as unreadable as a missing one and no
+    more alarming, and every reader downstream already says "present but
+    unreadable" in plain words. Letting that one case raise instead took
+    `bin/bearings.py` down with it and printed no report at all.
+    """
     try:
         parsed = json.loads(snapshot_path().read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
         return {}
     return parsed if isinstance(parsed, dict) else {}
 
@@ -201,9 +213,15 @@ def band(reading: dict[str, Any] | None = None) -> str:
     return OPEN
 
 
+def top_of_list_agents() -> int:
+    """How many agents the middle band leaves out, with any override applied."""
+    return max(1, int(_number(TOP_OF_LIST_AGENTS_VAR, TOP_OF_LIST_AGENTS)))
+
+
 def allows(name: str) -> str:
     """One plain-words line saying what the band permits."""
-    return ALLOWS.get(name, ALLOWS[OPEN])
+    line = ALLOWS.get(name, ALLOWS[OPEN])
+    return line.format(agents=top_of_list_agents()) if "{agents}" in line else line
 
 
 def recorded_at(reading: dict[str, Any] | None = None) -> datetime | None:
