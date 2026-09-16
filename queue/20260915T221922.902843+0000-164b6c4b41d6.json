@@ -7,6 +7,6 @@
   "path": "",
   "origin": "",
   "summary": "Debrief for the operator at 97% of the five-hour window (2026-09-15, 18:20 EDT). Every agent was stopped and its work saved. Landed today: the poker engine vendoring with reference notes, the ground-truth hand-evaluation tests, the opponent-model design document (landed by a tool bug before its final check; final check still owed), the six-slot worktree limit, and three fleet hook fixes. Built and awaiting one more check: the usage taper (95% five-hour stop plus bin/debrief.py) and the merge-tool fix that stops landing on a stale review pass. Under review: the automatic handoff (round 5 found a false orphan warning), four research surveys (engine, bots, solvers, exploitation) each one or two rounds from done, evaluation strategy, table-size notes. Across the day: 21 jobs sent out, 14 finished, 10 in the project, 40 review rounds over 16 changes. Every open finding is written under handover/ in the fleet repository.",
-  "delivered_at": null,
+  "delivered_at": "2026-09-15T22:20:11.162830+00:00",
   "resolution": null
 }

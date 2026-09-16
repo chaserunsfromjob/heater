@@ -1,0 +1,16 @@
+{
+  "id": "936421b4c04d",
+  "created": "2026-09-16T00:20:28.476864+00:00",
+  "kind": "finding",
+  "urgency": "low",
+  "project": "pokerbot",
+  "path": "README.md",
+  "origin": "",
+  "summary": "pokerbot README lists only the ground-truth test commands; research/count_phh_networks.py (added on worker/76bbf2823a53) is a runnable script with no README entry or run instructions.",
+  "delivered_at": null,
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-16T00:22:40.041873+00:00",
+    "reason": "Covered by task 8a7b9e92e77c (pokerbot README references none of its documents or research scripts); one README pass will list the surveys, design document and research/ scripts together once the surveys land."
+  }
+}
