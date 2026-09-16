@@ -7,7 +7,7 @@
   "path": "/Users/chasethompson/.heater/worktrees/pokerbot/85f4140c6fae",
   "origin": "",
   "summary": "An autosave hook commits worker-branch work mid-task, so five 'Autosave uncommitted work' commits landed on worker/048795519f43 during change 048795519f43 round 2 and had to be squashed before the real commit",
-  "delivered_at": null,
+  "delivered_at": "2026-09-16T01:33:38.417532+00:00",
   "resolution": {
     "action": "dismissed",
     "at": "2026-09-16T01:30:00.356550+00:00",

@@ -1,0 +1,10 @@
+{
+  "id": "418b4396b9f7",
+  "created": "2026-09-16T01:39:43.943536+00:00",
+  "score": 40,
+  "title": "A finished reviewer's worktree is left behind holding worker/46e285e1bfd0 checked out, so the next agent on that branch cannot make a worktree for it and works detached instead",
+  "source_finding": "8546ea4d5a4b",
+  "project": "heater",
+  "path": "/private/tmp/claude-501/-Users-chasethompson-heater/60db9bfd-fa3a-4035-aa37-91a8741fa698/scratchpad/review-46e285e1bfd0",
+  "done_at": null
+}
