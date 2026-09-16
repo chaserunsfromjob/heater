@@ -24,7 +24,7 @@ Act on each as it lands; do not re-dispatch a round that is already out.
 | --- | --- | --- | --- |
 | Review usage taper round 3 | `c79a35661f9c` | review 3 | record; wording-only → one confirming round → `bin/dispatch.py land` |
 | Review reconcile fix round 3 | `059566b3e160` | review 3 | record; wording-only → land by merging from trunk with the gate |
-| Review automatic handoff round 6 | `46e285e1bfd0` | review 6 (default + failure-mode) | record; wording-only → confirming round → merge from trunk, tell the operator to start `bin/stoker.sh` once |
+| Fix handoff round-6 findings | `46e285e1bfd0` | fixer 6 (round 6 failed: F1 un-ended child silent, F2 unlocked record; see `handover/findings-heater-pending.md`) | dispatch review round 7 (default + failure-mode); wording-only → confirming round → merge from trunk, tell the operator to start `bin/stoker.sh` once |
 | Review exploitation survey round 3 | `76bbf2823a53` | review 3 | record; fail → fixer; wording-only → confirming round |
 | Fix engine survey round 2 | `7f09949cb56f` | fixer 2 | dispatch review round 3 |
 | Fix bots survey round 3 | `14d64950c0bc` | fixer 3 | dispatch review round 4 |

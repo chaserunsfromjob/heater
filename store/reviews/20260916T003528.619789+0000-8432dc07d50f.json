@@ -1,0 +1,17 @@
+{
+  "id": "8432dc07d50f",
+  "created": "2026-09-16T00:35:28.619789+00:00",
+  "change": "46e285e1bfd0",
+  "project": "heater",
+  "round": 6,
+  "lens": "failure-mode",
+  "verdict": "fail",
+  "findings": 4,
+  "wording_only": false,
+  "files": 14,
+  "insertions": 2321,
+  "deletions": 58,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "default+failure-mode; all five round-5 fixes reproduced. F1 a child that survives SIGKILL is treated as a clean ending, a second session opens silently and record_child overwrites the old entry (never named again). F2 record_child/mark_orphan_reported read-modify-write with no lock and truncate-in-place: entry lost 20/20 in simultaneous launches, duplicate queue items. F3 'pid' unexplained in bearings. F4 dead import guard and wrong comment. Revert clean, merge clean."
+}
