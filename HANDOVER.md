@@ -1,8 +1,8 @@
 # Handover
 
-<!-- handover-commit: f6a2feb -->
+<!-- handover-commit: dac9a95 -->
 
-Written at `f6a2feb` on `main`. Verify with `bin/handover.py`. A snapshot,
+Written at `dac9a95` on `main`. Verify with `bin/handover.py`. A snapshot,
 not a log — rewrite it, do not append.
 
 Read `README.md` for what is built and what is next, `OPINIONS.md` for the
