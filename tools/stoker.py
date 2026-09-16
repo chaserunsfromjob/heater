@@ -30,6 +30,7 @@ The operator's own plain `claude` in this folder is untouched by any of it.
 
 from __future__ import annotations
 
+import fcntl
 import json
 import os
 import secrets
@@ -37,8 +38,9 @@ import signal
 import subprocess
 import sys
 import time
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, NamedTuple
+from typing import Any, Callable, Iterator, NamedTuple
 
 REPO = Path(__file__).resolve().parents[1]
 
@@ -51,12 +53,13 @@ except Exception:  # pragma: no cover - only when the hooks directory is gone
     def _log(event: str, payload: dict[str, Any]) -> None:
         return None
 
-try:  # The fleet queue: tools/queue.py, which stands ahead of the standard
-    # library's module of that name on the path above. It is where a warning
-    # outlives the screen, and never a reason to fail a launch.
-    import queue as fleet_queue
-except Exception:  # pragma: no cover - only when the tools directory is gone
-    fleet_queue = None
+# The fleet queue: tools/queue.py, which stands ahead of the standard library's
+# module of that name on the path above. It is where a warning outlives the
+# screen, and never a reason to fail a launch. With the tools directory gone the
+# standard library's queue answers to the name instead and has nothing to file
+# with, and file_orphan_note treats that like any other failure to file: the
+# import itself cannot fail, so guarding it would be guarding nothing.
+import queue as fleet_queue
 
 
 def log(event: str, payload: dict[str, Any]) -> None:
@@ -128,6 +131,12 @@ MARKER_NAME = "handover-complete"
 # both hid a session left running and made the first's live session look like
 # one — an operator told to `kill` a session somebody is working in.
 CHILD_RECORD_NAME = "stoker-session"
+
+# What a supervisor holds while it reads the record above and writes it back, so
+# two that start in the same second cannot each erase the other's entry. A file
+# of its own, because the record is replaced rather than written in place, and
+# holding a file that is about to be replaced holds nothing.
+CHILD_LOCK_NAME = "stoker-session.lock"
 
 # Set on the session the supervisor launches, and on nothing else. The marker is
 # one shared path, and the fleet repository makes any unmarked session in it the
@@ -422,6 +431,45 @@ def child_record_path() -> Path:
     return state_dir() / CHILD_RECORD_NAME
 
 
+def child_lock_path() -> Path:
+    return state_dir() / CHILD_LOCK_NAME
+
+
+@contextmanager
+def hold_records() -> Iterator[None]:
+    """Hold the session note for as long as it takes to read it and write it back.
+
+    Reading it, changing a copy and writing the copy back is three steps, and two
+    supervisors starting in the same second interleave them: both read, both
+    change their own copy, and the one that writes second erases the other's
+    entry. The entry erased is the whole record of a session left running.
+
+    A separate file is what is held, because the note itself is replaced rather
+    than written in place and a hold on a file that is about to be replaced
+    holds nothing. Failing to take the hold is not a reason to refuse a launch:
+    this is a note, not the work, and a lost entry beats no session at all.
+    """
+    handle: int | None = None
+    try:
+        path = child_lock_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        handle = os.open(path, os.O_RDWR | os.O_CREAT, 0o644)
+        fcntl.flock(handle, fcntl.LOCK_EX)
+    except OSError:
+        if handle is not None:
+            os.close(handle)
+            handle = None
+    try:
+        yield
+    finally:
+        if handle is not None:
+            try:
+                fcntl.flock(handle, fcntl.LOCK_UN)
+            except OSError:  # pragma: no cover - the hold went with the file
+                pass
+            os.close(handle)
+
+
 def record_child(pid: int, token: str) -> None:
     """Write down which session this supervisor just started. Never raises.
 
@@ -434,22 +482,38 @@ def record_child(pid: int, token: str) -> None:
     handful of sessions actually still running.
     """
     started = process_start(os.getpid())
-    records = {key: entry for key, entry in read_child_records().items()
-               if child_alive(entry)}
-    records[f"{os.getpid()} {started}"] = {
-        "pid": pid, "start": process_start(pid), "token": token,
-        "owner_pid": os.getpid(), "owner_start": started}
-    write_child_records(records)
+    entry = {"pid": pid, "start": process_start(pid), "token": token,
+             "owner_pid": os.getpid(), "owner_start": started}
+    # Both start times are read before the hold is taken: asking the system when
+    # a process started is the slowest thing here, and every moment spent
+    # holding the note is a moment another supervisor waits for it.
+    with hold_records():
+        records = {key: kept for key, kept in read_child_records().items()
+                   if child_alive(kept)}
+        records[f"{os.getpid()} {started}"] = entry
+        write_child_records(records)
 
 
 def write_child_records(records: dict[str, Any]) -> None:
-    """Put the sessions back on disk. Never raises: this is a note, not the work."""
+    """Put the sessions back on disk. Never raises: this is a note, not the work.
+
+    Written beside the note and moved onto it, rather than into it. Writing into
+    it empties the file first, so a reader arriving in the middle of the write
+    gets a fragment, and a fragment reads as no sessions at all — the session
+    left running vanishes from the note, which is the one thing it is for. The
+    move puts the whole file in place in one step or not at all.
+    """
+    path = child_record_path()
+    spare = path.with_name(f".{path.name}.{secrets.token_hex(4)}")
     try:
-        path = child_record_path()
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(records) + "\n", encoding="utf-8")
+        spare.write_text(json.dumps(records) + "\n", encoding="utf-8")
+        os.replace(spare, path)
     except OSError:
-        pass
+        try:
+            spare.unlink()
+        except OSError:  # pragma: no cover - it was never written
+            pass
 
 
 def read_child_records() -> dict[str, Any]:
@@ -473,38 +537,69 @@ def child_alive(entry: dict[str, Any]) -> bool:
     return process_alive(entry.get("pid"), entry.get("start"))
 
 
+def keep_unended(pid: int) -> dict[str, Any]:
+    """Keep a session that would not end where the next run can still find it.
+
+    Under this supervisor's own key the next launch writes straight over it, and
+    after one launch nothing knows about the session any more — which is exactly
+    when nobody has read the warning yet. So it is kept under a key of its own,
+    and marked as one nobody is watching: this supervisor has stopped trying to
+    end it, so nothing is waiting on it whether or not the supervisor runs on.
+    """
+    started = process_start(os.getpid())
+    start = process_start(pid)
+    with hold_records():
+        records = read_child_records()
+        entry = {**records.get(f"{os.getpid()} {started}", {}),
+                 "pid": pid, "start": start, "owner_pid": os.getpid(),
+                 "owner_start": started, "unwatched": True}
+        records[f"{os.getpid()} {started} left {pid}"] = entry
+        write_child_records(records)
+    return entry
+
+
 def orphan_sessions() -> list[dict[str, Any]]:
-    """Sessions still running here that no supervisor is watching. Empty normally.
+    """Sessions still running here that nothing is watching. Empty normally.
 
     Normally there are none: a supervisor ends its session before opening the
     next one, so the process in its entry is gone by the time anybody asks.
 
-    Two things have to hold. The session is still running, and the supervisor
-    that started it is not. A session whose supervisor is still running is that
-    supervisor doing its job, however much it looks like a leftover from here —
-    naming it would send the operator to close a session somebody is working in.
+    The session has to still be running, and nothing can be waiting on it. That
+    second half is either the supervisor that started it being gone, or that
+    supervisor having given up on ending it and said so in the entry. A session
+    whose supervisor is still watching it is that supervisor doing its job,
+    however much it looks like a leftover from here — naming it would send the
+    operator to close a session somebody is working in.
 
     What happened to the supervisor is not something this can see. `kill -9`, a
     fault, and a machine that went down all leave exactly this behind.
     """
     return [entry for entry in read_child_records().values()
-            if child_alive(entry) and not owner_alive(entry)]
+            if child_alive(entry) and (entry.get("unwatched") or not owner_alive(entry))]
 
 
-def mark_orphan_reported(entry: dict[str, Any]) -> None:
-    """Remember that this one has been filed, so it is filed once and not once
-    a launch. The screen message is repeated; a queue item the stoker has to
-    judge is not."""
-    records = read_child_records()
-    touched = False
-    for candidate in records.values():
-        if (candidate.get("pid") == entry.get("pid")
-                and candidate.get("start") == entry.get("start")
-                and not candidate.get("reported")):
-            candidate["reported"] = True
-            touched = True
-    if touched:
+def claim_orphan_report(entry: dict[str, Any], reported: bool = True) -> bool:
+    """Take the one queue item this session gets. True when this call took it.
+
+    Taken before the item is written rather than after, because two supervisors
+    that both read "not filed yet" in the same moment both go on to file one,
+    and the stoker is woken twice about one session. Only one call can be told
+    it took it, so only one files anything.
+
+    Handing it back — reported False — is what a write that failed does, so the
+    next launch files it instead of the item being lost for good.
+    """
+    with hold_records():
+        records = read_child_records()
+        matching = [candidate for candidate in records.values()
+                    if candidate.get("pid") == entry.get("pid")
+                    and candidate.get("start") == entry.get("start")]
+        if not matching or any(bool(c.get("reported")) for c in matching) == reported:
+            return False
+        for candidate in matching:
+            candidate["reported"] = reported
         write_child_records(records)
+        return True
 
 
 def file_orphan_note(pid: int) -> bool:
@@ -515,8 +610,6 @@ def file_orphan_note(pid: int) -> bool:
     is the other half: the next session is woken with it, and bin/bearings.py
     reports it for as long as the session is still running.
     """
-    if fleet_queue is None:  # pragma: no cover - only when the tools directory is gone
-        return False
     try:
         fleet_queue.add("failure", orphan_message(pid), project="heater",
                         urgency="high", origin="stoker.sh")
@@ -526,14 +619,14 @@ def file_orphan_note(pid: int) -> bool:
 
 
 def announce_orphan(entry: dict[str, Any]) -> None:
-    """Say, in both places, that a session here was left running."""
+    """Say, in all three places, that a session here was left running."""
     pid = entry.get("pid")
     if not isinstance(pid, int):  # pragma: no cover - a session with no number
         return
     print(orphan_message(pid), file=sys.stderr)
     log("stoker_orphan_session", {"pid": pid, "owner_pid": entry.get("owner_pid")})
-    if not entry.get("reported") and file_orphan_note(pid):
-        mark_orphan_reported(entry)
+    if claim_orphan_report(entry) and not file_orphan_note(pid):
+        claim_orphan_report(entry, reported=False)
 
 
 def orphan_message(pid: int) -> str:
@@ -635,8 +728,28 @@ def install_signal_handlers() -> None:
         pass
 
 
-def _terminate(child: subprocess.Popen, kill_after: float) -> int:
+def end_session(child: subprocess.Popen, kill_after: float) -> int:
+    """End the session, and say so out loud when it will not end.
+
+    A session still running after both signals is about to be joined by a fresh
+    one in the same folder, and two of them undo each other's work. That is the
+    same trouble as a session a killed supervisor left behind, so it is said in
+    the same three places: on the screen, in the log, and as one item the next
+    session is woken with. Taking it for a session that finished is what let a
+    second one open on top of it without a word.
+    """
+    code, ended = _terminate(child, kill_after)
+    if not ended:
+        announce_orphan(keep_unended(child.pid))
+    return code
+
+
+def _terminate(child: subprocess.Popen, kill_after: float) -> tuple[int, bool]:
     """End a session that has already handed over. SIGTERM, then SIGKILL.
+
+    Returns how it ended, and whether it ended at all. The second half is the
+    part a caller cannot work out for itself: a session that took both signals
+    and kept running reports the same code as one the second signal ended.
 
     A Ctrl-C landing partway through is not a reason to walk away from a child
     that is still alive, so the wait is retried rather than abandoned; that is
@@ -648,7 +761,7 @@ def _terminate(child: subprocess.Popen, kill_after: float) -> int:
         pass
     code = _wait_through_interrupts(child, kill_after)
     if code is not None:
-        return code
+        return code, True
     log("stoker_kill", {"pid": child.pid, "after_seconds": kill_after})
     try:
         child.kill()
@@ -656,8 +769,8 @@ def _terminate(child: subprocess.Popen, kill_after: float) -> int:
         pass
     code = _wait_through_interrupts(child, kill_after)
     if code is not None:
-        return code
-    return -signal.SIGKILL  # pragma: no cover - unkillable child
+        return code, True
+    return -signal.SIGKILL, False
 
 
 def _wait_through_interrupts(child: subprocess.Popen, seconds: float) -> int | None:
@@ -728,7 +841,7 @@ def watch(child: subprocess.Popen, poll: float, token: str, grace: float,
             # The Stop hook that wrote the marker has to return, and its closing
             # message has to reach the screen, before the session is ended.
             wait_unless_stopping(grace)
-            return _terminate(child, kill_after), True, interrupted
+            return end_session(child, kill_after), True, interrupted
         if found is not None and found not in left_alone and _judge_other_marker(token, child.pid):
             left_alone.add(found)
         code = child.poll()
@@ -834,7 +947,7 @@ def _stopped_by_interrupt(kill_after: float) -> int:
     if child is not None:
         code = child.poll()
         if code is None:
-            code = _terminate(child, kill_after)
+            code = end_session(child, kill_after)
     log("stoker_exit", {"exit_code": code, "stopped": True, "interrupted": True})
     return exit_code(code)
 
@@ -889,7 +1002,7 @@ def _run_sessions(extra: list[str] | None, spawn: Callable[..., subprocess.Popen
         if _stopping:
             # The signal landed while this one was being spawned, so the handler
             # had nothing to aim at. Take it down here instead of watching it.
-            code = _terminate(child, kill_after)
+            code = end_session(child, kill_after)
             _current = None
             log("stoker_exit", {"exit_code": code, "stopped": True})
             return exit_code(code)

@@ -63,8 +63,9 @@ def left_running() -> tuple[list[str], bool]:
     one folder undo each other's changes, so it is worth a line of its own here
     for as long as the session is still running.
     """
-    lines = [f"  a session nothing is watching is still going: pid {entry['pid']} "
-             f"(close its window, or run `kill {entry['pid']}`)"
+    lines = [f"  a session nothing is watching is still going: the machine knows it by the "
+             f"number {entry['pid']}, called its pid. Close its window, or run "
+             f"`kill {entry['pid']}` in a terminal."
              for entry in stoker.orphan_sessions() if isinstance(entry.get("pid"), int)]
     return lines, bool(lines)
 

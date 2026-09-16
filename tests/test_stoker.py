@@ -8,6 +8,8 @@ never says anything, and a hook that wedges a session it cannot help.
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import os
 import signal
@@ -323,6 +325,18 @@ class TestBearings(StoreCase):
         self.assertIn("## A session left running", text)
         self.assertIn(str(os.getpid()), text)
         self.assertTrue(attention, "two sessions in one folder undo each other's work")
+
+    def test_the_number_it_hands_the_operator_is_explained_before_it_is_named(self):
+        """The operator is not a programmer. A line opening with `pid` names a
+        thing before saying what it is, and the reader is left guessing at the
+        one line that asks them to do something."""
+        with mock.patch.object(bearings.stoker, "orphan_sessions",
+                               return_value=[{"pid": 4242}]):
+            line = bearings.left_running()[0][0]
+        self.assertIn("4242", line)
+        self.assertIn("pid", line, "the term is still worth naming, last")
+        self.assertLess(line.index("number"), line.index("pid"),
+                        "it named the term before saying what the thing is")
 
 
 class TestRoutingIsNowEnforced(unittest.TestCase):
@@ -1097,6 +1111,230 @@ class TestStokerSupervisor(unittest.TestCase):
         self.assertNotEqual(done.returncode, 0)
         self.assertNotIn("Traceback", done.stderr)
         self.assertIn("Claude", done.stderr)
+
+
+class UnendingChild:
+    """A session that takes both signals and keeps running.
+
+    No real process can be made to survive the second one, and a stand-in is
+    the only way to run the path that happens when one does — a wedged
+    filesystem call is the usual way. The path has to be run, because what is
+    down it is the supervisor opening a second session in the folder without a
+    word about the first."""
+
+    def __init__(self, pid: int) -> None:
+        self.pid = pid
+        self.signalled: list[str] = []
+
+    def poll(self):
+        return None
+
+    def terminate(self):
+        self.signalled.append("terminate")
+
+    def kill(self):
+        self.signalled.append("kill")
+
+    def wait(self, timeout=None):
+        raise subprocess.TimeoutExpired("claude", timeout)
+
+
+class RecordCase(unittest.TestCase):
+    """A state directory, a log and a queue of this test's own. The real ones
+    belong to the machine's own stoker and are never written by a test."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        root = Path(self.tmp.name)
+        patch = mock.patch.dict(os.environ, {
+            "HEATER_STATE_DIR": str(root / "state"),
+            "HEATER_LOG_DIR": str(root / "logs"),
+            "HEATER_QUEUE_DIR": str(root / "queue"),
+            stoker.OWNER_ENV: stoker.own_owner()})
+        patch.start()
+        self.addCleanup(patch.stop)
+
+    def environment(self) -> dict[str, str]:
+        return dict(os.environ)
+
+    def living_process(self) -> int:
+        """A process that is really running, to stand in for a session."""
+        holder = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(120)"])
+        self.addCleanup(holder.wait)
+        self.addCleanup(holder.kill)
+        return holder.pid
+
+    def queued(self) -> list[dict]:
+        directory = Path(self.tmp.name) / "queue"
+        if not directory.exists():
+            return []
+        return [json.loads(p.read_text(encoding="utf-8"))
+                for p in sorted(directory.glob("*.json"))]
+
+    def hook_events(self) -> list[dict]:
+        path = Path(self.tmp.name) / "logs" / "hooks.jsonl"
+        if not path.exists():
+            return []
+        return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+
+
+class TestASessionThatWillNotEnd(RecordCase):
+    """Both signals reached it and it is still running. The supervisor opens a
+    fresh session next, so two of them work the folder at once and undo each
+    other's changes — the same trouble as a session a killed supervisor left
+    behind, and it has to be said in the same places."""
+
+    def test_a_session_that_would_not_end_is_said_out_loud(self):
+        pid = self.living_process()
+        child = UnendingChild(pid)
+        stoker.record_child(child.pid, "tok")
+        stoker.mark_complete("now", "tok", "s1")
+        said = io.StringIO()
+        with contextlib.redirect_stderr(said):
+            _, handed_over, _ = stoker.watch(child, 0.01, "tok", grace=0.0, kill_after=0.05)
+        self.assertTrue(handed_over)
+        self.assertEqual(child.signalled, ["terminate", "kill"],
+                         "it never tried both ways of ending the session")
+        self.assertIn(str(pid), said.getvalue(),
+                      "it opened a second session without naming the one still running")
+        self.assertIn("still going", said.getvalue())
+        self.assertTrue(any(e["event"] == "stoker_orphan_session" for e in self.hook_events()),
+                        "nothing was written down about the session that would not end")
+        filed = self.queued()
+        self.assertEqual(len(filed), 1, "nothing was left for the stoker to act on")
+        self.assertIn(str(pid), filed[0]["summary"])
+
+    def test_the_session_that_would_not_end_survives_the_next_launch(self):
+        """Under this supervisor's own key the next launch writes over it, and
+        after one launch nothing knows about it any more — which is exactly
+        when nobody has read the warning yet."""
+        pid = self.living_process()
+        stoker.record_child(pid, "tok")
+        with contextlib.redirect_stderr(io.StringIO()):
+            stoker.end_session(UnendingChild(pid), 0.05)
+            stoker.record_child(self.living_process(), "next")
+        kept = [e for e in stoker.read_child_records().values() if e.get("pid") == pid]
+        self.assertTrue(kept, "the next session's note wrote over the one still running")
+        lines, attention = bearings.left_running()
+        self.assertTrue(any(str(pid) in line for line in lines),
+                        "bin/bearings.py never names the session still running")
+        self.assertTrue(attention, "two sessions in one folder undo each other's work")
+
+    def test_it_is_filed_once_however_many_launches_see_it(self):
+        pid = self.living_process()
+        stoker.record_child(pid, "tok")
+        with contextlib.redirect_stderr(io.StringIO()):
+            stoker.end_session(UnendingChild(pid), 0.05)
+            for entry in stoker.orphan_sessions():
+                stoker.announce_orphan(entry)
+        self.assertEqual(len(self.queued()), 1, "every launch filed the same session again")
+
+
+BARRIER = '''
+import sys, time
+from pathlib import Path
+sys.path.insert(0, sys.argv[1] + "/tools")
+import stoker
+ready, go = Path(sys.argv[2]), Path(sys.argv[3])
+ready.write_text("here")
+while not go.exists():
+    time.sleep(0.001)
+'''
+
+RECORD_AT_THE_BARRIER = BARRIER + '''
+stoker.record_child(int(sys.argv[4]), "tok")
+'''
+
+ANNOUNCE_AT_THE_BARRIER = BARRIER + '''
+for entry in stoker.orphan_sessions():
+    stoker.announce_orphan(entry)
+'''
+
+
+class TestTwoSupervisorsWritingTheNoteAtOnce(RecordCase):
+    """Two bin/stoker.sh started in the same second both read the note, both
+    change their own copy of it, and both write it back. The one that writes
+    second erases the other's entry — and those entries are the only record of
+    a session left running."""
+
+    def at_the_same_moment(self, script: str, *arguments: str, count: int = 2) -> None:
+        gate = Path(self.tmp.name) / "barrier"
+        gate.mkdir(parents=True, exist_ok=True)
+        go = gate / "go"
+        waiting, readies = [], []
+        for number in range(count):
+            ready = gate / f"ready-{number}"
+            readies.append(ready)
+            waiting.append(subprocess.Popen(
+                [sys.executable, "-c", script, str(ROOT), str(ready), str(go), *arguments],
+                env=self.environment(), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                text=True))
+        deadline = time.monotonic() + 30
+        while time.monotonic() < deadline and not all(r.exists() for r in readies):
+            time.sleep(0.005)
+        self.assertTrue(all(r.exists() for r in readies), "a supervisor never reached the barrier")
+        go.write_text("now")
+        for process in waiting:
+            _, err = process.communicate(timeout=30)
+            self.assertEqual(process.returncode, 0, err)
+
+    def test_neither_supervisors_note_is_lost(self):
+        # This test process stands in for a session that is really running, so
+        # neither entry is dropped for naming a session that has ended.
+        self.at_the_same_moment(RECORD_AT_THE_BARRIER, str(os.getpid()))
+        records = stoker.read_child_records()
+        self.assertEqual(len(records), 2,
+                         "one supervisor's note was written over by the other's")
+
+    def test_a_session_left_running_is_filed_once_by_two_supervisors_at_once(self):
+        pid = self.living_process()
+        spent = subprocess.Popen([sys.executable, "-c", "pass"])
+        spent.wait()
+        stoker.write_child_records({"a-supervisor-that-is-gone": {
+            "pid": pid, "start": stoker.process_start(pid), "token": "t",
+            "owner_pid": spent.pid, "owner_start": "Thu Jan  1 00:00:00 1970"}})
+        self.at_the_same_moment(ANNOUNCE_AT_THE_BARRIER)
+        self.assertEqual(len(self.queued()), 1,
+                         "the stoker was woken twice about one session")
+
+    def test_a_note_being_written_is_never_read_half_written(self):
+        """Emptying the file and filling it again leaves a window in which a
+        reader sees a fragment, and a fragment reads as no sessions at all: the
+        session left running disappears from the note for as long as it lasts."""
+        start = stoker.process_start(os.getpid())
+        many = {f"supervisor-{n}": {"pid": os.getpid(), "start": start, "token": "t" * 400}
+                for n in range(200)}
+        stoker.write_child_records(many)
+        stop = threading.Event()
+        seen: list[int] = []
+
+        def keep_reading() -> None:
+            while not stop.is_set():
+                seen.append(len(stoker.read_child_records()))
+
+        reader = threading.Thread(target=keep_reading)
+        reader.start()
+        try:
+            for _ in range(200):
+                stoker.write_child_records(many)
+        finally:
+            stop.set()
+            reader.join(30)
+        self.assertTrue(seen, "the reader never got a look in")
+        self.assertEqual(set(seen), {len(many)}, "a reader saw a half-written note")
+
+
+class TestFilingTheWarningWhereTheScreenCannotLoseIt(RecordCase):
+    """tools/queue.py answers to the name `queue` because the supervisor puts
+    the tools directory ahead of the standard library's module of that name.
+    With that directory gone the standard library answers instead, and it has
+    no way to file anything — which must still cost a launch nothing."""
+
+    def test_a_module_with_nothing_to_file_with_is_not_a_failed_launch(self):
+        with mock.patch.object(stoker, "fleet_queue", object()):
+            self.assertFalse(stoker.file_orphan_note(4242))
+        self.assertEqual(self.queued(), [])
 
 
 class FakeChild:
