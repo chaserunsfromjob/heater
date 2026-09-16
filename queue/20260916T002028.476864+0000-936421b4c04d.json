@@ -7,7 +7,7 @@
   "path": "README.md",
   "origin": "",
   "summary": "pokerbot README lists only the ground-truth test commands; research/count_phh_networks.py (added on worker/76bbf2823a53) is a runnable script with no README entry or run instructions.",
-  "delivered_at": null,
+  "delivered_at": "2026-09-16T00:23:08.643837+00:00",
   "resolution": {
     "action": "dismissed",
     "at": "2026-09-16T00:22:40.041873+00:00",
