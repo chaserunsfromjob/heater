@@ -1,0 +1,17 @@
+{
+  "id": "937fbd852a7e",
+  "created": "2026-09-16T00:18:09.632164+00:00",
+  "change": "c79a35661f9c",
+  "project": "heater",
+  "round": 2,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 8,
+  "wording_only": false,
+  "files": 12,
+  "insertions": 1515,
+  "deletions": 3,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "taper half correct under every probe; debrief half fails on real data: task text prints absolute paths and branch names (B1), first sentence is a meta-disclaimer for 6 of 18 jobs (B2), released-workspace count uses creation time and understates (B3), general-purpose agent kind unmapped (B4); W1-W4 wording. Opinion 13 quotes exact."
+}
