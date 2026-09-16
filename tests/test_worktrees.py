@@ -539,6 +539,15 @@ class TestTheRoundThatCounts(WorktreeCase):
         self.assertIn("rejected at review round 2", why)
         self.assertIn(latest["id"], why)
 
+    def test_a_readable_pass_is_not_described_as_a_rejection(self):
+        """The same structure carries the landing report, so it must not say the
+        round that approved the work threw it out."""
+        latest = store.record_review("auth", 2, "default", "pass")
+        why = dispatch.resting_on("auth")["why"]
+        self.assertIn("passed at review round 2", why)
+        self.assertIn(latest["id"], why)
+        self.assertNotIn("rejected", why)
+
     def test_a_fail_outranks_a_pass_when_everything_else_ties(self):
         """Same round, same stamp: the answer cannot depend on which file loads first."""
         stamp = jsonstore.now()
@@ -616,6 +625,55 @@ class TestReconcile(WorktreeCase):
         self.approve(*records)
         report = dispatch.reconcile()
         self.assertIn(records[0]["run_id"], report["runs_finished"])
+        self.assertIn(f"runs fully consolidated: {records[0]['run_id']}",
+                      dispatch.render_reconcile(report))
+
+    def test_a_run_with_work_left_on_a_branch_is_not_called_consolidated(self):
+        """Every member closed as landed, but one branch still holds its commits.
+        Calling the run fully consolidated contradicts the line three above it."""
+        landing, stranded = self.start()
+        self.work(landing, "a.py", "from a\n")
+        self.work(stranded, "b.py", "from b\n")
+        self.approve(landing)
+        store.record_review(stranded["id"], 1, "default", "fail", findings=2)
+        worktrees.release(stranded["lease_id"], "worktree gone", force=True)
+        report = dispatch.reconcile()
+        text = dispatch.render_reconcile(report)
+        self.assertIn(f"commits left on {stranded['branch']}", text)
+        self.assertNotIn(landing["run_id"], report["runs_finished"])
+        self.assertNotIn("runs fully consolidated", text)
+        self.assertIn(f"runs finished, with work still to account for: {landing['run_id']}",
+                      text)
+
+    def test_a_run_nobody_could_check_is_not_called_consolidated(self):
+        """A question git could not answer is not an answer of yes."""
+        landing, unchecked = self.start()
+        self.work(landing, "a.py", "from a\n")
+        self.work(unchecked, "b.py", "from b\n")
+        self.approve(landing)
+        lease = next(l for l in worktrees.active("api") if l["id"] == unchecked["lease_id"])
+        worktrees.release(lease["id"], "worktree gone", force=True)
+        stored = next(l for l in jsonstore.load(worktrees.leases_dir()) if l["id"] == lease["id"])
+        stored.pop("tip_sha", None)
+        stored.pop("base_sha", None)
+        jsonstore.write(worktrees.leases_dir(), stored)
+        report = dispatch.reconcile()
+        text = dispatch.render_reconcile(report)
+        self.assertIn(f"{unchecked['id']} closed; could not check", text)
+        self.assertNotIn(landing["run_id"], report["runs_finished"])
+        self.assertNotIn("runs fully consolidated", text)
+
+    def test_a_run_consolidated_across_two_sweeps_is_still_reported_finished(self):
+        """Members land one report at a time; the answer must survive the sweep
+        that saw it, or a run consolidated in two halves is never called done."""
+        first, second = self.start()
+        self.work(first, "a.py", "from a\n")
+        self.work(second, "b.py", "from b\n")
+        self.approve(first)
+        dispatch.reconcile()
+        self.approve(second)
+        report = dispatch.reconcile()
+        self.assertIn(first["run_id"], report["runs_finished"])
 
     def test_unreviewed_work_waits_and_is_kept(self):
         first, _ = self.start()
@@ -759,6 +817,43 @@ class TestReconcile(WorktreeCase):
         self.assertNotIn(f"{first['id']} closed with nothing to consolidate", text)
         self.assertNotIn("WITHOUT a passing review", text)
 
+    def test_a_branch_left_holding_work_still_names_the_round_that_failed(self):
+        """Where the commits went and whether anybody passed them are two facts,
+        and the line carrying one must not swallow the other."""
+        first, _ = self.start()
+        self.work(first, "a.py", "from a\n")
+        latest = store.record_review(first["id"], 1, "default", "fail", findings=2)
+        worktrees.release(first["lease_id"], "worktree gone", force=True)
+        text = dispatch.render_reconcile(dispatch.reconcile())
+        line = next(l for l in text.splitlines()
+                    if first["id"] in l and "commits left on" in l)
+        self.assertIn("no passing review", line)
+        self.assertIn("review round 1", line)
+        self.assertIn(latest["id"], line)
+
+    def test_a_dispatch_nobody_could_check_still_names_the_round_that_failed(self):
+        """The loudest case of all: nobody passed it and nobody can say where its
+        commits went. Printing only the second is how the first goes quiet."""
+        record = dispatch.open_dispatch("straight into the trunk", project="api")
+        latest = store.record_review(record["id"], 1, "default", "fail", findings=2)
+        text = dispatch.render_reconcile(dispatch.reconcile())
+        line = next(l for l in text.splitlines()
+                    if record["id"] in l and "could not check" in l)
+        self.assertIn("no passing review", line)
+        self.assertIn("review round 1", line)
+        self.assertIn(latest["id"], line)
+
+    def test_a_branch_left_holding_reviewed_work_raises_no_review_alarm(self):
+        """A passing round is not an alarm; only the commit state is left to say."""
+        first, _ = self.start()
+        self.work(first, "a.py", "from a\n")
+        self.approve(first)
+        worktrees.release(first["lease_id"], "worktree gone", force=True)
+        text = dispatch.render_reconcile(dispatch.reconcile())
+        line = next(l for l in text.splitlines()
+                    if first["id"] in l and "commits left on" in l)
+        self.assertNotIn("no passing review", line)
+
     def test_a_branch_left_holding_work_is_not_called_cleaned_up(self):
         """The slot went back but the work did not move; the count must not claim it did."""
         first, _ = self.start()
@@ -813,6 +908,12 @@ class TestReconcile(WorktreeCase):
         text = dispatch.render_reconcile(dispatch.reconcile())
         self.assertIn("landed           0", text)
         self.assertNotIn("merged into the trunk", text)
+
+    def test_a_sweep_with_nobody_waiting_does_not_gloss_an_empty_count(self):
+        """Nobody is waiting, so there is nobody for the gloss to be about."""
+        text = dispatch.render_reconcile(dispatch.reconcile())
+        self.assertIn("awaiting review  0", text)
+        self.assertNotIn("nobody has reviewed these yet", text)
 
     def test_a_waiting_line_and_a_fixer_line_read_the_same_way(self):
         """Two bare codes in a row cannot be told apart; each is labelled instead."""

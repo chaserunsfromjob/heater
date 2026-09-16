@@ -191,7 +191,10 @@ def resting_on(change: str) -> dict[str, Any]:
     # the text '9' is not round 9, and printing it bare hides the difference.
     said = f"review round {last.get('round')!r} {last['id']} ({last.get('verdict')})"
     if usable_round(last):
-        why = f"rejected at {said}"
+        # Read from the verdict, not assumed: the same structure is handed to the
+        # landing report, where the round being named is the one that approved
+        # the work, and "rejected at … (pass)" is a false sentence about it.
+        why = f"passed at {said}" if last.get("verdict") == "pass" else f"rejected at {said}"
     else:
         if last.get("round") is None:
             # Printing the blank as "round None" invents a round by that name;
@@ -367,7 +370,8 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
     never refused for being loose; it is committed on its own branch first.
     """
     report: dict[str, Any] = {"at": jsonstore.now(), "landed": [], "landed_on": [], "held": [],
-                              "awaiting_review": [], "needs_fix": [], "runs_finished": []}
+                              "awaiting_review": [], "needs_fix": [], "runs_finished": [],
+                              "runs_unaccounted": []}
 
     def record_landing(record: dict[str, Any], rested: dict[str, Any], consolidated: str,
                        branch: str = "", trunk: str = "the trunk") -> None:
@@ -376,7 +380,18 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
         `consolidated` is one of the four answers `commits_reached_trunk` gives,
         so a stale pass shows, an idle worker does not read as one, a branch left
         holding work says so, and a question nobody could answer says that.
+
+        The answer is kept on the dispatch too. A run is consolidated one member
+        at a time, over as many sweeps as it takes, and an answer that lived only
+        in one sweep's report leaves every later sweep guessing again.
         """
+        # Re-read rather than write the copy in hand: the dispatch was closed a
+        # moment ago and this copy predates that, so writing it would undo it.
+        stored = next((d for d in jsonstore.load(dispatches_dir())
+                       if d["id"] == record["id"]), None)
+        if stored is not None:
+            stored["consolidated"] = consolidated
+            jsonstore.write(dispatches_dir(), stored)
         report["landed"].append(record["id"])
         report["landed_on"].append({"dispatch": record["id"], "consolidated": consolidated,
                                     "branch": branch, "trunk": trunk, **rested})
@@ -459,7 +474,7 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
         finish(record, lease, branch, repo, trunk, f"{why} {rested['on']}")
         record_landing(record, rested, REACHED, branch=branch, trunk=trunk)
 
-    report["runs_finished"] = finished_runs()
+    report["runs_finished"], report["runs_unaccounted"] = finished_runs()
     return report
 
 
@@ -486,15 +501,32 @@ def finish(record: dict[str, Any], lease: dict[str, Any], branch: str,
     close_dispatch(record["id"], "landed", why)
 
 
-def finished_runs() -> list[str]:
-    """Runs whose every worker has landed, so nothing of theirs is left anywhere."""
-    everything = jsonstore.load(dispatches_dir())
+def finished_runs() -> tuple[list[str], list[str]]:
+    """Runs whose every worker has closed, split by whether their work is all in.
+
+    The first list is the runs nothing of which is left anywhere: every member
+    landed, and every member's commits either reached the trunk or never existed.
+    The second is the rest — a member whose branch still holds work, or one
+    nobody could check. Closing as landed is not the same as landing the work,
+    and a run with a branch still holding commits must never be called
+    consolidated two lines under the line naming that branch.
+    """
     runs: dict[str, list[dict[str, Any]]] = {}
-    for record in everything:
+    for record in jsonstore.load(dispatches_dir()):
         if record.get("run_id"):
             runs.setdefault(record["run_id"], []).append(record)
-    return [run for run, members in runs.items()
-            if all(m.get("outcome") == "landed" for m in members)]
+    finished, unaccounted = [], []
+    for run, members in runs.items():
+        if not all(m.get("outcome") == "landed" for m in members):
+            continue
+        # A member with nothing recorded is a member nobody can vouch for: it
+        # closed before the sweep kept this answer, or by a route that never
+        # asked git. That is doubt, and doubt belongs in the second list.
+        if all(m.get("consolidated") in (REACHED, NO_COMMITS) for m in members):
+            finished.append(run)
+        else:
+            unaccounted.append(run)
+    return finished, unaccounted
 
 
 def live() -> list[dict[str, Any]]:
@@ -529,27 +561,37 @@ def render_reconcile(result: dict[str, Any]) -> str:
     if not (counted[LEFT_BEHIND] or counted[UNKNOWN]):
         gloss += "; all cleaned up after"
     gloss += ")"
-    # A breakdown of nothing is noise, and its zeroes read as the real thing.
+    # A breakdown of nothing is noise, and its zeroes read as the real thing. The
+    # waiting count carries no gloss at all: every dispatch it counts is named a
+    # few lines down in those same words, and with none to name it would be
+    # explaining a zero.
     landed = f"  landed           {len(result['landed'])}"
     lines = [f"reconcile as of {result['at']}",
              f"{landed}  {gloss}" if result["landed"] else landed,
-             f"  awaiting review  {len(result['awaiting_review'])}  (nobody has reviewed these yet)",
+             f"  awaiting review  {len(result['awaiting_review'])}",
              f"  needs a fixer    {len(result['needs_fix'])}",
              f"  held             {len(result['held'])}"]
     # Which round each landing rested on, so a stale pass is visible in the
     # report rather than only in the store. The loud line is kept for work that
     # actually reached the trunk without a pass behind it; the other three states
-    # say which one they are, or the alarm stops meaning anything.
+    # say which one they are, or the alarm stops meaning anything. Where the
+    # commits went and whether anybody passed them are two separate facts, so a
+    # state that is not REACHED still carries the review alarm after it — the
+    # one case with a branch full of unreviewed work nobody can find is not the
+    # case to go quiet on. Only a worker that did nothing is silent about
+    # review: there is no work of its own for a round to have approved.
     for entry in landings:
         who, state = entry["dispatch"], entry.get("consolidated")
+        unreviewed = ("" if entry.get("verdict") == "pass"
+                      else f"; and it has no passing review: {entry['said']}")
         if state == NO_COMMITS:
             lines.append(f"    {who} closed with nothing to consolidate")
         elif state == LEFT_BEHIND:
             lines.append(f"    {who} closed with commits left on {entry.get('branch')} "
-                         f"that never reached {entry.get('trunk')}")
+                         f"that never reached {entry.get('trunk')}{unreviewed}")
         elif state == UNKNOWN:
             lines.append(f"    {who} closed; could not check whether its commits "
-                         f"reached {entry.get('trunk')}")
+                         f"reached {entry.get('trunk')}{unreviewed}")
         elif entry.get("verdict") == "pass":
             lines.append(f"    {who} landed on {entry['said']}")
         else:
@@ -567,6 +609,12 @@ def render_reconcile(result: dict[str, Any]) -> str:
         lines.append(f"    {entry['dispatch']}: {entry['why']}")
     if result["runs_finished"]:
         lines.append(f"  runs fully consolidated: {', '.join(result['runs_finished'])}")
+    # Every member closed, but not every member's work is where it should be.
+    # Naming these apart is the whole point: "fully consolidated" is the sentence
+    # that tells the operator to stop looking.
+    if result.get("runs_unaccounted"):
+        lines.append("  runs finished, with work still to account for: "
+                     f"{', '.join(result['runs_unaccounted'])}")
     return "\n".join(lines)
 
 
