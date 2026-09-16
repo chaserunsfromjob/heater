@@ -159,9 +159,9 @@ blocked. It waits, or it asks. I decide that one.
 > agents and just get a full debrief of what they have accomplished over the 5
 > hours in plain english"
 
-The third quote is the whole of what can be sourced: the operator's verdict on
-the barriers in an earlier draft, which is why they were raised to where they
-now sit.
+The third quote is the whole of what can be sourced on where the barriers
+belong: "a little bit low" is the operator's verdict on barriers lower than
+these, which is why these sit where they do.
 
 The weekly window is the one that matters. Running it dry stops everything until
 it resets, and the five-hour window only refills a few hours later, so weekly

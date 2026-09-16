@@ -86,8 +86,9 @@ TOP_OF_LIST_AGENTS_VAR = "HEATER_TAPER_TOP_OF_LIST_AGENTS"
 
 ALLOWS = {
     NOTHING_NEW:
-        "Stop every agent that is still running, write the account of what the window "
-        "bought with bin/debrief.py and send it to the operator, then hand over. Start nothing.",
+        "Stop every agent that is still running, then write the account of what the window "
+        "bought and send it to the operator with bin/debrief.py --hours 5 --queue, "
+        "then hand over. Start nothing.",
     REVIEWS_AND_LANDINGS_ONLY:
         "Only rounds that close a change already in flight. No new research, no new features. "
         "Stop the lowest-priority agents still running rather than letting them run on.",
@@ -265,6 +266,8 @@ def stale(reading: dict[str, Any] | None = None, now: datetime | None = None) ->
 def _age_words(age: float | None) -> str:
     if age is None:
         return "age unknown"
+    if age * 60 < 1:
+        return "read just now"
     if age < 1:
         return f"read {age * 60:.0f} minutes ago"
     return f"read {age:.1f} hours ago"

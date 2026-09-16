@@ -267,7 +267,7 @@ class TestAFullWindow(DebriefCase):
                  "(already on branch worker/36e2ae4be45b; do not create another).")
         text = " ".join(debrief.write(hours=5).split())
         self.assertIn("Resolve the merge conflict between a separate copy of the "
-                      "work and main.", text)
+                      "work and the shared copy.", text)
         self.assertNotIn("already on branch", text)
 
     def test_a_clause_that_only_says_where_to_work_is_dropped(self):
@@ -276,6 +276,56 @@ class TestAFullWindow(DebriefCase):
         text = " ".join(debrief.write(hours=5).split())
         self.assertIn("Resolve the merge conflict in pokerbot.", text)
         self.assertNotIn("a folder on this machine", text)
+
+    def test_an_incidental_later_sentence_is_not_taken_for_the_work(self):
+        """The live entry read "Update the constant's comment if it references
+        the old number": housekeeping, printed as though it were the job."""
+        self.job("Raise tools/worktrees.py's MAX_SLOTS constant from 3 to 6. "
+                 "Confirm that by reading tests/test_worktrees.py and anywhere "
+                 "else MAX_SLOTS is relied on. Update the constant's comment if "
+                 "it references the old number.",
+                 done_when="six working copies can be open at once")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertNotIn("Update the constant's comment", text)
+        self.assertIn("Done when six working copies can be open at once", text)
+
+    def test_a_note_on_how_the_fault_was_found_is_not_taken_for_the_work(self):
+        """The live entry read "Confirmed: the module passes 20/20 ...": the
+        diagnosis, printed as though it were what the agent was sent to do."""
+        self.job("tests/test_queue_and_stop.py's TestStopHook reads live session "
+                 "state instead of stubbing it. Confirmed: the module passes "
+                 "20/20 in a clean worktree and fails 7/20 in the main checkout, "
+                 "with byte-identical code. This makes the gate an unreliable "
+                 "landing signal.",
+                 done_when="the tests give the same answer wherever they are run")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertNotIn("Confirmed", text)
+        self.assertNotIn("20/20", text)
+        self.assertNotIn("unreliable landing signal", text)
+        self.assertIn("Done when the tests give the same answer wherever they "
+                      "are run", text)
+
+    def test_a_project_name_a_repository_and_a_branch_are_all_said_plainly(self):
+        """Three shapes the live page still leaked, in one fixture."""
+        self.job("Vendor the solver into this repo wherever poker_ai is being "
+                 "kept, and resolve the conflict between worker/36e2ae4be45b "
+                 "and main.")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertNotIn("poker_ai", text)
+        self.assertNotIn("this repo", text)
+        self.assertNotIn("and main", text)
+        self.assertIn("into this project", text)
+        self.assertIn("and the shared copy", text)
+
+    def test_two_different_jobs_that_read_alike_are_not_counted_as_one(self):
+        """The page is lossy on purpose, so the count comes off the records."""
+        self.job("Survey the engines and pick one, checking TestAlpha.",
+                 minutes_ago=40)
+        self.job("Survey the engines and pick one, checking TestBeta.",
+                 minutes_ago=30)
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("Survey the engines and pick one.", text)
+        self.assertNotIn("already listed above", text)
 
     def test_a_brief_that_is_all_machinery_says_so_honestly(self):
         """No sentence survives and nothing says what done looks like."""
@@ -373,8 +423,8 @@ class TestAFullWindow(DebriefCase):
         self.job("Vendor the solver into this repo (e.g. under vendor/) so it "
                  "builds without the network. The rest does not matter.")
         text = " ".join(debrief.write(hours=5).split())
-        self.assertIn("Vendor the solver into this repo so it builds without the "
-                      "network.", text)
+        self.assertIn("Vendor the solver into this project so it builds without "
+                      "the network.", text)
         self.assertNotIn("vendor/", text)
         self.assertNotIn("The rest does not matter", text)
 

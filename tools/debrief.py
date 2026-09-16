@@ -65,7 +65,27 @@ PLAIN_WORDS = (
     (re.compile(r"(?<![\w.\-/])[\w\-]+/[\w\-]*_[\w\-]+(?![\w.\-])"),
      "a ready-made project from the internet"),
     (re.compile(r"\b(?=[0-9a-f]*\d)[0-9a-f]{8,}\b"), "a record number"),
+    (re.compile(r"(?<![\w.\-/])[a-z][a-z0-9\-]*_[a-z0-9_\-]+(?![\w.\-/])"),
+     "another project"),
 )
+
+# Two words a brief uses as jargon and a person uses as neither: the short name
+# for a project, and the name of the copy everyone's work is joined onto. They
+# are ordinary words, not machinery, so a sentence carrying one is still worth
+# saying -- it is said in the words the reader would use. The branch word is
+# only swapped where it is the object of joining one copy to another, so "the
+# main checkout" is left alone.
+JARGON_WORDS = (
+    (re.compile(r"\brepos\b"), "projects"),
+    (re.compile(r"\brepo\b"), "project"),
+    (re.compile(r"\b(and|onto|into|from|with|against|to)\s+(?:main|trunk)\b"),
+     r"\1 the shared copy"),
+)
+
+# A word a brief shouts, which is how it points back at a file it has already
+# named. The account is written in sentences and never shouts, and an acronym
+# the reader would have to be taught is no use to them shouted either.
+SHOUT = re.compile(r"(?<![\w'])[A-Z]{2,}(?![\w'])")
 
 # What machinery looks like when no swap above has caught it. A sentence still
 # carrying any of these was written for an agent, and no amount of rewording
@@ -87,6 +107,11 @@ CODE_SHAPE = re.compile(
 # Where a reader would draw breath. Used both to drop a whole clause and to stop
 # before the limit, so that nothing ever ends in the middle of one.
 CLAUSE_BREAK = re.compile(r"(,|;|:|\s--|\s—|\s–)(\s+)")
+
+# A marker in front of an item in a list: "(a)", "(b)". Where the trim keeps
+# only the first item, the marker in front of it points at a list the account
+# does not show, so it goes with its siblings.
+LIST_MARKER = re.compile(r"\s*\((?:[a-z]|\d)\)\s*")
 
 # An aside in brackets. Briefs do not nest them, and one that carries machinery
 # is dropped whole rather than swapped inside: "(already on branch a separate
@@ -133,12 +158,15 @@ NOT_RECORDED = "no task was recorded"
 DOES_NOT_TRANSLATE = ("what this one was about was written for another agent "
                       "and does not translate into plain words")
 
-# What each note in the queue is, by what it is for.
+# What each note in the queue is, by what it is for, said of one and of several.
 KIND_WORDS = {
-    "finding": "something an agent noticed in passing and wrote down",
-    "escalation": "a decision an agent needs from you",
-    "report": "an account an agent wrote for you",
-    "failure": "something that went wrong",
+    "finding": ("something an agent noticed in passing and wrote down",
+                "things an agent noticed in passing and wrote down"),
+    "escalation": ("a decision an agent needs from you",
+                   "decisions an agent needs from you"),
+    "report": ("an account an agent wrote for you",
+               "accounts an agent wrote for you"),
+    "failure": ("something that went wrong", "things that went wrong"),
 }
 
 
@@ -232,8 +260,10 @@ def _sentences(text: str) -> list[str]:
 
 def _plainly(text: str) -> str:
     """The sentence with the machinery in it said as what the machinery is."""
-    for pattern, plain in PLAIN_WORDS:
+    for pattern, plain in PLAIN_WORDS + JARGON_WORDS:
         text = pattern.sub(plain, text)
+    text = SHOUT.sub(lambda found: found.group(0).capitalize() if found.start() == 0
+                     else found.group(0).lower(), text)
     return " ".join(text.split())
 
 
@@ -307,6 +337,8 @@ def _readable(text: str, limit: int) -> str:
                 break
 
     said = "".join(kept).strip().rstrip(",;:-—– ").strip()
+    if len(LIST_MARKER.findall(said)) == 1:
+        said = LIST_MARKER.sub(" ", said).strip()
     return f"{said}." if said else ""
 
 
@@ -321,15 +353,19 @@ def _describe(record: dict[str, Any], limit: int = 220) -> str:
     The first sentence of a brief often says what kind of work it is rather than
     what the work was, and several briefs can say that in identical words, so a
     clause like that is passed over for the sentence that says what was wanted.
-    A sentence that is machinery all the way down is passed over too, then what
-    finishing would look like is tried, and where none of that survives the
-    account says so rather than printing something the reader cannot read.
+    That sentence is the brief. What comes after it is the reasoning, the
+    diagnosis and the housekeeping, so reaching further down the brief buys a
+    line that says an agent was spent on tidying a comment. Where that sentence
+    is machinery all the way down, what finishing would look like is tried
+    instead, and where that fails too the account says so rather than printing
+    something the reader cannot read.
     """
     for sentence in _sentences(record.get("task", "")):
         if META_CLAUSE.match(sentence):
             continue
         if (said := _in_plain_words(sentence, limit)):
             return said
+        break
     for sentence in _sentences(record.get("done_when", "")):
         if (said := _in_plain_words(sentence, limit)):
             return _upper(f"done when {said[:1].lower() + said[1:]}")
@@ -415,23 +451,35 @@ def _tally(jobs: int, sent: int, done: int, landed: int, running: int) -> str:
     return f"{first} {_upper(rest)}."
 
 
-def _repeats(told: list[str]) -> str:
+def _same_work(record: dict[str, Any]) -> str:
+    """A brief boiled down to what two dispatches of one job would share.
+
+    Only what says where on this machine to work is taken out, because that is
+    the whole of what changes when a brief is sent a second time. Everything
+    else the brief says is kept, word for word.
+    """
+    text = _without_where_to_work(_without_asides(record.get("task", "")))
+    return " ".join(text.lower().split()).strip(" .,;:")
+
+
+def _repeats(jobs: list[dict[str, Any]]) -> str:
     """Whether some of these entries are work already listed further up.
 
     Four of nineteen entries on one live page were a brief sent out a second
     time, and a count that does not say so reads as more separate work than
-    there was. Counted on what the entries actually say, so the sentence can
-    never contradict the list under it.
+    there was. Counted on the briefs as they were written down, never on the
+    entries, because an entry says only as much of its brief as reads plainly
+    and two different jobs can come out of that saying the same thing.
     """
-    said = [t for t in told if t not in (NOT_RECORDED, DOES_NOT_TRANSLATE)]
-    again = len(said) - len(set(said))
+    written = [key for key in (_same_work(record) for record in jobs) if key]
+    again = len(written) - len(set(written))
     if not again:
         return ""
     subject = ("One of the entries below describes work already listed above it"
                if again == 1 else
                f"{again} of the entries below describe work already listed above them")
     return (f"{subject}: the same brief was sent out more than once, so this window "
-            f"covers {len(told) - again} separate pieces of work, not {len(told)}.")
+            f"covers {len(jobs) - again} separate pieces of work, not {len(jobs)}.")
 
 
 def _note_lines(notes: list[dict[str, Any]]) -> list[str]:
@@ -460,8 +508,7 @@ def _note_lines(notes: list[dict[str, Any]]) -> list[str]:
             f"agent and written down for the stoker to judge rather than for you; {how}."))
 
     if for_you:
-        kinds = ", ".join(sorted({KIND_WORDS.get(i.get("kind", ""), i.get("kind", "a note"))
-                                  for i in for_you}))
+        kinds = sorted({i.get("kind", "") for i in for_you})
         unsent = [i for i in for_you if not i.get("delivered_at")]
         how = ("and all of them have been passed on to you" if not unsent
                else "and it has not been passed on to you yet" if len(for_you) == 1
@@ -469,8 +516,27 @@ def _note_lines(notes: list[dict[str, Any]]) -> list[str]:
                if len(unsent) == len(for_you)
                else f"{len(unsent)} of which have not been passed on to you yet")
         said.append(_upper(f"{_count(len(for_you), 'note was', 'notes were')} left for you "
-                           f"in this window, {how}. They are: {kinds}."))
+                           f"in this window, {how}. {_what_they_are(kinds, len(for_you))}"))
     return said
+
+
+def _kind_words(kind: str) -> tuple[str, str]:
+    return KIND_WORDS.get(kind, (kind or "a note", kind or "notes"))
+
+
+def _what_they_are(kinds: list[str], notes: int) -> str:
+    """What the notes are, said of however many of them there turn out to be.
+
+    "2 notes ... They are: an account an agent wrote for you" is a plural
+    subject with a singular list under it, which reads as though one of the two
+    went missing. Where they are all the one kind there is no list to make.
+    """
+    if len(kinds) > 1:
+        return "They are: " + ", ".join(sorted(_kind_words(k)[0] for k in kinds)) + "."
+    one, many = _kind_words(kinds[0])
+    if notes == 1:
+        return f"It is {one}."
+    return f"Both are {many}." if notes == 2 else f"All of them are {many}."
 
 
 def _job_lines(record: dict[str, Any], rounds: list[dict[str, Any]], now: datetime,
@@ -523,7 +589,7 @@ def render(data: dict[str, Any]) -> str:
 
     body = ["", _wrap(_tally(len(jobs), len(sent), len(done), len(landed), len(running)),
                       indent="")]
-    if (again := _repeats(told)):
+    if (again := _repeats(jobs)):
         body += ["", _wrap(again, indent="")]
 
     for number, (record, description) in enumerate(zip(jobs, told), 1):
