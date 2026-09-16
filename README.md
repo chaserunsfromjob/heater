@@ -131,7 +131,10 @@ working this folder at once would undo each other's changes. The screen is not
 where it stays: it is also filed in the queue the next session is woken with, and
 `bin/bearings.py` reports it under "A session left running" until it is closed.
 Why the `bin/stoker.sh` watching it stopped is not something any of this can see,
-so none of it says.
+so none of it says. Beside that again sits `~/.heater/stoker-session.lock`, a
+small companion file that keeps two copies of `bin/stoker.sh` from writing the
+record at the same moment and erasing each other's entry; it stays there
+empty between runs and is never anything to tidy up.
 
 All of this needs the machine to report when a program started — `ps` is what
 answers that, and it is how a `bin/stoker.sh` that is still running is told apart

@@ -9,6 +9,7 @@ never says anything, and a hook that wedges a session it cannot help.
 from __future__ import annotations
 
 import contextlib
+import fcntl
 import io
 import json
 import os
@@ -1229,6 +1230,163 @@ class TestASessionThatWillNotEnd(RecordCase):
             for entry in stoker.orphan_sessions():
                 stoker.announce_orphan(entry)
         self.assertEqual(len(self.queued()), 1, "every launch filed the same session again")
+
+
+class TestWaitingForTheNoteIsBounded(RecordCase):
+    """The note is written between spawning the session and starting to watch
+    it. A supervisor stuck there has a live session nobody polls the marker
+    for, and no signal gets it out: writing the note down is worth waiting a
+    moment for and is never worth a launch."""
+
+    def test_a_note_somebody_else_is_holding_is_not_waited_on_forever(self):
+        pid = self.living_process()
+        stoker.child_lock_path().parent.mkdir(parents=True, exist_ok=True)
+        holder = os.open(stoker.child_lock_path(), os.O_RDWR | os.O_CREAT, 0o644)
+        self.addCleanup(os.close, holder)
+        fcntl.flock(holder, fcntl.LOCK_EX)
+
+        done = threading.Event()
+
+        def write_it_down() -> None:
+            stoker.record_child(pid, "tok")
+            done.set()
+
+        writer = threading.Thread(target=write_it_down, daemon=True)
+        writer.start()
+        # Whether it came back on its own is the whole question, so the hold is
+        # let go either way and the thread joined before anything is asserted:
+        # a test that leaves it stuck there takes the suite down with it.
+        returned = done.wait(30)
+        fcntl.flock(holder, fcntl.LOCK_UN)
+        writer.join(30)
+        self.assertTrue(returned,
+                        "the supervisor waited on the hold with a session already running")
+        kept = [e for e in stoker.read_child_records().values() if e.get("pid") == pid]
+        self.assertTrue(kept, "it gave up on the note instead of writing it unheld")
+        self.assertTrue(any(e["event"] == "stoker_records_unheld" for e in self.hook_events()),
+                        "it wrote the note unheld without saying so")
+
+    def test_nothing_is_asked_of_the_system_while_the_note_is_held(self):
+        """Asking whether a process is running runs a `ps`, and every moment
+        spent holding the note is a moment another supervisor waits for it."""
+        stoker.record_child(self.living_process(), "first")
+        holding: list[bool] = []
+        asked: list[list[str]] = []
+        real_hold, real_run = stoker.hold_records, subprocess.run
+
+        @contextlib.contextmanager
+        def watched_hold(*args, **kwargs):
+            with real_hold(*args, **kwargs) as held:
+                holding.append(True)
+                try:
+                    yield held
+                finally:
+                    holding.pop()
+
+        def watched_run(*args, **kwargs):
+            if holding:
+                asked.append(args[0])
+            return real_run(*args, **kwargs)
+
+        with mock.patch.object(stoker, "hold_records", watched_hold), \
+                mock.patch.object(subprocess, "run", watched_run):
+            stoker.record_child(self.living_process(), "second")
+        self.assertEqual(asked, [], "it kept the note held while it asked the system a question")
+
+
+LEFT_BEHIND_BY_A_SUPERVISOR_THAT_DIES = '''
+import subprocess, sys
+sys.path.insert(0, sys.argv[1] + "/tools")
+sys.path.insert(0, sys.argv[1] + "/hooks")
+import stoker
+
+
+class UnendingChild:
+    def __init__(self, pid):
+        self.pid = pid
+
+    def poll(self):
+        return None
+
+    def terminate(self):
+        pass
+
+    def kill(self):
+        pass
+
+    def wait(self, timeout=None):
+        raise subprocess.TimeoutExpired("claude", timeout)
+
+
+pid = int(sys.argv[2])
+stoker.record_child(pid, "tok")
+stoker.end_session(UnendingChild(pid), 0.05)
+'''
+
+
+class TestOneSessionIsNamedOnce(RecordCase):
+    """A session that would not end is written down twice: once as the session
+    this supervisor started, once as the one it gave up on ending. Both entries
+    name the same session, so once that supervisor is gone the operator is sent
+    twice to close one session — and the second trip finds nothing."""
+
+    def a_supervisor_that_left_a_session_running(self, pid: int) -> None:
+        done = subprocess.run(
+            [sys.executable, "-c", LEFT_BEHIND_BY_A_SUPERVISOR_THAT_DIES, str(ROOT), str(pid)],
+            env=self.environment(), capture_output=True, text=True, timeout=60)
+        self.assertEqual(done.returncode, 0, done.stderr)
+
+    def test_a_dead_supervisors_unended_session_is_named_once(self):
+        pid = self.living_process()
+        self.a_supervisor_that_left_a_session_running(pid)
+        orphans = stoker.orphan_sessions()
+        self.assertEqual([entry.get("pid") for entry in orphans], [pid],
+                         "one session left running was reported as more than one")
+        lines, attention = bearings.left_running()
+        self.assertEqual(len(lines), 1, "bin/bearings.py named one session twice")
+        self.assertIn(str(pid), lines[0])
+        self.assertTrue(attention, "two sessions in one folder undo each other's work")
+
+
+class TestAStateDirectoryThatCannotBeWritten(RecordCase):
+    """The note cannot be written and the hold cannot be taken, while the log
+    can be written perfectly well. Saying nothing at all leaves the operator
+    with a warning that is filed again on every launch, because nothing on disk
+    ever records that it was already filed once."""
+
+    def setUp(self):
+        super().setUp()
+        if os.geteuid() == 0:
+            self.skipTest("a directory's permissions do not stop root")
+
+    def seal(self, directory: Path) -> None:
+        directory.mkdir(parents=True, exist_ok=True)
+        self.addCleanup(directory.chmod, 0o700)
+        directory.chmod(0o500)
+
+    def test_a_note_that_could_not_be_written_says_so_in_the_log(self):
+        self.seal(stoker.state_dir())
+        stoker.record_child(self.living_process(), "tok")
+        said = [e["event"] for e in self.hook_events()
+                if e["event"].startswith("stoker_records_")]
+        self.assertEqual(said, ["stoker_records_unheld", "stoker_records_unwritten"],
+                         "a launch that wrote nothing down left no trace of it")
+
+    def test_a_claim_nothing_recorded_is_not_a_claim(self):
+        pid = self.living_process()
+        entry = {"pid": pid, "start": stoker.process_start(pid), "token": "t",
+                 "owner_pid": os.getpid(), "owner_start": "not when this one started",
+                 "unwatched": True}
+        stoker.write_child_records({"a-supervisor-that-is-gone": entry})
+        self.seal(stoker.state_dir())
+        self.assertFalse(stoker.claim_orphan_report(entry),
+                         "it was told it had taken a claim nothing wrote down")
+        with contextlib.redirect_stderr(io.StringIO()):
+            for _ in range(3):
+                for orphan in stoker.orphan_sessions():
+                    stoker.announce_orphan(orphan)
+        self.assertLessEqual(len(self.queued()), 1,
+                             "the stoker was woken again about a session it was already told of")
 
 
 BARRIER = '''

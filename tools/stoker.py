@@ -138,6 +138,15 @@ CHILD_RECORD_NAME = "stoker-session"
 # holding a file that is about to be replaced holds nothing.
 CHILD_LOCK_NAME = "stoker-session.lock"
 
+# The longest a supervisor waits for that hold, and how often it asks again in
+# the meantime. The note is written between spawning the session and starting to
+# watch it, so a supervisor waiting here has a live session nobody is polling the
+# marker for and no signal that gets it out. Long enough that two supervisors
+# starting together still take their turns; short enough that one stopped
+# mid-hold costs the next one a moment rather than the whole handoff.
+HOLD_WAIT = 2.0
+HOLD_RETRY = 0.01
+
 # Set on the session the supervisor launches, and on nothing else. The marker is
 # one shared path, and the fleet repository makes any unmarked session in it the
 # stoker, so without an identity a plain `claude` opened in this folder would end
@@ -435,8 +444,30 @@ def child_lock_path() -> Path:
     return state_dir() / CHILD_LOCK_NAME
 
 
+def _take_hold(handle: int, seconds: float) -> bool:
+    """Ask for the hold over and over until this long has passed. True when it came.
+
+    Asking once and waiting however long it takes is what a plain hold does, and
+    there is no length of time it will not wait: a supervisor stopped mid-hold —
+    by the operator suspending it, or by the machine — leaves every other
+    supervisor here waiting on it with no way out, signals included. Asking in a
+    way that comes straight back, over and over until a deadline, is the same
+    hold with a bottom to it.
+    """
+    deadline = time.monotonic() + seconds
+    while True:
+        try:
+            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return True
+        except OSError:
+            pass
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(HOLD_RETRY)
+
+
 @contextmanager
-def hold_records() -> Iterator[None]:
+def hold_records() -> Iterator[bool]:
     """Hold the session note for as long as it takes to read it and write it back.
 
     Reading it, changing a copy and writing the copy back is three steps, and two
@@ -447,26 +478,36 @@ def hold_records() -> Iterator[None]:
     A separate file is what is held, because the note itself is replaced rather
     than written in place and a hold on a file that is about to be replaced
     holds nothing. Failing to take the hold is not a reason to refuse a launch:
-    this is a note, not the work, and a lost entry beats no session at all.
+    this is a note, not the work, and a lost entry beats no session at all. So
+    the wait has a deadline, and what follows it runs unheld — said out loud in
+    the log, because that is the moment two supervisors can erase each other.
     """
     handle: int | None = None
+    held = False
     try:
         path = child_lock_path()
         path.parent.mkdir(parents=True, exist_ok=True)
         handle = os.open(path, os.O_RDWR | os.O_CREAT, 0o644)
-        fcntl.flock(handle, fcntl.LOCK_EX)
-    except OSError:
-        if handle is not None:
+        held = _take_hold(handle, HOLD_WAIT)
+    except OSError as error:
+        log("stoker_records_unheld", {"path": str(child_lock_path()),
+                                      "error": str(error), "seen": "taking the hold"})
+        if handle is not None:  # pragma: no cover - only os.open raises here
             os.close(handle)
             handle = None
+    if handle is not None and not held:
+        log("stoker_records_unheld", {"path": str(child_lock_path()),
+                                      "error": f"still held after {HOLD_WAIT} seconds",
+                                      "seen": "taking the hold"})
     try:
-        yield
+        yield held
     finally:
         if handle is not None:
-            try:
-                fcntl.flock(handle, fcntl.LOCK_UN)
-            except OSError:  # pragma: no cover - the hold went with the file
-                pass
+            if held:
+                try:
+                    fcntl.flock(handle, fcntl.LOCK_UN)
+                except OSError:  # pragma: no cover - the hold went with the file
+                    pass
             os.close(handle)
 
 
@@ -484,17 +525,24 @@ def record_child(pid: int, token: str) -> None:
     started = process_start(os.getpid())
     entry = {"pid": pid, "start": process_start(pid), "token": token,
              "owner_pid": os.getpid(), "owner_start": started}
-    # Both start times are read before the hold is taken: asking the system when
-    # a process started is the slowest thing here, and every moment spent
-    # holding the note is a moment another supervisor waits for it.
+    # Every question for the system is asked out here, before the hold is taken:
+    # the two start times above, and whether each session already in the note has
+    # ended. Each of those runs a `ps`, which is the slowest thing here, and every
+    # moment spent holding the note is a moment another supervisor waits for it.
+    # Held, all that is left to do is read the note, drop those, and write it back.
+    ended = {key: kept for key, kept in read_child_records().items()
+             if not child_alive(kept)}
     with hold_records():
+        # An entry dropped is one this run watched end. Anything that arrived or
+        # changed since — another supervisor's, written in the meantime — is left
+        # alone rather than judged on an answer that was true a moment ago.
         records = {key: kept for key, kept in read_child_records().items()
-                   if child_alive(kept)}
+                   if kept != ended.get(key)}
         records[f"{os.getpid()} {started}"] = entry
         write_child_records(records)
 
 
-def write_child_records(records: dict[str, Any]) -> None:
+def write_child_records(records: dict[str, Any]) -> bool:
     """Put the sessions back on disk. Never raises: this is a note, not the work.
 
     Written beside the note and moved onto it, rather than into it. Writing into
@@ -502,6 +550,12 @@ def write_child_records(records: dict[str, Any]) -> None:
     gets a fragment, and a fragment reads as no sessions at all — the session
     left running vanishes from the note, which is the one thing it is for. The
     move puts the whole file in place in one step or not at all.
+
+    True when the note on disk is now what was passed in. Failing quietly is
+    what let a warning be filed again on every launch: nothing on disk ever
+    recorded that it had been filed once, and nothing said so either. A caller
+    that is deciding something on the strength of the write needs the answer,
+    and the log gets it whether or not anybody asks.
     """
     path = child_record_path()
     spare = path.with_name(f".{path.name}.{secrets.token_hex(4)}")
@@ -509,11 +563,15 @@ def write_child_records(records: dict[str, Any]) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         spare.write_text(json.dumps(records) + "\n", encoding="utf-8")
         os.replace(spare, path)
-    except OSError:
+        return True
+    except OSError as error:
+        log("stoker_records_unwritten", {"path": str(path), "error": str(error),
+                                         "seen": "writing the session note"})
         try:
             spare.unlink()
         except OSError:  # pragma: no cover - it was never written
             pass
+        return False
 
 
 def read_child_records() -> dict[str, Any]:
@@ -573,9 +631,21 @@ def orphan_sessions() -> list[dict[str, Any]]:
 
     What happened to the supervisor is not something this can see. `kill -9`, a
     fault, and a machine that went down all leave exactly this behind.
+
+    One session, named once, however many entries the note holds for it. A
+    session its supervisor gave up on ending is written down twice — once as the
+    session that supervisor started, once as the one it stopped waiting on — and
+    once that supervisor is gone both entries match. Two of them on screen is
+    the operator sent twice to close one session, and the second trip finds
+    nothing there.
     """
-    return [entry for entry in read_child_records().values()
-            if child_alive(entry) and (entry.get("unwatched") or not owner_alive(entry))]
+    once: dict[tuple[Any, Any], dict[str, Any]] = {}
+    for entry in read_child_records().values():
+        watched = not entry.get("unwatched") and owner_alive(entry)
+        if watched or not child_alive(entry):
+            continue
+        once.setdefault((entry.get("pid"), entry.get("start")), entry)
+    return list(once.values())
 
 
 def claim_orphan_report(entry: dict[str, Any], reported: bool = True) -> bool:
@@ -598,8 +668,10 @@ def claim_orphan_report(entry: dict[str, Any], reported: bool = True) -> bool:
             return False
         for candidate in matching:
             candidate["reported"] = reported
-        write_child_records(records)
-        return True
+        # A claim only this run remembers is no claim at all: the next launch
+        # reads the same note, sees nothing taken, and wakes the stoker about
+        # the same session again. So the write is the claim.
+        return write_child_records(records)
 
 
 def file_orphan_note(pid: int) -> bool:
@@ -630,12 +702,22 @@ def announce_orphan(entry: dict[str, Any]) -> None:
 
 
 def orphan_message(pid: int) -> str:
+    """What is true on both paths that reach it, and nothing beyond that.
+
+    A supervisor that is gone and a supervisor that gave up on ending the
+    session leave the same thing behind: a session nobody is waiting on. Only
+    one of those two has stopped running, so neither is said. The number is good
+    only while the session is: the machine hands it out again afterwards, so the
+    message says what confirms it rather than leaving it to be trusted.
+    """
     return (
-        f"bin/stoker.sh: the Claude session that was running here last is still going, and the "
-        f"program that was watching it is not running any more, so nothing is watching it now. A "
-        f"fresh session is being opened, so two of them will be working this folder at once and "
-        f"they will undo each other's changes. Close the old one: find its window and quit it, or "
-        f"run `kill {pid}` in a terminal."
+        f"bin/stoker.sh: the Claude session that was running here last is still going, and "
+        f"nothing is watching it now. A fresh session is being opened, so two of them will be "
+        f"working this folder at once and they will undo each other's changes. Close the old "
+        f"one: find its window and quit it. Run bin/bearings.py to see whether it is still "
+        f"going; while it is, the machine knows it by the number {pid}, so `kill {pid}` in a "
+        f"terminal closes it too. Once it has closed, that number is handed to something else, "
+        f"so it is worth nothing afterwards."
     )
 
 
@@ -990,7 +1072,10 @@ def _run_sessions(extra: list[str] | None, spawn: Callable[..., subprocess.Popen
         try:
             child = spawn(line, cwd=str(REPO), env=child_env(token))
         except (OSError, ValueError) as error:
-            print(f"bin/stoker.sh: could not start Claude: {error}", file=sys.stderr)
+            print(f"bin/stoker.sh: the Claude program could not be started on this machine, "
+                  f"so no session was opened and nothing here is running. Check that typing "
+                  f"`claude` in a terminal in this folder starts it. The machine's own words "
+                  f"for what went wrong: {error}", file=sys.stderr)
             log("stoker_launch_failed", {"error": str(error)})
             return 127
 
