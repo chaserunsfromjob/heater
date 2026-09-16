@@ -4,8 +4,12 @@ Delete each section in that change's landing commit. Every open finding is
 in a `findings-<change>-<name>-r<N>.md` file beside this one; if a fixer's
 or reviewer's report never arrives, brief the next one from that file plus
 the store note (`store/reviews`, by change id). Snapshot as of
-2026-09-16T03:15Z; the agents named as RUNNING report into the stoker's
-context as "Subagent hand-back" messages.
+2026-09-16T03:40Z. THE OPERATOR STOPPED ALL AGENTS at 03:38Z and asked for a
+debrief (handover/debrief-2026-09-16.md). Nothing is running. Every RUNNING
+below is now STOPPED: the exploitation round-8 reviewer and solvers round-6
+reviewer had barely started (re-dispatch fresh); the engine round-2 fixer was
+waiting on a paired play session and its edits were autosaved at 52bd81d on
+worker/7f09949cb56f (resume from disk).
 
 - Opponent-model design 36e2ae4be45b: on pokerbot main (659c6b7, stale
   round-4 pass; round-7 fixes at 72eff27, 5f7a1a8). Round 8 FAILED: two
