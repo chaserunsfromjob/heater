@@ -45,7 +45,8 @@ context as "Subagent hand-back" messages.
   72eff27; F4, F5 applied; Q4 now states 24 runs on the vendored engine).
   Review round 5 HELD behind the surveys (operator 2026-09-16); brief it
   from `findings-984aa6810a05-tablesize-r4.md` plus this note. Checker
-  consolidation filed and promoted (f55c8b88700f).
+  consolidation was filed, promoted at 30 and fell past the list cap; it is
+  gone by rule, not parked.
 - After all four surveys pass: dispatch ONE worker to reconcile them into a
   plan with measured numbers and record the forefront-rule decision in
   pokerbot/CLAUDE.md. Known unknown for that brief: how the bot sees a real
