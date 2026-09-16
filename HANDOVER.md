@@ -28,7 +28,7 @@ Act on each as it lands; do not re-dispatch a round that is already out.
 | Review exploitation survey round 5 | `76bbf2823a53` | review 5 (round-4 fixes at 7d24066: OpenSpiel facts against their files, fpdb-3 failure restated, (a)/(b) cells re-sourced with PokerTracker 4 at ~ as a flagged deviation, plain-words arithmetic moved to §3.1) | record; fail → fixer; wording-only → confirming round |
 | Fix engine survey round 2 | `7f09949cb56f` | fixer 2 | dispatch review round 3 |
 | Review bots survey round 6 | `14d64950c0bc` | review 6 (round-5 fixes at 50ac5b8: exhaustiveness clause deleted, CLAUDE.md:30 clause restored verbatim, seven wording, bonusbots FAQ qualifier carried after the fixer was sent back) | record; fail → fixer; wording-only → confirming round |
-| Fix solvers survey round 3 | `048795519f43` | fixer 3 (round 3 failed: 6 substantive, runtime evaluator nominated inside "settled", flop figures a composite of runs of different lengths; see `handover/findings-048795519f43-solvers-r3.md`) | dispatch review round 4 |
+| Review solvers survey round 4 | `048795519f43` | review 4 (round-3 fixes at f237c6d: evaluator nomination moved to the open list, flop runs published per run with logs, vendor quotes verbatim; the fixer's in-change finding that MonkerSolver has a built-in batch Scripting tool per a third-party guide was dismissed from the inbox and carried into the reviewer's brief) | record; fail → fixer; wording-only → confirming round |
 
 Every review round so far is recorded in the store. Record each new one
 with `bin/store.py review` the moment it returns (a pass with any

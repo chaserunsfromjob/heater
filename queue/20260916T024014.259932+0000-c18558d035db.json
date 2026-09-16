@@ -8,5 +8,9 @@
   "origin": "",
   "summary": "MonkerSolver entry 16 and shortlist slot 7 rest the exclusion on 'no scripting interface'; the vendor page indeed documents none, but a third-party guide dated 31 March 2026 (plodalong.com/articles/monkersolver-scripting) documents a built-in Scripting tool under the Solve menu that batch-solves a board list against a saved tree. Batch study, not a live API, but it contradicts 'no scripting interface' and may move the (d) rating. Out of scope for round-3 findings F1-F6; F5 only directed resting the claim on the vendor page.",
   "delivered_at": null,
-  "resolution": null
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-16T02:46:27.140036+00:00",
+    "reason": "Inside change 048795519f43 (the solvers survey); carried into the round-4 reviewer's brief to judge against the vendor page and the third-party guide, and into the handover row, so the next fixer round takes it if the reviewer confirms it. A defect inside a change is not a separate task."
+  }
 }
