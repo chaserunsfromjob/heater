@@ -28,7 +28,7 @@ Act on each as it lands; do not re-dispatch a round that is already out.
 | Fix exploitation survey round 4 | `76bbf2823a53` | fixer 4 (round 4 failed: 3 substantive, two of the over-claim class; see `handover/findings-76bbf2823a53-exploitation-r4.md`) | dispatch review round 5 |
 | Fix engine survey round 2 | `7f09949cb56f` | fixer 2 | dispatch review round 3 |
 | Fix bots survey round 5 | `14d64950c0bc` | fixer 5 (round 5 failed on the two sentences the round-4 fixer added on its own; see `handover/findings-14d64950c0bc-bots-r5.md`; brief forbids adding anything beyond the findings) | dispatch review round 6 |
-| Review solvers survey round 3 | `048795519f43` | review 3 (round-2 fixes at 25948cc: heads-up engine choice handed back to the reconciliation, every timing re-taken with load recorded, GTO Wizard re-verified against dated patch notes) | record; fail → fixer; wording-only → confirming round |
+| Fix solvers survey round 3 | `048795519f43` | fixer 3 (round 3 failed: 6 substantive, runtime evaluator nominated inside "settled", flop figures a composite of runs of different lengths; see `handover/findings-048795519f43-solvers-r3.md`) | dispatch review round 4 |
 
 Every review round so far is recorded in the store. Record each new one
 with `bin/store.py review` the moment it returns (a pass with any

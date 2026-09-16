@@ -1,0 +1,17 @@
+{
+  "id": "9b479b5ef60d",
+  "created": "2026-09-16T01:45:12.088831+00:00",
+  "change": "048795519f43",
+  "project": "pokerbot",
+  "round": 3,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 6,
+  "wording_only": false,
+  "files": 5,
+  "insertions": 1290,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "6 substantive, none wording. Fail-class: the runtime evaluator is nominated inside the 'settled' list ('use phevaluator', :905-918, :841-846) while the same bullet says nominating it belongs to the reconciliation. Over-claims: flop figures merge three ~420 s runs with two short probes (3.4 GiB floor is from a 181 s probe; full runs used 4.95-5.79 GiB; a 2.27-core run dropped; 'on every run' false; attribution backwards) (:196-208, :1005, :1019-1023); Holdem Solver '20M iterations converged in 9m05s' where the vendor says 'still converging', 'hours' unsourced (:730-731, :46-49); GTO Wizard pricing under-reports its own source (standard / also confirmed; Early Bird ends 2026-10-15) (:649-663); MonkerSolver AutoHotkey claim has no URL (:51-53, :610-612); bench_phe.py and bench_treys.py named but not committed, turn wall time and load unpublished (:1052-1057). Everything else verified: range counts, turn log, bincode pin, GTOpen table, all GTO Wizard quotes, vendor prices, repo metadata, page-fault paragraph; postflop-solver re-run reproduces 0.18-0.21 s at load 3.41. No token count in the hand-back."
+}
