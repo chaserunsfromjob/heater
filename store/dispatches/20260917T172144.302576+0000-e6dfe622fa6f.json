@@ -1,0 +1,18 @@
+{
+  "id": "e6dfe622fa6f",
+  "created": "2026-09-17T17:21:44.302576+00:00",
+  "task": "Operator rule change: a document-only change lands on ONE review round passing with wording-only findings; code keeps two. Write it into OPINIONS.md, rules/global.md, skills/adversarial-review, and enforce it in tools/dispatch.py land with tests; README step 7",
+  "project": "heater",
+  "done_when": "the four files updated, land detects document-only from the diff and requires one round for it, tests for doc-only, code, and mixed branches, full suite green, bin/gate.sh exit 0, branch pushed",
+  "task_id": "921f9190a071",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/heater",
+  "workdir": "/Users/chasethompson/.heater/worktrees/heater/dc76881cb2a5",
+  "lease_id": "dc76881cb2a5",
+  "branch": "worker/e6dfe622fa6f",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

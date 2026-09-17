@@ -1,144 +1,135 @@
 # Handover
 
-<!-- handover-commit: 6d5cf1a -->
+<!-- handover-commit: 2c24df8 -->
 
-Written on `main`, 2026-09-17 about 05:05Z, on the Mac, at 34% context with
-four agents out. Verify with `bin/handover.py`. A snapshot, not a log;
+Written on `main`, 2026-09-17 about 17:55Z, on the Mac, at 36% context, the
+operator clearing the session; nothing is out. Verify with `bin/handover.py`. A snapshot, not a log;
 rewrite, do not append.
 
 Read `README.md` for what is built, `OPINIONS.md` for the operator's
-positions, `rules/` for the rules, `handover/findings-pokerbot-pending.md`
-for the state of every pokerbot change, and the commit messages for why.
-None of that is repeated here.
+positions, `rules/` for the rules, pokerbot's `BUILD_PLAN.md` (landed today
+at c8450db) for the stages and the operator's 17 September decisions, and
+the commit messages for why. None of that is repeated here.
 
-## The operator's asks for the morning
+## What is in flight
 
-- ~04:25Z: "finish up any final research and by 9am tomorrow morning we
-  should have a somewhat formed basic plan." Research is closed (every
-  document on pokerbot main; the last, the blueprint note, landed b00802d).
-  The plan is BUILD_PLAN.md. By 09:00 local (16:00Z) send ONE queue report
-  in plain words: the plan, what landed overnight (T1 the table; T2 the
-  first bot and T3 the scoreboard if their reviews pass), the link for
-  Rohit (GitHub issue #13), and D1/D2 still theirs (report 8983491d91ab).
-- ~04:35Z: run as many agents as the five-hour window allows, spread across
-  the whole window, on the most important work (task ab4ea92fcb09, score
-  83, verbatim in OPINIONS.md opinion 14). The meter is live since
-  b46a010: at 05:55Z it read weekly 80% used with 4 days left (resets Mon
-  21 Sep 01:00 EDT), five-hour 40% used and slightly ahead of an even
-  spread, band TOP_OF_LIST_ONLY (at most 3 agents). The WEEKLY figure is
-  the binding one: at 80% with four days to go, keep to two or three agents
-  on top-of-list work and read `bin/bearings.py` "Plan usage" before every
-  dispatch.
+- `e6dfe622fa6f` heater, the one-round rule for document-only changes
+  (branch worker/e6dfe622fa6f @ bbf5ae9, checkout
+  `~/.heater/worktrees/heater/dc76881cb2a5`, dispatch OPEN so `land` works).
+  Reviewer round 1 reported just before the clear: FAIL on six substantive
+  findings (the findings are
+  written in full in handover/findings-e6dfe622fa6f-docrule-r1.md). The
+  classifier, tests and land itself are sound; the failures are the store
+  not counting document landings, README claiming the sweep honours the
+  rule, the rule bullet naming the wrong actor, the empty-diff boundary
+  unstated, the no-lease path never getting one round, and a quantified
+  claim in opinion 15 no store can answer. NEXT: dispatch a fixer in that
+  same checkout (no new lease) scoped to F1-F6, then a fresh round 1; code
+  change, two consecutive wording-only rounds; then `bin/dispatch.py land
+  e6dfe622fa6f --gate "bash bin/gate.sh"` and `git push origin main`. Tasks
+  3a0e461e279d (reconcile still two rounds for documents) and 1faf8e2d11b1
+  (opinion 13 stale) may be folded into the fixer's brief since F2 and F1
+  touch the same code; say so in the brief if you do.
+- Nothing is out. Every pokerbot slot is released; `bin/worktrees.py list`
+  should show only dc76881cb2a5.
 
-## Where things stand
+## The next session's first job: the GTO Wizard answer key
 
-pokerbot main is at 6c40f4f: T1 the table (PR #11), T2 the first bot (PR #15), T3 the scoreboard (PR #16) and the Stage 2 measurement (PR #17) all landed tonight. The MORNING REPORT is queued (d9e05d4e4a29, 05:43Z): deliver it, do not write another.
-Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
-land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
-assistant has not started (no PR, codex/tonight unchanged at ca8339e).
+The operator asked (17:30Z) to "get the GTO wizard part out of the way" now,
+offering about 6% of the weekly meter. Agreed shape, told to the operator:
+NOT the bot-spot checks (the baseline they test does not exist until Stage
+4), but a PRE-REGISTERED preflop answer key so Stage 4's solver is graded
+blind. Cap it at 4 points of the weekly meter (reads 89% at 17:29Z, resets
+Mon 21 Sep 01:00 EDT); re-read `bin/bearings.py` "Plan usage" every 25
+spots and stop at the cap.
 
-No agent is out. Every change dispatched tonight has landed; reconcile at
-09:10Z reported nothing open. pokerbot main is at 69286e6: Stage 3, the
-notebook, landed (PR #22; two rounds; the walk ruled to give no preflop
-stat an opportunity, recorded in OPPONENT_MODEL_DESIGN.md 4.7 row 2 with
-escalation 241e2f235c94 as the authority; 339 tests). The morning report
-(queue d9e05d4e4a29) was amended again at 09:10Z to say so.
+Protocol, to write into the record file's header before the first spot:
+- Site: app.gtowizard.com, already signed in in the operator's Chrome (tier
+  NLH Cash Ultra; the stoker has the Chrome tools, workers do not). Use the
+  Study library, cash, the seat counts the scoreboard weights: 2, 6, 8, 9.
+  Prefer 200bb depth to match the table; if the library only has 100bb, say
+  so in the header and use it. Record the exact solution set, rake and open
+  size shown on screen.
+- Spots: (1) first-in opening decision from every position at each seat
+  count (25 spots); (2) big blind facing each position's open (about 22);
+  (3) if the cap allows, small blind facing each open. For each spot record:
+  the action frequencies shown (raise/call/fold %) and the range as text
+  (the site copies a range as text by hand; paste it).
+- Record file: pokerbot `research/results/theory_agreement/reference_preflop_2026-09-17.md`
+  on a branch, opened as a draft PR, landed as a document-only change on one
+  round. Nothing from it goes into the bot's tables; it is the answer key
+  Stage 4's `bench`/harness compares against (queue 5a468f29fdf6 describes the
+  harness; it is not built).
+- Our menu is fchpa (half pot, pot, all-in), theirs is 2.5bb-style opens; the
+  harness maps sizes (ACTION_TRANSLATION.md §7). Record theirs as shown; do
+  not translate by hand.
 
-Next real pokerbot work: BUILD_PLAN.md Stage 4, the bot that plays the
-person (wire the notebook's buckets and flags into the search's
-continuation strategies per OPPONENT_MODEL_DESIGN.md 4.4 and
-DECISION_LAYER_SEARCH.md's "how the opponent model enters"); the arena
-must supply seat-to-name maps (HandRecord carries no names). Brief it from
-those documents; then re-run the scoreboard (Stage 2's report is the
-baseline: loses to nit and tag). Weekly usage was 82% at 07:45Z with four
-days left: one worker at a time, top of list only.
+## Traps found today, all costly
 
-- `6e3f3af1ef5c` heater sweep/store truthfulness: LANDED 87f9569 (round 1
-  fail, round 2 pass, two wording items by the session). The sweep's exit
-  code is read off the whole report (unknown keys exit 1); a released slot
-  with commits off the trunk closes `failed` and is named under
-  `left_behind`; an empty branch given up on closes `abandoned`; the
-  store's landed figure is judged on full history via tools/reviewloop.py
-  (was 19, is 5, agrees with dispatch.reviewed). Tasks 68b249e08219,
-  3259f1e2808e, 917775c34006 done; ee0851c19f8f, bc471f09618e filed.
-
-- `20b9ff39b519` heater auto-push in bearings: LANDED 3b26e74 on a round-5
-  clean pass (five rounds). Every bearings read now pushes unpushed local
-  branches in every known checkout; HEATER_AUTOPUSH=0 turns it off; it
-  pushed the taper fixer's in-progress commit on its first live run. The
-  PC's next bearings run pushes the dickreuter branch.
-- `ecc208e2d0d6` heater reconcile landing fixes: LANDED c6b30aa after four
-  rounds (code mutation-proved each round; the last finding was prose,
-  applied by the session, landed --skip-review). The sweep now: lands on
-  the LATEST round; needs two consecutive wording-only passes; never treats
-  an empty branch as landed; holds any checkout with a heartbeat under 30
-  minutes on the empty, merged and --skip-review routes; `--reason` on land
-  and reconcile. A REVIEWED checkout is still removed on the next sweep
-  (documented in skills/dispatch and README step 7). Tasks f16c56933d8a,
-  dc8e3ac0bd7f, f0b91b86f69f done. Siblings filed: b3b71f0512ac
-  (worktrees.reclaim no heartbeat), d80c47c137ae (autosave before guards).
-- `c79a35661f9c` heater usage taper: LANDED b46a010 after eight rounds
-  (reasoned --skip-review override recorded in the dispatch note). bearings
-  now prints "Plan usage" (five-hour and weekly bands, a pacing line) once
-  the status line has written ~/.heater/usage.json, which happens on its
-  next render in an interactive session; until then it says so. At the
-  five-hour 95% band: stop every agent and `bin/debrief.py --hours 5
-  --queue`. Opinion 14 in OPINIONS.md carries the operator's words. Tasks
-  32cbdf129bdf, ab4ea92fcb09, 001bbe019ca8, 06e6e60bc3f7, 62a5a521a2f4 done.
-  Findings files r3-r5 deleted.
-- `ced8b534b39b` heater live-worker hazards: LANDED 1ae176d (round 1 fail
-  on a reclassification that made reconcile exit 1 with any worker out,
-  fixed; round 2 pass, one rename by the session). tools/heartbeats.py now
-  owns the 30-minute silence rule; reclaim and autosave both ask it. Tasks
-  b3b71f0512ac, d80c47c137ae done; 999e3bf36821 filed (kept live worker
-  shows as a bare id in awaiting_review).
-- `9d68697caeb0` Stage 2 first measurement: LANDED 6c40f4f (PR #17,
-  squash-merged because one intermediate commit did not import). The
-  scoreboard header now prints a deviation line whenever `--hands` differs
-  from the pre-registered 1,000. Result, in the README and in
-  research/results/stage2_search_vs_personas.txt: ACCEPT vs always_call
-  (+2368 bb/100 [+2028, +2692]); the bot beats 7 of 13, LOSES to nit and
-  tag, too close to call vs 4. The morning report (queue d9e05d4e4a29) was
-  amended at 06:45Z to carry this. Tasks d077f18909a7, 6805b01c7bd2 done.
-
-Next work, in order, when the usage band allows (weekly was 81% at 06:30Z
-with four days left: two agents at most, top of list only): (1) Stage 2
-proper: the bot loses to nit and tag; BUILD_PLAN.md Stage 3/4 (the notebook
-and the opponent model) is what addresses that, and the persona league is
-the measurement; (2) d67cffad749a (jsonstore.REPO resolves
-to the worktree; widen to the stores). D1/D2 remain the operator's.
-
-## Traps
-
-- Never close a dispatch as `pushed` before it lands; `land` closes it.
-  Never chain `git push --delete` after `land`; delete only once
-  `git branch -r --contains <tip>` shows origin/main.
-- `bin/dispatch.py land` does not push pokerbot main: `git -C
-  /Users/chasethompson/pokerbot pull -q origin main && git push -q origin
-  main` after it. The GitHub rule "changes through a pull request" is
-  bypassed for the owner; the PR shows MERGED once main is pushed.
+- NEVER `git checkout -B <worker branch>` inside a lease made for another
+  dispatch. Leases are git worktrees of one repo; the branch ref becomes
+  shared, and `worktrees.autosave` (run by reconcile AND bearings) commits
+  every stale tree as "Autosave uncommitted work" onto the shared branch,
+  and bearings' auto-push pushes it. Six such commits sit in
+  worker/0a62853153e4's history (net content unchanged, verified by diff).
+  Task f642286f63f2 is the fix. Until then: a reviewer or fixer on an
+  existing branch reads the WORKER's own checkout (keep the worker's
+  dispatch open), or a detached worktree in the scratchpad made with
+  `git -C <repo> worktree add --detach <scratchpad path> origin/<branch>`
+  and removed after with `git worktree remove --force`.
+- Closing a dispatch `--outcome pushed` releases its slot and DELETES its
+  checkout; `land` then cannot find a lease and the merge is by hand. Keep
+  the worker's dispatch open until `land`.
+- `bin/dispatch.py land` only works for a dispatch opened on this machine
+  with a lease; a branch built on the PC (dickreuter) was landed by hand:
+  `git merge --no-ff origin/<branch>` in `~/pokerbot` on main, gate, push,
+  `git branch -r --contains` then `git push origin --delete <branch>`.
+- `land` does not push pokerbot main; push it. The branch-protection
+  message "Bypassed rule violations" is normal for the owner.
 - `bin/store.py review` refuses `--verdict pass` with findings > 0 unless
-  `--wording-only`; record a pass-with-substantive-findings as fail.
-- Under the pace rule (rules/global.md, Landing) the session applies wording
-  findings itself for research documents and lands `--skip-review`; code
-  gets a confirming round.
-- Confirming rounds on fleet code keep finding one small thing in the last
-  fix (auto-push five rounds, taper eight). Scope each fixer brief to the
-  finding and each reviewer brief to "confirm the fix, say if wording
-  only". Main's `land` now refuses without two consecutive wording-only
-  passes; `--skip-review --reason "..."` is the override and the note
-  records the reason.
-- Workers cannot file findings unless they run bin/queue.py add against the
-  main checkout (some do); judge whatever appears in the inbox.
-- The auto-mode classifier refuses briefs that edit `hooks/`.
-- Any uncommitted queue/inbox/store file fails `bin/handover.py`; commit
-  them with the handover.
-- Two review records on main had an unescaped backslash and were silently
-  dropped by jsonstore.load (repaired 2026-09-17); the taper fixer adds a
-  count of unreadable records to the debrief page.
-- pokerbot worktrees keep their own `.venv`; bin/gate.sh builds it.
+  `--wording-only`; a pass-on-substance with one small fact slip is
+  recorded as fail with the reasoning in --note, then landed
+  `--skip-review --reason`. Done twice today (dickreuter r3, plan update r1).
+- `work_at_risk` keys on the lease's own branch name; a checkout on another
+  branch reads as unique work and needs `bin/worktrees.py release --force`
+  after verifying HEAD is on origin or in main (task dff118e56feb).
+- The task list cap (20) dropped six low items today; nothing about the bot.
+- The auto-mode safety classifier timed out once (17:20Z) and blocked Bash
+  for a minute; read-only tools kept working. Retry, do not reroute.
+
+## Decisions the operator made today, all recorded verbatim in the queue
+
+Baseline before exploitation (5333609531ed); search is the bot, thinking
+before interfacing (548e5cdfe607); equilibrium baseline, "somewhat similar
+to theory" postflop (6fe7874ab357, ecc3ee41979c); GTO Wizard checks, no
+cap, standing browser permission (5a468f29fdf6); D2 answered: phone app
+mirrored into a phone-shaped column on the right of the Mac (8513859a2c49);
+final deliverable an installable Mac app (f2c5f8524add); one review round
+for documents (385a5a2b3b24, in flight above). All but the last are now in
+BUILD_PLAN.md. Stage 4 (the solved preflop baseline) is the top task on
+the list at score 72 (from finding 5333609531ed); do NOT start it before
+the Monday reset (11 points left this week; the operator was told this).
+
+## Other state only this session knows
+
+- Daniel-Shiven invited to pokerbot with write access 17:0xZ, pending.
+- `git config --global user.name/email` set on this Mac to the GitHub
+  noreply identity; the PC still needs the two lines (README says them).
+- The operator's app and mirroring method are still unnamed; they said it
+  does not matter yet.
+- The operator narrowed dickreuter at 17:48Z: "dont base the whole project
+  off of it"; it is context for screen capture only. Task f2ff0c6cbe23 is
+  rescored to 30 and reduced to checking that CLAUDE.md says just that.
+  Never describe the project as based on dickreuter.
+- The operator's order of jobs for the next session: (1) the GTO Wizard
+  answer key above, (2) fixer and rounds for e6dfe622fa6f, (3) nothing new until
+  the Monday reset.
+- The reviewer for the plan update ran with the safety classifier down; its
+  four fact findings were each re-verified by the stoker before applying.
 
 ## Cost
 
-Session about $355 by `~/.heater/context.json`; 55 review rounds over 21
-changes today; no round carries a dollar figure.
+Session about $65 by `~/.heater/context.json`; 12 review rounds over 4
+changes today (3 landed: dickreuter bf148db, bench 4bb7daf, plan c8450db);
+no round carries a dollar figure (task 3919e7a17ec6). Weekly meter 84% at
+13:47Z, 89% at 17:29Z.

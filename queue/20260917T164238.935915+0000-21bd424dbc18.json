@@ -7,7 +7,7 @@
   "path": "DECISION_LAYER_BLUEPRINT.md",
   "origin": "",
   "summary": "DECISION_LAYER_BLUEPRINT.md :15 and :738 still say 'Stage 5' for the blueprint's entry point and the offline per-bucket solve; after the 2026-09-17 stage renumbering in BUILD_PLAN.md both are Stage 4 (the baseline). Out of scope for dispatch 112be809c0fb, whose brief limited cross-reference fixes to BUILD_PLAN.md.",
-  "delivered_at": null,
+  "delivered_at": "2026-09-17T16:45:25.342864+00:00",
   "resolution": {
     "action": "promoted",
     "at": "2026-09-17T16:44:31.353518+00:00",
