@@ -1,0 +1,18 @@
+{
+  "id": "c91832fe9882",
+  "created": "2026-09-17T03:02:30.979375+00:00",
+  "task": "The reconciliation, written as a BUILD PLAN. Write ONE new file BUILD_PLAN.md at the pokerbot root. The operator's bar, verbatim: 'we dont need perfection here, just something that we know is beating real players' and 'beating real players by a lot, 2-9 players, exploitative play. i dont care how you do it. just get it done'. Read, on main: CLAUDE.md (the rewritten forefront rule: an AI assistant may write the decision code; no live model call; rules and hand evaluation from OpenSpiel universal_poker), ENGINE_ALTERNATIVES.md, RESOURCES_BOTS.md, RESOURCES_SOLVERS.md, RESOURCES_EXPLOITATION.md, OPPONENT_MODEL_DESIGN.md, TABLE_SIZE_AND_SIZING_NOTES.md, EVALUATION_STRATEGY.md, ACTION_TRANSLATION.md, LLM_POKER_FAILURE_MODES.md; and on their branches (git show origin/<branch>:<file>): DECISION_LAYER_SEARCH.md on worker/f541eb44075b (recommends one depth-limited search with biased continuation strategies; OpenSpiel's IS-MCTS segfaults above 2 players), and if they exist by the time you read, DECISION_LAYER_BLUEPRINT.md on worker/baed4c5203a7 and OPPONENT_BASELINE.md on worker/6c3c2652b22d. Also read /Users/chasethompson/heater/handover/codex-tonight-required-changes-2026-09-17.md for what the classmate has built (a PokerKit-refereed practice arena and a real betting-rules fix, on branch codex/tonight, not merged). Write: (1) one page in plain words a non-programmer can follow saying what the bot will be and how we will know it beats real players; (2) the stages to build, in order, each with: what it is, which document settles it and where, what 'done' looks like as a test or a measurement, and a rough size (hours of agent work, not days); the first stage must be buildable this week and must end in a bot that plays complete hands against the arena's existing simple players; (3) a section 'Decisions still yours' listing ONLY choices no document settles, each led by one recommendation and its reason, then the alternatives, in the operator's words; expect this list to be short (candidates: whether to take the classmate's arena and rules fix as the practice ground; whether the baseline is the archive or observe-first, if OPPONENT_BASELINE.md has not settled it; how the bot sees a real table, which no survey on main answers); (4) the first three tasks to dispatch, each as a one-paragraph brief with a done-when. Do not settle any engine, rule or licence question the documents already settle; cite them. Do not touch any existing file. GitHub first: git fetch origin; git merge origin/main; commit; git push -u origin <branch>; gh pr create --draft titled 'Build plan: the reconciliation of the surveys'; end with a push. Target 150-250 lines. Run bin/inbox.py check --summary from /Users/chasethompson/heater before filing a finding. Report branch and PR URL.",
+  "project": "pokerbot",
+  "done_when": "BUILD_PLAN.md committed and pushed: plain-words page, ordered stages each with a done-when and size, a short 'Decisions still yours' section each led by a recommendation, and three dispatchable first tasks; draft PR open; no existing file touched.",
+  "task_id": "be6a1372cba6",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/cb51c2ddf628",
+  "lease_id": "cb51c2ddf628",
+  "branch": "worker/c91832fe9882",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

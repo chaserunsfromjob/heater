@@ -1,0 +1,13 @@
+{
+  "id": "cb51c2ddf628",
+  "created": "2026-09-17T03:02:30.993845+00:00",
+  "project": "pokerbot",
+  "repo": "/Users/chasethompson/pokerbot",
+  "branch": "worker/c91832fe9882",
+  "dispatch_id": "c91832fe9882",
+  "base_sha": "3e02af3d8ef1d0026c0d0a6ac1ea53802046a154",
+  "base_branch": "main",
+  "path": "/Users/chasethompson/.heater/worktrees/pokerbot/cb51c2ddf628",
+  "released_at": null,
+  "released_how": ""
+}
