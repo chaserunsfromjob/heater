@@ -1,0 +1,10 @@
+{
+  "id": "c016af2d27d9",
+  "created": "2026-09-17T16:04:14.647010+00:00",
+  "score": 53,
+  "title": "OPERATOR POSITION, 2026-09-17, verbatim: 'can we give the bot a foundation of game theory optimal play? they should be exploiting for sure and that should be the priority, but game theory optimal play should be the baseline.' Record in BUILD_PLAN.md: Stage 5's first candidate is the equilibrium baseline, the per-bucket strategies solved offline with external-sampling MCCFR (DECISION_LAYER_BLUEPRINT.md recommendation) replacing the four hand-set continuation strategies as the default for a seat the notebook knows too little about, and as the bot's own fallback play; exploitation (Stage 4) stays first by the operator's order. State the honest limit beside it: a true equilibrium for 6-9 handed no-limit is not computable here; what is feasible is a coarse, sampled approximation on the fchpa bet menu with a card abstraction not yet built (DECISION_LAYER_BLUEPRINT.md 'the method is the easy part'). Same worker as tasks 65f90b96b980 and 249040d4164d",
+  "source_finding": "6fe7874ab357",
+  "project": "pokerbot",
+  "path": "BUILD_PLAN.md",
+  "done_at": null
+}
