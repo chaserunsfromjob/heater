@@ -1,0 +1,17 @@
+{
+  "id": "46330bf74227",
+  "created": "2026-09-17T05:00:02.976645+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "research/decision_layer/bench_decision_layer.py",
+  "origin": "",
+  "summary": "bench_decision_layer.py's build_game posts blind=100 50 (big blind in engine seat 0) and firstPlayer=2 1 1 1 heads-up, both reversed from pokerbot/table.py's 50 100 and 1 2 2 2, so the benchmarked setup is not the table the bot plays on",
+  "delivered_at": "2026-09-17T05:02:55.621727+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T05:04:16.086884+00:00",
+    "score": 50,
+    "task_id": "815aea61d060"
+  }
+}

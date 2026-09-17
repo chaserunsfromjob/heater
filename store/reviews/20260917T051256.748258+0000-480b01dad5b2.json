@@ -1,0 +1,17 @@
+{
+  "id": "480b01dad5b2",
+  "created": "2026-09-17T05:12:56.748258+00:00",
+  "change": "8edc0ce3e009",
+  "project": "pokerbot",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 8,
+  "wording_only": false,
+  "files": 12,
+  "insertions": 1972,
+  "deletions": 32,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "1,000-hand result reproduced to the decimal; forefront rule honoured file by file; invariants honest. F1 EngineView.seen_cards() treats fchpa action codes 0-4 as cards, excluding ~2.5 real cards per decision from imagined deals; F2 result is preflop-only (1215/14/0/0 by street) and that caveat is in no store; F3 own-cards test cannot fail; F4 fixed-finish determinism decision unrecorded; F5 dead accessor; F6 I6 abort blames the table when the clock truncated; F7/F8 wording. Reconcile with T3: keep personas.py, shim arena to it."
+}

@@ -1,0 +1,10 @@
+{
+  "id": "6805b01c7bd2",
+  "created": "2026-09-17T05:04:16.049501+00:00",
+  "score": 48,
+  "title": "pokerbot/__init__.py docstring says the package holds no strategy and T2/T3 will add it; fix when T2 and T3 land",
+  "source_finding": "3aee8d9aa0e0",
+  "project": "pokerbot",
+  "path": "pokerbot/__init__.py",
+  "done_at": null
+}

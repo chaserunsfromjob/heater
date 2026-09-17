@@ -1,0 +1,10 @@
+{
+  "id": "815aea61d060",
+  "created": "2026-09-17T05:04:16.085142+00:00",
+  "score": 50,
+  "title": "research/decision_layer/bench_decision_layer.py posts blinds and first-player reversed from pokerbot/table.py, so the benchmark is not the bot's table",
+  "source_finding": "46330bf74227",
+  "project": "pokerbot",
+  "path": "research/decision_layer/bench_decision_layer.py",
+  "done_at": null
+}

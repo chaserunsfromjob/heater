@@ -1,0 +1,17 @@
+{
+  "id": "e36bdac5c930",
+  "created": "2026-09-17T05:12:20.634508+00:00",
+  "change": "ecc208e2d0d6",
+  "project": "heater",
+  "round": 2,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 4,
+  "wording_only": false,
+  "files": 5,
+  "insertions": 682,
+  "deletions": 31,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "All round-1 fixes mutation-proved. New F1 (regression from fixer 2): the already-in-trunk route has no heartbeat check, so a live worker that fast-forwarded its empty branch onto a moved trunk loses its checkout. F3 land --skip-review note has no reason (opinion says why). F4 reconcile --skip-review note untested. F2 filed separately (worktrees.reclaim, pre-existing)."
+}

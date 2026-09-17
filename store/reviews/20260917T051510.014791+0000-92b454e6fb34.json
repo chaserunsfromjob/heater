@@ -1,0 +1,17 @@
+{
+  "id": "92b454e6fb34",
+  "created": "2026-09-17T05:15:10.014791+00:00",
+  "change": "1fd3a6ebe936",
+  "project": "pokerbot",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 10,
+  "wording_only": false,
+  "files": 7,
+  "insertions": 2584,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "Closed form, rule rejection, pairing, engine-only hand strength all confirmed; full 52-cell run works (204 s). F1 arena ships inside pokerbot/ against EVALUATION_STRATEGY.md section 3.1/3.3 (tests-only tree, Chen table, draws.py) with nothing recorded and no import-graph guard; F2 strict-order test cannot fail and the 169-class ranking at 120 rollouts is noise (85 distinct values); F3 p-value one-sided stars a zero difference; F4 header weights differ from decide()'s; F5 NOT RUN reason truncated; F6 preflop_rollouts config unread; F7 bot arm gets no memory calls; F8 bot RNG carries across cells; F9 rescaling contradicts config comment and section 3.5; F10 blocks straddle cells."
+}

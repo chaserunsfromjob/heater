@@ -55,6 +55,9 @@ bin/store.py query --days 7    # is review eating the week? stamped with when it
 bin/inbox.py check --summary "..."   # already judged? exit 1 means do not file
 bin/inbox.py list / dismiss <id> --reason / promote <id> --score 70 / tasks
 bin/bearings.py          # where everything stands, in one read. exit 1 means something waits
+                         # it also pushes any branch that lives on this machine only,
+                         # on every machine and including `main`; HEATER_AUTOPUSH=0 turns
+                         # that off, HEATER_AUTOPUSH_DEADLINE bounds how long it may take
 bin/debrief.py --hours 5 # what the agents did, in plain English. add --queue to send it
 bin/dispatch.py open --task "..." --done-when "..."   # record a dispatch, print the brief
 bin/dispatch.py run --task "..." --repo <path> --workers 2   # several workers, one task

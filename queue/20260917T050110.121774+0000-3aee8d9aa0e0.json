@@ -1,0 +1,17 @@
+{
+  "id": "3aee8d9aa0e0",
+  "created": "2026-09-17T05:01:10.121774+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "pokerbot/__init__.py",
+  "origin": "",
+  "summary": "pokerbot/__init__.py docstring still says the package contains no strategy and that T2/T3 will add it; T3 has now landed personas, league and scoreboard in the package. Left unedited on worker/1fd3a6ebe936 on purpose to avoid a one-line conflict with T2's branch.",
+  "delivered_at": "2026-09-17T05:02:55.621727+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T05:04:16.051419+00:00",
+    "score": 48,
+    "task_id": "6805b01c7bd2"
+  }
+}

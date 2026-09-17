@@ -1,0 +1,17 @@
+{
+  "id": "176843771c60",
+  "created": "2026-09-17T05:09:35.352555+00:00",
+  "change": "20b9ff39b519",
+  "project": "heater",
+  "round": 5,
+  "lens": "default",
+  "verdict": "pass",
+  "findings": 0,
+  "wording_only": false,
+  "files": 8,
+  "insertions": 1014,
+  "deletions": 4,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "Clean pass: fix confirmed non-vacuous and mutation-tested; no forcing path; ready to land"
+}

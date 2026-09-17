@@ -1,0 +1,17 @@
+{
+  "id": "2cb9c4d0058d",
+  "created": "2026-09-17T05:23:22.186313+00:00",
+  "change": "c79a35661f9c",
+  "project": "heater",
+  "round": 7,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 5,
+  "wording_only": false,
+  "files": 28,
+  "insertions": 633,
+  "deletions": 27,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "All round-6 fixes present; numbers now match the store. Page regressions: entry 20 content-free ('Add a file in the project to pokerbot.'); entries 9/10 open mid-order ('Cover at least:') because the opening sentence's content clause named a tool; a test locks that in; '(on main)' reaches the page; merge conflicts with main in README.md and tools/bearings.py (both sides added an import and a report section)."
+}

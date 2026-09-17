@@ -1,0 +1,17 @@
+{
+  "id": "5e30a54a0e19",
+  "created": "2026-09-17T05:16:09.284969+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "tools/debrief.py",
+  "origin": "",
+  "summary": "debrief page SHOUT rule (tools/debrief.py:113) lowercases acronyms inside names: 'Deep cfr', 'Information Set mcts', 'vanilla cfr' read as typos to the operator; keep an acronym's case when it sits inside a proper name or is a known term (CFR, MCTS, MCCFR). Found by the taper round-6 fixer.",
+  "delivered_at": "2026-09-17T05:17:04.941547+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T05:16:15.468327+00:00",
+    "score": 38,
+    "task_id": "4e03f7fb3b1e"
+  }
+}
