@@ -37,7 +37,7 @@ Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-One agent is out: the FIXER (round 1) for `b68dd506e0ee`, Stage 3 the
+One agent is out: the FIXER (round 2) for `b68dd506e0ee`, Stage 3 the
 notebook, PR #22, tip 188b384, worktree pokerbot/2b7e5f5ce175. Built in
 well under the planned 12-18 h: 2,781 lines, 58 tests (333 on the
 branch), section 4.5's worked report reproduced character for character.
@@ -46,8 +46,15 @@ byte; PRIOR_STRENGTH per tier judged right; the walk was counted as a vpip
 opportunity against section 4.7's named row (settled by the stoker: follow
 4.7; escalation 241e2f235c94 resolved in the queue, not for the operator);
 wsd counted net>0 not payouts>0; dead population cuts contradict section
-2.5; single-name pool made shrinkage a no-op. FIXER round 1 out. Then a
-confirming round; land with `bash bin/gate.sh`.
+2.5; single-name pool made shrinkage a no-op. Fixer 1 applied all four
+(8234cd0, 339 tests); round 2 confirmed them by mutation and failed on
+recording: OPPONENT_MODEL_DESIGN.md still states the losing walk reading
+and Table C's vpip 1.00, and the override's scope was the fixer's call.
+Stoker RULED (store f2675922a7ad): row 2 read strictly, no preflop stat
+gets an opportunity on a walk, so vpip and pfr share a denominator. FIXER
+round 2 out (doc lines :684/:734/:1508/:1875, pfr under the guard, a walk
+in the IRC fixture); told it is the last: land on its report with
+`--skip-review --reason` and `bash bin/gate.sh`, then mark PR #22 ready.
 Everything dispatched before it has landed; reconcile at 08:00Z reported
 nothing open. pokerbot main is at c5ed759: CLAUDE.md has a
 "Firm requirements" section (2-9 players, true no-limit, exploitative play
@@ -149,5 +156,5 @@ to the worktree; widen to the stores). D1/D2 remain the operator's.
 
 ## Cost
 
-Session about $320 by `~/.heater/context.json`; 55 review rounds over 21
+Session about $345 by `~/.heater/context.json`; 55 review rounds over 21
 changes today; no round carries a dollar figure.
