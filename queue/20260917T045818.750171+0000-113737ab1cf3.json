@@ -1,0 +1,16 @@
+{
+  "id": "113737ab1cf3",
+  "created": "2026-09-17T04:58:18.750171+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "tools/dispatch.py:407",
+  "origin": "",
+  "summary": "reconcile's empty-branch guard runs before the already-in-trunk check, so a branch whose commits reached the trunk while its checkout still exists is reported as 'no commits yet; the worker is still out' and after 24h silent lands with the false note 'nothing committed'",
+  "delivered_at": null,
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-17T04:59:14.354938+00:00",
+    "reason": "in scope of change ecc208e2d0d6 (the reorder introduced it); folded into its fixer round 2 on 2026-09-17"
+  }
+}
