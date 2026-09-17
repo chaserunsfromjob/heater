@@ -1,0 +1,17 @@
+{
+  "id": "1b17be149393",
+  "created": "2026-09-17T14:03:30.115296+00:00",
+  "change": "0a62853153e4",
+  "project": "pokerbot",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 4,
+  "wording_only": false,
+  "files": 7,
+  "insertions": 142,
+  "deletions": 21,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "Core fix verified: only blind (all seats) and firstPlayer (heads-up) change in the benchmark's game; every _game_string caller byte-identical; test pins against the table. FAIL: F1 extra_params can override blind/firstPlayer with no error (demonstrated); F2 extra_params duplicates equity_rule.with_odds, which is the recorded route and is guarded; F3 DECISION_LAYER_SEARCH.md:151 Conditions row still states blinds 100/50 unannotated; F4 the 'changes nothing about timing' claim had no number; reviewer measured 3x3000 random play-outs old vs new game: 2 seats 50497 vs 50727/s (1.005), 6 seats 26076 vs 25952/s (0.995). 19 tool calls, about 12 min, no dollar figure."
+}
