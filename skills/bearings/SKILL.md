@@ -22,6 +22,7 @@ maintained by hand, so nothing here can be stale in the way a status file is.
 | Dispatches out | Workers still owed a report. `<- quiet` marks one out longer than the stale threshold. |
 | Heartbeats | The last tool call each live session made. `<- may be dead` means silence, which is not the same as finished. |
 | This machine | Whether this machine's links and hooks match the repository. |
+| Pushed | Branches that existed on this machine only and have now been sent to `origin`. The read pushes, on every machine, by default, `main` included; it never forces, and a push origin refuses is reported and left alone. `HEATER_AUTOPUSH=0` turns the sweep off and `HEATER_AUTOPUSH_DEADLINE` caps how long it may take. |
 | Fleet repository | Uncommitted and unpushed fleet state. |
 | Review load | Rounds per change and cost over seven days. |
 
