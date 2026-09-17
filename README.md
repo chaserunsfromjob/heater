@@ -200,9 +200,12 @@ complete.
       only after that half hour of silence; a branch with commits to merge goes
       once its review has ended, or, under `--skip-review`, after the half hour
       of silence. A review has ended after one round that finds only wording
-      when every path the branch changed is a document — `.md`, `.txt`, or
-      under `handover/` or `research/results/` — and after two consecutive such
-      rounds for anything else. A checkout whose review has ended is cleaned
+      when the work came from its own leased checkout and every path the branch
+      changed is a document — `.md`, `.txt`, or under `handover/` or
+      `research/results/` — and after two consecutive such rounds for anything
+      else, a document written outside a leased checkout included: without a
+      lease there is no branch of record saying what the change touched. A
+      checkout whose review has ended is cleaned
       up on the next sweep even if a session is still working in it, so do not
       keep one open expecting it to survive. That same half hour holds back the
       two things the sweep does short of removing a checkout: committing what a

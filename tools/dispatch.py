@@ -226,56 +226,53 @@ def changed_paths(path: Path, trunk: str) -> list[str]:
     return both
 
 
-def trunk_of(repo: Path) -> str:
-    """The branch this repository treats as its trunk, for a checkout with no lease.
-
-    A leased checkout records what it was cut from; a worker in the project's
-    own checkout records nothing, so the trunk has to be read back off the
-    repository. What the remote points its HEAD at, and failing that whichever
-    of the usual two names exists.
-    """
-    code, name = worktrees.git(repo, "symbolic-ref", "--quiet", "--short",
-                               "refs/remotes/origin/HEAD")
-    if code == 0 and (short := name.strip().rsplit("/", 1)[-1]):
-        return short
-    for candidate in ("main", "master"):
-        if worktrees.git(repo, "rev-parse", "--verify", "--quiet", candidate)[0] == 0:
-            return candidate
-    return "main"
-
-
 def rounds_needed(record: dict[str, Any] | None, lease: dict[str, Any] | None = None) -> int:
     """How many wording-only passes this change takes, from what it changed.
 
     What a branch touched is git's to say, not the brief's: a brief can call a
     change a document and still carry a rewrite of the guard.
 
-    A worker with no leased checkout wrote in the project's own checkout, which
-    `land` supports, and a document written there is still a document: the diff
-    is read from the dispatch's `workdir` against that repository's trunk. Work
-    committed straight onto the trunk itself has an empty three-dot diff, which
-    `reviewloop` reads as code, so nothing lands on one round for want of a
-    branch to compare.
+    The one-round rule reaches a change landed from its own leased checkout and
+    nothing else, which is what `rules/global.md` and `OPINIONS.md` 15 say. The
+    lease is what names a branch of record and the trunk it was cut from, so the
+    diff read there is this change's diff and nobody else's. A change with no
+    lease was made in a checkout somebody else shares, whose HEAD is wherever it
+    was last left, and there is nothing saying which of what is in it this
+    change made; every such reading takes the strict count.
 
-    That checkout is shared, though, and its HEAD is wherever anybody last left
-    it: read at landing time it can be a branch this dispatch never touched, and
-    somebody else's prose would then be what lands this change on one round. So
-    the one-round rule applies there only when the checkout is standing on the
-    branch the dispatch record names. A record naming no branch cannot be
-    checked, and an unchecked reading gets the strict count.
+    `record` is what the caller has in hand rather than something read here: a
+    dispatch record names no branch until a lease fills one in.
     """
-    if lease and lease.get("path"):
-        path, trunk = Path(lease["path"]), lease.get("base_branch") or "main"
-    elif record and record.get("workdir"):
-        path = Path(record["workdir"])
-        named = (record.get("branch") or "").strip()
-        code, on = worktrees.git(path, "rev-parse", "--abbrev-ref", "HEAD")
-        if not named or code != 0 or on.strip() != named:
-            return ROUNDS_TO_END_REVIEW
-        trunk = trunk_of(path)
-    else:
+    del record
+    if not (lease and lease.get("path")):
         return ROUNDS_TO_END_REVIEW
+    path, trunk = Path(lease["path"]), lease.get("base_branch") or "main"
     return reviewloop.rounds_needed(changed_paths(path, trunk))
+
+
+def rounds_needed_after_the_checkout_is_gone(lease: dict[str, Any] | None) -> int:
+    """The same question for a slot that has already gone back.
+
+    The sweep closes a dispatch whose checkout was handed back with its commits
+    already in the trunk, and by then there is no checkout to read a diff in. The
+    branch is still in the project and the lease recorded the commit it was cut
+    from, so what that branch changed is still git's to say. Loose files are not
+    in this reading: they went with the checkout, so they are not part of what
+    the trunk received.
+
+    A dispatch that never held a lease has no branch of record, which is the
+    strict count by the rule above, and a diff that cannot be read is code.
+    """
+    if not lease:
+        return ROUNDS_TO_END_REVIEW
+    repo, branch = Path(lease.get("repo", "")), lease.get("branch", "")
+    base = lease.get("base_sha", "")
+    if not (branch and base and repo.exists()):
+        return ROUNDS_TO_END_REVIEW
+    code, output = worktrees.git(repo, "diff", "--name-only", f"{base}...{branch}")
+    if code != 0:
+        return ROUNDS_TO_END_REVIEW
+    return reviewloop.rounds_needed([line.strip() for line in output.splitlines() if line.strip()])
 
 
 def reviewed(change: str, needed: int = ROUNDS_TO_END_REVIEW) -> bool:
@@ -515,6 +512,11 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
                 report["left_behind"].append({"dispatch": record["id"],
                                               "branch": lease.get("branch", ""), "why": why})
                 continue
+            # Stamped like every other landing route, so a document that went
+            # in by hand is counted by the query the same as one the sweep
+            # merged itself. Read from the branch against the commit its lease
+            # was cut from, the checkout that `land` would have read being gone.
+            stamp_document_only(record["id"], rounds_needed_after_the_checkout_is_gone(lease))
             close_dispatch(record["id"], "landed",
                            f"no checkout to consolidate; {review_state(record['id'])}")
             report["landed"].append(record["id"])

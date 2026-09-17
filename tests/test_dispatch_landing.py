@@ -1286,29 +1286,18 @@ class TestTheSweepLandsADocumentOnOneRound(GitCase):
         self.assertIn(record["id"], report["landed"])
 
 
-class TestADocumentInTheProjectCheckoutLandsOnOneRound(GitCase):
-    """A worker with no leased slot writes in the project's own checkout.
+class TestAChangeWithoutALeaseTakesTwoRounds(GitCase):
+    """The one-round rule is tied to a leased checkout, and nothing else.
 
-    `land` supports that route, but the round count was read only from a lease,
-    so a document written there was held for a second round of commas that the
-    same document in a leased checkout never needed.
+    A worker with no leased slot writes in the project's own checkout, which
+    `land` supports. That checkout is shared and the dispatch record names no
+    branch, so nothing there says which of what is in it this change made, and
+    the strict count is what such a change gets.
     """
 
     def in_place(self, task: str) -> dict:
         with mock.patch.object(dispatch, "needs_its_own_checkout", return_value=False):
             return dispatch.open_dispatch(task, project="api", repo=str(self.repo))
-
-    def names_branch(self, record: dict, branch: str) -> dict:
-        """The dispatch record says which branch in that checkout is its work.
-
-        The project's own checkout is shared and its HEAD is wherever anybody
-        last left it, so this is what tells this dispatch's work from whatever
-        else the checkout is standing on. Written back under the record's own
-        filename, which is built from `created` and the id.
-        """
-        record = dict(record, branch=branch)
-        jsonstore.write(dispatch.dispatches_dir(), record)
-        return record
 
     def on_a_branch(self, name: str, filename: str, body: str) -> None:
         run("git", "checkout", "-q", "-b", name, cwd=self.repo)
@@ -1316,78 +1305,88 @@ class TestADocumentInTheProjectCheckoutLandsOnOneRound(GitCase):
         run("git", "add", "-A", cwd=self.repo)
         run("git", "commit", "-qm", f"add {filename}", cwd=self.repo)
 
-    def test_a_document_written_in_the_project_checkout_lands_on_one_round(self):
+    def test_a_document_written_without_a_lease_still_takes_two_rounds(self):
         record = self.in_place("write the survey")
         self.assertEqual(record["lease_id"], "")
+        self.assertEqual(record["branch"], "")
         self.on_a_branch("survey", "survey.md", "# survey\n")
-        record = self.names_branch(record, "survey")
         self.wording_pass(record["id"], 1)
+
+        self.assertEqual(dispatch.rounds_needed(record), dispatch.ROUNDS_TO_END_REVIEW)
+        with self.assertRaises(dispatch.NotReadyToLand):
+            dispatch.land(record["id"])
+
+    def test_a_document_without_a_lease_lands_on_the_second_round(self):
+        """Two rounds, and it goes: the rule is stricter, not a refusal."""
+        record = self.in_place("write the survey")
+        self.on_a_branch("survey", "survey.md", "# survey\n")
+        self.wording_pass(record["id"], 1)
+        self.clean_pass(record["id"], 2)
 
         landed = dispatch.land(record["id"])
 
         self.assertEqual(landed["outcome"], "landed")
-        self.assertIn("round 1", landed["note"])
-
-    def test_code_written_in_the_project_checkout_still_takes_two(self):
-        record = self.in_place("add a flag")
-        self.on_a_branch("flag", "flag.py", "FLAG = 1\n")
-        self.wording_pass(record["id"], 1)
-        with self.assertRaises(dispatch.NotReadyToLand):
-            dispatch.land(record["id"])
-
-    def test_the_diff_is_read_against_the_repositorys_own_trunk(self):
-        record = self.in_place("write the survey")
-        self.on_a_branch("survey", "survey.md", "# survey\n")
-        record = self.names_branch(record, "survey")
-        self.assertEqual(dispatch.trunk_of(self.repo), "main")
-        self.assertEqual(dispatch.rounds_needed(record),
-                         dispatch.ROUNDS_TO_END_DOCUMENT_REVIEW)
-
-    def test_work_committed_straight_onto_the_trunk_takes_the_code_rule(self):
-        """Nothing to compare against, so there is nothing saying it is prose."""
-        record = self.in_place("write the survey")
-        (self.repo / "survey.md").write_text("# survey\n")
-        run("git", "add", "-A", cwd=self.repo)
-        run("git", "commit", "-qm", "survey", cwd=self.repo)
-        record = self.names_branch(record, "main")
-        self.assertEqual(dispatch.rounds_needed(record), dispatch.ROUNDS_TO_END_REVIEW)
-
-    def test_a_checkout_left_on_another_branch_takes_the_code_rule(self):
-        """Round 2, S4: somebody else's prose is not this change's diff.
-
-        The checkout is shared, so by landing time its HEAD can be a branch this
-        dispatch never touched. The diff read there says what that branch
-        changed, and a document sitting on it would land this change on one
-        round however much code this change made.
-        """
-        record = self.in_place("add a flag")
-        self.on_a_branch("flag", "flag.py", "FLAG = 1\n")
-        record = self.names_branch(record, "flag")
-        run("git", "checkout", "-q", "main", cwd=self.repo)
-        self.on_a_branch("someone-else", "notes.md", "# notes\n")
-
-        self.assertEqual(dispatch.rounds_needed(record), dispatch.ROUNDS_TO_END_REVIEW)
-
-    def test_a_record_naming_no_branch_takes_the_code_rule(self):
-        """Nothing to check HEAD against, and an unchecked reading is not a rule."""
-        record = self.in_place("write the survey")
-        self.on_a_branch("survey", "survey.md", "# survey\n")
-        self.assertEqual(record["branch"], "")
-        self.assertEqual(dispatch.rounds_needed(record), dispatch.ROUNDS_TO_END_REVIEW)
-
-    def test_a_document_on_the_named_branch_is_refused_once_the_checkout_moves(self):
-        record = self.in_place("write the survey")
-        self.on_a_branch("survey", "survey.md", "# survey\n")
-        record = self.names_branch(record, "survey")
-        run("git", "checkout", "-q", "main", cwd=self.repo)
-        self.wording_pass(record["id"], 1)
-        with self.assertRaises(dispatch.NotReadyToLand):
-            dispatch.land(record["id"])
+        self.assertIn("round 2", landed["note"])
 
     def test_a_dispatch_with_no_workdir_at_all_takes_the_code_rule(self):
         record = dispatch.open_dispatch("read the options and write them up", project="api")
         self.assertEqual(record["workdir"], "")
         self.assertEqual(dispatch.rounds_needed(record), dispatch.ROUNDS_TO_END_REVIEW)
+
+
+class TestADocumentClosedWithNoCheckoutLeftIsCounted(GitCase):
+    """Round 3, F3: the one landing route that wrote nothing onto its round.
+
+    A slot handed back after its work was merged by hand leaves the sweep with
+    a dispatch to close and no checkout to read. Closing it `landed` without
+    saying which rule it landed under kept a document out of the week's count,
+    because the query has only the round to read it from.
+    """
+
+    def lease_of(self, record: dict) -> dict:
+        return next(l for l in jsonstore.load(worktrees.leases_dir())
+                    if l["id"] == record["lease_id"])
+
+    def merged_by_hand(self, record: dict) -> None:
+        lease = self.lease_of(record)
+        run("git", "merge", "--no-ff", lease["branch"], "-m", "landed by hand", cwd=self.repo)
+        worktrees.release(record["lease_id"], "taken back by hand")
+
+    def landed_count(self) -> int:
+        return store.query()["reviews"]["changes_landed"]
+
+    def test_a_document_whose_slot_is_gone_is_landed_and_counted(self):
+        record = self.worker("write the survey")
+        self.work(record, "survey.md", "# survey\n")
+        self.wording_pass(record["id"], 1)
+        self.merged_by_hand(record)
+
+        self.assertIn(record["id"], dispatch.reconcile()["landed"])
+
+        self.assertEqual(self.stored(record["id"])["outcome"], "landed")
+        self.assertTrue(dispatch.rounds_for(record["id"])[-1]["document_only"])
+        self.assertEqual(self.landed_count(), 1)
+
+    def test_code_whose_slot_is_gone_is_not_stamped_as_a_document(self):
+        record = self.worker("add a flag")
+        self.work(record, "flag.py", "FLAG = 1\n")
+        self.wording_pass(record["id"], 1)
+        self.clean_pass(record["id"], 2)
+        self.merged_by_hand(record)
+
+        dispatch.reconcile()
+
+        self.assertFalse(dispatch.rounds_for(record["id"])[-1]["document_only"])
+
+    def test_a_dispatch_that_never_held_a_lease_is_not_stamped(self):
+        """No lease, no branch of record, so the strict count and no stamp."""
+        record = dispatch.open_dispatch("read the options and write them up", project="api")
+        self.wording_pass(record["id"], 1)
+
+        dispatch.reconcile()
+
+        self.assertEqual(self.stored(record["id"])["outcome"], "landed")
+        self.assertFalse(dispatch.rounds_for(record["id"])[-1]["document_only"])
 
 
 if __name__ == "__main__":

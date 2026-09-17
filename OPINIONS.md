@@ -269,8 +269,12 @@ and I am not paying for that with documents.
 makes about a particular change being small enough. Until I say so, two.
 
 What the change touched decides which rule applies, read from the branch itself
-rather than from what the brief called it: `bin/dispatch.py land` takes the
-list of changed files from git and refuses a landing that is short a round.
+rather than from what the brief called it: `bin/dispatch.py land` and
+`bin/dispatch.py reconcile` take the list of changed files from git and refuse a
+landing that is short a round.
+
+The one round is for a change landed from its own leased checkout; anything
+landed without a lease takes two.
 
 ---
 
