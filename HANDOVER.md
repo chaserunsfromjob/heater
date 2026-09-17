@@ -37,7 +37,7 @@ Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-Two agents are out (Stage 2 worker 9d68697caeb0; heater worker ced8b534b39b); each report needs one action. Compaction keeps them;
+Two agents are out (Stage 2 worker 9d68697caeb0; ced8b534b39b fixer 1); each report needs one action. Compaction keeps them;
 a fresh session must read the branches on origin instead.
 
 - `8edc0ce3e009` T2 the first bot: LANDED 3a54ce2 (PR #15) on a round-2
@@ -81,8 +81,13 @@ a fresh session must read the branches on origin instead.
 - `ced8b534b39b` heater worker, worktree heater/8212f4d02130: the two
   remaining ways a live worker loses its checkout (worktrees.reclaim with
   no heartbeat check, task b3b71f0512ac; reconcile autosaving loose files
-  before the guards, task d80c47c137ae). On report: one reviewer round,
-  fixer, land with `bash bin/gate.sh`.
+  before the guards, task d80c47c137ae). Round 1 FAIL: the early hold made
+  reconcile exit 1 whenever a worker is out (must stay awaiting_review), and
+  reclaim named only one of its two keep reasons; FIXER round 1 out, then a
+  confirming round, land with `bash bin/gate.sh`. Task d67cffad749a
+  (jsonstore.REPO resolves to the worktree) also covers store/leases and
+  store/dispatches: a worker checkout never sees its own lease, and
+  reconcile/reclaim run from inside one write to a stale copy.
 - `9d68697caeb0` Stage 2 first measurement, worktree pokerbot/41aac718851b,
   cut from 88ffff1: registers the search bot with the scoreboard, runs the
   52-cell grid, commits research/results/stage2_search_vs_personas.txt and
