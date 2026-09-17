@@ -7,7 +7,7 @@
   "path": "TABLE_SIZE_AND_SIZING_NOTES.md",
   "origin": "",
   "summary": "Sources now cite ACTION_TRANSLATION.md on worker/5a58d580c339 as the retrieval that verified the pseudo-harmonic formula, Ganzfried-Sandholm 2013 and Pluribus's bet-size abstraction, but that branch is on neither origin nor this machine, so the citation could not be read; confirm before PR 9 merges (change 3b2131f2f81c)",
-  "delivered_at": null,
+  "delivered_at": "2026-09-17T03:02:55.983995+00:00",
   "resolution": {
     "action": "dismissed",
     "at": "2026-09-17T03:00:47.117267+00:00",
