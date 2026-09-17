@@ -3,7 +3,7 @@
 <!-- handover-commit: 257dc31 -->
 
 Written on `main`, 2026-09-17 about 03:25Z, on the Mac, at 33% context
-with one worker and one fixer still out. Verify with `bin/handover.py`. A
+with two workers still out. Verify with `bin/handover.py`. A
 snapshot, not a log; rewrite it, do not append.
 
 Read `README.md` for what is built, `OPINIONS.md` for the operator's
@@ -13,34 +13,37 @@ why. None of that is repeated here.
 
 ## Where things stand
 
-pokerbot main is at `ac34ffc` on GitHub, up from `b5924bf` this session.
+pokerbot main is at `96aa546` on GitHub, up from `b5924bf` this session.
 Landed today, in order: the evaluation strategy; the forefront rule rewritten
 in the operator's words (CLAUDE.md now has "What may be coded" and "What may
 not be coded"); LLM_POKER_FAILURE_MODES.md; ACTION_TRANSLATION.md; the engine
 survey ENGINE_ALTERNATIVES.md; a sweep of the old rule's wording out of nine
 documents; DECISION_LAYER_SEARCH.md; OPPONENT_BASELINE.md (observe first; keep
-s = 50). The classmate's branch codex/tonight was
+s = 50); BUILD_PLAN.md, the reconciliation. The classmate's branch codex/tonight was
 reviewed against the new rule: 24 required changes in
 `handover/codex-tonight-required-changes-2026-09-17.md` and GitHub issue #4;
 his move, do not merge.
 
-**One worker and one fixer are out and will report into this session** (compaction
-keeps background agents; a fresh session would not hear them, so if this note
-is read by a fresh session, check the branches on origin instead):
+**Two workers are out and will report into this session** (compaction keeps
+background agents; a fresh session would not hear them and should check the
+branches on origin instead):
 
 - `baed4c5203a7` DECISION_LAYER_BLUEPRINT.md, branch worker/baed4c5203a7,
   pre-computed strategy options with timed CFR runs. On report: one reviewer
   round, then land on small findings applied by the session.
-- `c91832fe9882` BUILD_PLAN.md, branch worker/c91832fe9882, PR #10: the
-  reconciliation as six build stages, "Decisions still yours" (two after the
-  fix: the classmate's arena as practice ground; how the bot sees a real
-  table), and three first tasks. Round 1 recorded; a FIXER is applying seven
-  exact edits (D2 removed as settled by OPPONENT_BASELINE.md; CLAUDE.md Plan
-  item 1 now points at BUILD_PLAN.md). On its report: land with
-  `--skip-review` (gate: the three checkers + pytest), push main, delete the
-  branch only after `git branch -r --contains` shows it merged, then send the
-  operator the plain-words page and the two decisions through the queue, and
-  dispatch T1 (engine adapter and invariants) from the plan.
+- `70884871cf3e` build task T1, branch worker/70884871cf3e: the OpenSpiel
+  adapter for 2-9 seats (fchpa menu) plus invariants I1-I7 as aborting tests,
+  determinism test, per-seat NOT RUN table. This is CODE: on report, one
+  fresh reviewer round (default lens), fix, land through the checkout's own
+  .venv pytest plus the three checkers. Then dispatch T2 (the depth-limited
+  search bot) and T3 (the persona league) from BUILD_PLAN.md section 4.
+
+The research phase is closed: BUILD_PLAN.md landed at 96aa546. Two decisions
+are the operator's, queued as report 8983491d91ab: D1 take the classmate's
+arena and rules fix (recommended, OpenSpiel stays referee, PokerKit a
+checker); D2 how the bot sees a real table (type hands in first; the
+operator must say where they play). T2 does not wait on D1: it falls back to
+three trivial opponents.
 
 Then: the taper change `c79a35661f9c` (heater, branch tip on origin; findings
 r3-r5 beside this file) has waited two days; brief its next fixer from a fresh
