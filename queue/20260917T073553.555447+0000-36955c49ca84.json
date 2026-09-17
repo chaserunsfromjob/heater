@@ -7,7 +7,7 @@
   "path": "tools/bearings.py",
   "origin": "",
   "summary": "tools/bearings.py:36 and tools/dispatch.py:40 alias jsonstore.REPO, so bearings run from a leased checkout reports git status for that checkout rather than the fleet repository; use fleetrepo.repo() (noted by 25aa0c5c14e2's worker)",
-  "delivered_at": null,
+  "delivered_at": "2026-09-17T13:50:25.287168+00:00",
   "resolution": {
     "action": "promoted",
     "at": "2026-09-17T07:35:59.701409+00:00",

@@ -7,7 +7,7 @@
   "path": "EVALUATION_STRATEGY.md",
   "origin": "",
   "summary": "EVALUATION_STRATEGY.md:29-30 still says 'Our table has three to nine people at it' four lines above the rewritten goal passage; stale against the 2-to-9 goal (noted by bb1f9e612089's worker)",
-  "delivered_at": null,
+  "delivered_at": "2026-09-17T13:50:25.287168+00:00",
   "resolution": {
     "action": "promoted",
     "at": "2026-09-17T08:00:02.332242+00:00",

@@ -7,7 +7,7 @@
   "path": "tools/store.py",
   "origin": "",
   "summary": "tools/store.py:145 passed_first_round is read off the windowed rounds, so a change whose earlier rounds fall outside the window is counted as a first-round pass: the same windowing flaw as changes_landed, one figure over",
-  "delivered_at": null,
+  "delivered_at": "2026-09-17T13:50:25.287168+00:00",
   "resolution": {
     "action": "promoted",
     "at": "2026-09-17T07:12:02.201574+00:00",

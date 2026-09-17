@@ -7,7 +7,7 @@
   "path": "hooks/heater_hook.py",
   "origin": "",
   "summary": "hooks/heater_hook.py:22 still resolves REPO from its own checkout; it should import tools/fleetrepo.py so a hook running in a leased worktree reads the fleet repository (hooks/ was out of scope for dispatch 25aa0c5c14e2)",
-  "delivered_at": null,
+  "delivered_at": "2026-09-17T13:50:25.287168+00:00",
   "resolution": {
     "action": "promoted",
     "at": "2026-09-17T07:35:53.532912+00:00",

@@ -7,7 +7,7 @@
   "path": "pokerbot/profile.py",
   "origin": "",
   "summary": "A printed profile does not show which rung of the baseline chain each rate was shrunk towards, so a rate resting on the no-observations 0.0 reads exactly like one resting on a qualified population; Reading.baseline_source already carries it and render() drops it",
-  "delivered_at": null,
+  "delivered_at": "2026-09-17T13:50:25.287168+00:00",
   "resolution": {
     "action": "promoted",
     "at": "2026-09-17T08:51:56.331953+00:00",

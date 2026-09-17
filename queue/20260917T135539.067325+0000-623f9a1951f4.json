@@ -1,0 +1,16 @@
+{
+  "id": "623f9a1951f4",
+  "created": "2026-09-17T13:55:39.067325+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "DECISION_LAYER_SEARCH.md",
+  "origin": "",
+  "summary": "DECISION_LAYER_SEARCH.md figures were never re-measured on the corrected benchmark table (blinds and heads-up order now come from pokerbot.table.game_string)",
+  "delivered_at": null,
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-17T13:56:30.349754+00:00",
+    "reason": "The benchmark's figures are latency, memory and load per decision, and none of them depends on which seat posts which blind or who acts first heads-up; the caveat is now written beside every recorded figure, and re-measuring buys nothing until the search itself changes"
+  }
+}

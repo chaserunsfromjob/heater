@@ -1,0 +1,18 @@
+{
+  "id": "2bfa36485f84",
+  "created": "2026-09-17T13:56:30.378712+00:00",
+  "task": "Review round 1 of worker/0a62853153e4 (f484e44, PR #23): the benchmark builds its game from pokerbot.table.game_string so it measures the bot's table; new public game_string on table.py; test; provenance notes",
+  "project": "pokerbot",
+  "done_when": "verdict recorded with an explicit wording-only statement",
+  "task_id": "815aea61d060",
+  "agent": "reviewer",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/ba1c4874b7a8",
+  "lease_id": "ba1c4874b7a8",
+  "branch": "worker/2bfa36485f84",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

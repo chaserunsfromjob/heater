@@ -7,7 +7,7 @@
   "path": "OPPONENT_MODEL_DESIGN.md",
   "origin": "",
   "summary": "Section 4.2's limp and open_raise denominator cells ('dealt in and had the option to limp', 'first-in with no prior raiser') still read as if a walk gave those opportunities; the code now withholds them under 4.7 row 2, which covers them only by reference",
-  "delivered_at": null,
+  "delivered_at": "2026-09-17T13:50:25.287168+00:00",
   "resolution": {
     "action": "promoted",
     "at": "2026-09-17T09:09:41.004488+00:00",

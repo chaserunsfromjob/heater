@@ -7,7 +7,7 @@
   "path": "tools/dispatch.py",
   "origin": "",
   "summary": "reconcile's report: a live worker kept on the early heartbeat guard appears in awaiting_review as a bare id, so the report cannot say it was kept because the checkout is live (or that its branch is empty / already in trunk); carrying a why needs a dict entry and every reader of report['awaiting_review'] updated (bearings). Reporting shape, record in skills/dispatch first.",
-  "delivered_at": null,
+  "delivered_at": "2026-09-17T13:50:25.287168+00:00",
   "resolution": {
     "action": "promoted",
     "at": "2026-09-17T06:30:13.695902+00:00",
