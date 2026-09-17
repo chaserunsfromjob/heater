@@ -1,0 +1,17 @@
+{
+  "id": "fb039c8cf08f",
+  "created": "2026-09-17T19:32:40.298463+00:00",
+  "change": "e6dfe622fa6f",
+  "project": "heater",
+  "round": 2,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 6,
+  "wording_only": false,
+  "files": 9,
+  "insertions": 473,
+  "deletions": 43,
+  "cost_usd": null,
+  "duration_s": 780.0,
+  "note": "Round 2 at 33679bf: FAIL on four substantive (S1 reconcile classifies before autosave so loose .py lands on one round; S2 nothing stamps document_only so the store count depends on habit; S3 opinion 13 says one round and --skip-review in one sentence; S4 no-lease path reads whatever HEAD the project checkout has) and two wording (W1 opinion 13 narrates prior practice; W2 round-1 findings file still in tree). Suite 686 OK, gate exit 0. 12 tool calls, 13 minutes, no dollar figure."
+}

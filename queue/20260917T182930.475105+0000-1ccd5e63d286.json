@@ -1,0 +1,12 @@
+{
+  "id": "1ccd5e63d286",
+  "created": "2026-09-17T18:29:30.475105+00:00",
+  "kind": "finding",
+  "urgency": "low",
+  "project": "pokerbot",
+  "path": "research/results/theory_agreement/",
+  "origin": "",
+  "summary": "GTO Wizard answer key started 2026-09-17: the operator's five depths multiply the spot count by five; the 4-point meter cap will not cover every seat count at every depth in one sitting, so the key is taken 6-max first (scoreboard weight 0.50) across all five depths, then 2, 8, 9; remaining depths/seat counts continue after the Monday 21 Sep reset",
+  "delivered_at": null,
+  "resolution": null
+}
