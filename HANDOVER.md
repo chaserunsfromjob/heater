@@ -1,6 +1,6 @@
 # Handover
 
-<!-- handover-commit: 2747349 -->
+<!-- handover-commit: 63084a2 -->
 
 Written at `2747349` on `main`, 2026-09-17 about 03:15Z, on the Mac, at 30%
 context with three workers still out. Verify with `bin/handover.py`. A
