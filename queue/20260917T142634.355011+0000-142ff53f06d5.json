@@ -6,7 +6,7 @@
   "project": "pokerbot",
   "path": "CLAUDE.md",
   "origin": "",
-  "summary": "CLAUDE.md names dickreuter/Poker only as 'the reference for table-state capture'; the operator delegated one more clause ('add that in if you think its good') and RESOURCES_DICKREUTER.md (landed bf148db) recommends it: dickreuter's architecture as the template and its capture layer as the eyes, with OpenSpiel making every decision. One small CLAUDE.md change, worded from the document's section 7",
+  "summary": "CLAUDE.md names dickreuter/Poker only as 'the reference for table-state capture'; the operator delegated one more clause ('add that in if you think its good') and RESOURCES_DICKREUTER.md (landed bf148db) recommends it: dickreuter's architecture as the template and its capture layer as the eyes, with OpenSpiel making every decision. One small CLAUDE.md change, worded from the document's section 7 OPERATOR NARROWED THIS, 2026-09-17, verbatim: 'yea i dont want to really base the bot off of it. just thought it was useful context especially for screen capture and stuff. dont base the whole project off of it.' So the clause to add is ONLY that dickreuter/Poker is the reference for screen capture (which CLAUDE.md already says) and nothing about its architecture as a template; if CLAUDE.md already says exactly that, this task is done with no edit. Do not describe the project as based on dickreuter anywhere.",
   "delivered_at": "2026-09-17T14:26:43.574656+00:00",
   "resolution": {
     "action": "promoted",

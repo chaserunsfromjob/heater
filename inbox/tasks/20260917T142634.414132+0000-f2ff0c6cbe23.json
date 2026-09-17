@@ -1,8 +1,8 @@
 {
   "id": "f2ff0c6cbe23",
   "created": "2026-09-17T14:26:34.414132+00:00",
-  "score": 46,
-  "title": "CLAUDE.md names dickreuter/Poker only as 'the reference for table-state capture'; the operator delegated one more clause ('add that in if you think its good') and RESOURCES_DICKREUTER.md (landed bf148db) recommends it: dickreuter's architecture as the template and its capture layer as the eyes, with OpenSpiel making every decision. One small CLAUDE.md change, worded from the document's section 7",
+  "score": 30,
+  "title": "CLAUDE.md: dickreuter/Poker is a reference for screen capture only; the operator does not want the bot or the project based on it (narrowed 2026-09-17); check the existing sentence and close if it already says exactly that",
   "source_finding": "142ff53f06d5",
   "project": "pokerbot",
   "path": "CLAUDE.md",

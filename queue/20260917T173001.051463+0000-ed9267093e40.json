@@ -7,7 +7,7 @@
   "path": "store/reviews",
   "origin": "",
   "summary": "no review round in the store records a cost (139 of 139 empty at 2026-09-17T17:29:44Z), so cost per change and per round cannot be answered",
-  "delivered_at": null,
+  "delivered_at": "2026-09-17T17:33:15.459754+00:00",
   "resolution": {
     "action": "dismissed",
     "at": "2026-09-17T17:31:01.970843+00:00",
