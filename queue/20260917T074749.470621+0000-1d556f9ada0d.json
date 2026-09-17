@@ -1,0 +1,17 @@
+{
+  "id": "1d556f9ada0d",
+  "created": "2026-09-17T07:47:49.470621+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "TABLE_SIZE_AND_SIZING_NOTES.md",
+  "origin": "",
+  "summary": "Stale quotes of CLAUDE.md's old goal line ('a table of 3 or more'): TABLE_SIZE_AND_SIZING_NOTES.md ~1292 (calls it stale with a task queued; now itself stale) and DECISION_LAYER_BLUEPRINT.md 523, 653; the goal now reads 'every table size from 2 to 9 ... judged mostly at 6, 8 and 9' (CLAUDE.md after 96243ce4163a)",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T07:48:02.286263+00:00",
+    "score": 46,
+    "task_id": "d279ff86d8c8"
+  }
+}
