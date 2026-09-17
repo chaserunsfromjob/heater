@@ -13,28 +13,24 @@ why. None of that is repeated here.
 
 ## Where things stand
 
-pokerbot main is at `e744a9d` on GitHub, up from `b5924bf` this session.
+pokerbot main is at `ac34ffc` on GitHub, up from `b5924bf` this session.
 Landed today, in order: the evaluation strategy; the forefront rule rewritten
 in the operator's words (CLAUDE.md now has "What may be coded" and "What may
 not be coded"); LLM_POKER_FAILURE_MODES.md; ACTION_TRANSLATION.md; the engine
 survey ENGINE_ALTERNATIVES.md; a sweep of the old rule's wording out of nine
-documents; DECISION_LAYER_SEARCH.md. The classmate's branch codex/tonight was
+documents; DECISION_LAYER_SEARCH.md; OPPONENT_BASELINE.md (observe first; keep
+s = 50). The classmate's branch codex/tonight was
 reviewed against the new rule: 24 required changes in
 `handover/codex-tonight-required-changes-2026-09-17.md` and GitHub issue #4;
 his move, do not merge.
 
-**Three workers are out and will report into this session** (compaction
+**Two workers are out and will report into this session** (compaction
 keeps background agents; a fresh session would not hear them, so if this note
 is read by a fresh session, check the branches on origin instead):
 
 - `baed4c5203a7` DECISION_LAYER_BLUEPRINT.md, branch worker/baed4c5203a7,
   pre-computed strategy options with timed CFR runs. On report: one reviewer
   round, then land on small findings applied by the session.
-- `6c3c2652b22d` OPPONENT_BASELINE.md, branch worker/6c3c2652b22d, PR #8.
-  Written; its reviewer is running. Answer: observe first; PRIOR_STRENGTH
-  22-31 not 50; crossover about 30 observed hands; the IRC archive is
-  1995-2001 fixed-limit, the 2009 one is HandHQ. Land on the reviewer's
-  report if findings are small.
 - `c91832fe9882` BUILD_PLAN.md, branch worker/c91832fe9882: the
   reconciliation written as ordered build stages, a short "Decisions still
   yours" list, and the first three tasks to dispatch. On report: one reviewer

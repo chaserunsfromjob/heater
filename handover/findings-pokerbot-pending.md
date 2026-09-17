@@ -47,6 +47,11 @@ that stage is applied by the session and landed.
   search with biased continuation strategies; OpenSpiel's IS-MCTS segfaults
   above two players (universal_poker.cc:1111 at v2.0.2).
 
+- 6c3c2652b22d OPPONENT_BASELINE.md — ac34ffc (one round; five wording edits
+  applied by the session). Answer: observe first; keep design §4.3 and s = 50;
+  an archive-seeded prior is worth 22-31 hands; crossover about 30 observed
+  hands; Table C's fold-to-c-bet opportunity rate is 0.030 not 0.15.
+
 ## Still open
 
 - 7eead182560d RESOURCES_DICKREUTER.md (worker/7eead182560d @ b0c5b4a):
