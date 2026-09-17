@@ -8,6 +8,6 @@
   "base_sha": "88ffff1f1cf86b33955e70fda8aac219c34d990d",
   "base_branch": "main",
   "path": "/Users/chasethompson/.heater/worktrees/pokerbot/41aac718851b",
-  "released_at": null,
-  "released_how": ""
+  "released_at": "2026-09-17T06:37:00.589364+00:00",
+  "released_how": "dispatch landed"
 }
