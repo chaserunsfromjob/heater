@@ -2,8 +2,8 @@
 
 <!-- handover-commit: 63084a2 -->
 
-Written at `2747349` on `main`, 2026-09-17 about 03:15Z, on the Mac, at 30%
-context with three workers still out. Verify with `bin/handover.py`. A
+Written on `main`, 2026-09-17 about 03:25Z, on the Mac, at 33% context
+with one worker and one fixer still out. Verify with `bin/handover.py`. A
 snapshot, not a log; rewrite it, do not append.
 
 Read `README.md` for what is built, `OPINIONS.md` for the operator's
@@ -24,18 +24,23 @@ reviewed against the new rule: 24 required changes in
 `handover/codex-tonight-required-changes-2026-09-17.md` and GitHub issue #4;
 his move, do not merge.
 
-**Two workers are out and will report into this session** (compaction
+**One worker and one fixer are out and will report into this session** (compaction
 keeps background agents; a fresh session would not hear them, so if this note
 is read by a fresh session, check the branches on origin instead):
 
 - `baed4c5203a7` DECISION_LAYER_BLUEPRINT.md, branch worker/baed4c5203a7,
   pre-computed strategy options with timed CFR runs. On report: one reviewer
   round, then land on small findings applied by the session.
-- `c91832fe9882` BUILD_PLAN.md, branch worker/c91832fe9882: the
-  reconciliation written as ordered build stages, a short "Decisions still
-  yours" list, and the first three tasks to dispatch. On report: one reviewer
-  round, land, then send the operator the plain-words page and the decisions
-  through the queue, and dispatch the first task.
+- `c91832fe9882` BUILD_PLAN.md, branch worker/c91832fe9882, PR #10: the
+  reconciliation as six build stages, "Decisions still yours" (two after the
+  fix: the classmate's arena as practice ground; how the bot sees a real
+  table), and three first tasks. Round 1 recorded; a FIXER is applying seven
+  exact edits (D2 removed as settled by OPPONENT_BASELINE.md; CLAUDE.md Plan
+  item 1 now points at BUILD_PLAN.md). On its report: land with
+  `--skip-review` (gate: the three checkers + pytest), push main, delete the
+  branch only after `git branch -r --contains` shows it merged, then send the
+  operator the plain-words page and the two decisions through the queue, and
+  dispatch T1 (engine adapter and invariants) from the plan.
 
 Then: the taper change `c79a35661f9c` (heater, branch tip on origin; findings
 r3-r5 beside this file) has waited two days; brief its next fixer from a fresh
