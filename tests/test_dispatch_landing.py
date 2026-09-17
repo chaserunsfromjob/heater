@@ -374,13 +374,14 @@ class TestAnEmptyBranchIsNotLanded(GitCase):
         self.assertIn(record["id"], report["landed"])
         self.assertFalse(Path(record["workdir"]).exists())
 
-    def test_an_old_empty_branch_with_a_live_heartbeat_is_held(self):
+    def test_an_old_empty_branch_with_a_live_heartbeat_is_kept(self):
         record = self.worker("research the options")
         backdate(dispatch.dispatches_dir(), record["id"],
                  dispatch.EMPTY_BRANCH_STALE_HOURS + 1)
         self.beat(Path(record["workdir"]))
         report = dispatch.reconcile()
-        self.assertTrue([h for h in report["held"] if h["dispatch"] == record["id"]])
+        self.assertIn(record["id"], report["awaiting_review"])
+        self.assertNotIn(record["id"], report["landed"])
         self.assertTrue(Path(record["workdir"]).exists(),
                         "a worker whose tool calls are still returning is alive")
 
@@ -459,7 +460,7 @@ class TestAnEmptyBranchIsNotLanded(GitCase):
         self.assertFalse(Path(record["workdir"]).exists(),
                          "its slot goes back once the trunk provably has the work")
 
-    def test_a_live_worker_that_caught_up_with_a_moved_trunk_is_held(self):
+    def test_a_live_worker_that_caught_up_with_a_moved_trunk_is_kept(self):
         """A branch reaches the trunk two ways, and only one of them is finished.
 
         A worker that runs `git merge main` before its first commit leaves a
@@ -477,9 +478,9 @@ class TestAnEmptyBranchIsNotLanded(GitCase):
 
         report = dispatch.reconcile()
 
-        held = [h for h in report["held"] if h["dispatch"] == record["id"]]
-        self.assertEqual(len(held), 1, "a worker still making tool calls is not finished")
-        self.assertIn("tool call", held[0]["why"])
+        self.assertIn(record["id"], report["awaiting_review"],
+                      "a worker still making tool calls is not finished")
+        self.assertNotIn(record["id"], report["landed"])
         self.assertTrue(Path(record["workdir"]).exists(),
                         "a running worker's checkout must survive the sweep")
         self.assertEqual([d["id"] for d in dispatch.live()], [record["id"]],
@@ -543,6 +544,89 @@ class TestAnEmptyBranchIsNotLanded(GitCase):
         self.assertIn("no record of the commit it was cut from", held[0]["why"])
         self.assertTrue(Path(record["workdir"]).exists())
 
+
+
+class TestTheSweepDoesNotCommitALiveWorkersFiles(GitCase):
+    """Task d80c47c137ae: the autosave that ran before any heartbeat guard.
+
+    Every guard in reconcile asks the heartbeat before deleting a checkout, but
+    autosave ran above all of them, so a sweep passing a worker mid-edit staged
+    and committed a half-written file on that worker's branch. Nothing is lost,
+    which is why it went unnoticed; what it costs is a commit the worker did not
+    make, in the middle of the change it was making.
+    """
+
+    def dirty(self, record: dict) -> str:
+        done = subprocess.run(["git", "status", "--porcelain"], cwd=record["workdir"],
+                              capture_output=True, text=True, check=True, timeout=60)
+        return done.stdout
+
+    def test_loose_files_are_left_alone_while_the_worker_is_still_in_the_checkout(self):
+        record = self.worker()
+        self.work(record)
+        (Path(record["workdir"]) / "half_written.py").write_text("def half(\n")
+        self.beat(Path(record["workdir"]))
+
+        report = dispatch.reconcile()
+
+        self.assertIn("half_written.py", self.dirty(record),
+                      "the sweep may not commit a file the worker is still writing")
+        self.assertIn(record["id"], report["awaiting_review"],
+                      "a worker nobody has reviewed yet is awaiting review, not held")
+        self.assertEqual([d["id"] for d in dispatch.live()], [record["id"]])
+
+    def test_a_live_unreviewed_worker_does_not_hold_the_sweep(self):
+        """Holding back autosave may not turn a normal wake into a failed one.
+
+        Every worker still out is unreviewed for most of its life. Reporting one
+        as held makes `reconcile` exit non-zero on every wake with anybody
+        working, which is the ordinary state of the fleet, and hides the real
+        holds among them.
+        """
+        record = self.worker()
+        self.work(record)
+        (Path(record["workdir"]) / "half_written.py").write_text("def half(\n")
+        self.beat(Path(record["workdir"]))
+
+        report = dispatch.reconcile()
+
+        self.assertEqual(report["held"], [],
+                         "a live unreviewed worker is not something to hold the sweep on")
+        self.assertEqual(report["needs_fix"], [])
+
+    def test_a_reviewed_checkouts_loose_files_are_saved_even_with_a_worker_in_it(self):
+        """The one route that takes a live checkout still commits its loose work.
+
+        A dispatch whose review has ended is cleaned up on the next sweep even
+        with a session still working in it — `README` says so, and says not to
+        keep one open expecting it to survive. Since that route removes the
+        checkout, skipping autosave there would delete the loose files with it,
+        which is the opposite of what holding back autosave is for.
+        """
+        record = self.worker()
+        self.work(record)
+        (Path(record["workdir"]) / "loose.py").write_text("never committed\n")
+        self.approve(record["id"])
+        self.beat(Path(record["workdir"]))
+
+        report = dispatch.reconcile()
+
+        self.assertEqual(report["landed"], [record["id"]])
+        self.assertTrue((self.repo / "loose.py").is_file(),
+                        "the route that takes the checkout must save what is loose in it")
+
+    def test_a_silent_checkouts_loose_files_are_still_saved(self):
+        """The guard is the heartbeat, so silence is still autosaved: otherwise
+        the sweep would stop protecting the work it exists to protect."""
+        record = self.worker()
+        (Path(record["workdir"]) / "loose.py").write_text("never committed\n")
+        self.approve(record["id"])
+        self.beat(Path(record["workdir"]), minutes_ago=dispatch.STALE_MINUTES + 1)
+
+        dispatch.reconcile()
+
+        self.assertTrue((self.repo / "loose.py").is_file(),
+                        "a checkout nobody is in is autosaved and lands as before")
 
 
 class TestSkipReviewDoesNotTakeALiveWorkersSlot(GitCase):

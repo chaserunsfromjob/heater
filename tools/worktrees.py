@@ -34,6 +34,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import heartbeats
 import jsonstore
 
 # The only gate: how much room must be left on the volume the checkouts live on
@@ -47,6 +48,8 @@ GIB = 1024 ** 3
 # A lease older than this whose worktree still exists is assumed abandoned.
 # Reclaiming is refused while the branch holds unpushed commits, so the cost of
 # guessing wrong is a slot held slightly too long, never lost work.
+# How long the slot has been held, which is not `heartbeats.STALE_MINUTES`: that
+# one is how long a checkout has been silent. Two quantities, one name.
 STALE_MINUTES = 240
 
 SAFE = re.compile(r"[^A-Za-z0-9_-]")
@@ -267,8 +270,18 @@ def release(lease_id: str, how: str = "released", *, force: bool = False) -> dic
     return record
 
 
-def reclaim(project: str = "") -> list[dict[str, Any]]:
-    """Take back slots nobody is using. Never takes one holding unpushed work."""
+def reclaim(project: str = "", *, held: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+    """Take back slots nobody is using. Never takes one holding unpushed work.
+
+    Age alone does not say a slot is abandoned. A four-hour dispatch is a long
+    one, not a dead one, and a worker that has pushed everything and left
+    nothing loose is indistinguishable by git from a slot nobody is in. The
+    heartbeat is what separates them, so it is asked last, after the cheap
+    answers, and before anything is removed.
+
+    Pass `held` a list to be told which slots were kept and why; the slots
+    actually taken are the return value either way.
+    """
     taken = []
     for record in active(project):
         path = Path(record.get("path", ""))
@@ -276,8 +289,25 @@ def reclaim(project: str = "") -> list[dict[str, Any]]:
             taken.append(release(record["id"], "worktree gone", force=True))
             continue
         age = age_minutes(record)
-        if age is not None and age > STALE_MINUTES and not work_at_risk(record):
-            taken.append(release(record["id"], f"abandoned after {age:.0f}m"))
+        if age is None or age <= STALE_MINUTES:
+            continue
+        if work_at_risk(record):
+            # Kept, and said out loud: this slot is out of the pool until
+            # somebody pushes that branch, which is not "nothing to reclaim".
+            if held is not None:
+                held.append({"lease": record["id"], "project": record.get("project", ""),
+                             "path": str(path),
+                             "why": (f"held {age:.0f}m, but {record['branch']} holds "
+                                     f"work that exists nowhere else")})
+            continue
+        if heartbeats.someone_working_in(path):
+            if held is not None:
+                held.append({"lease": record["id"], "project": record.get("project", ""),
+                             "path": str(path),
+                             "why": (f"held {age:.0f}m, but its checkout made a tool call "
+                                     f"within {heartbeats.STALE_MINUTES}m")})
+            continue
+        taken.append(release(record["id"], f"abandoned after {age:.0f}m"))
     return taken
 
 
@@ -340,10 +370,13 @@ def main(argv: list[str]) -> int:
     if args.action == "list":
         print(render(active()))
     elif args.action == "reclaim":
-        taken = reclaim()
+        kept: list[dict[str, Any]] = []
+        taken = reclaim(held=kept)
         print(f"reclaimed {len(taken)} slot(s)" if taken else "nothing to reclaim")
         for record in taken:
             print(f"  {record['id']}: {record['released_how']}")
+        for hold in kept:
+            print(f"  kept {hold['lease']}: {hold['why']}")
     else:
         # Refusing to destroy unpushed work is an expected answer, not a crash.
         try:

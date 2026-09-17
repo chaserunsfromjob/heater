@@ -118,10 +118,13 @@ rounds nobody is going to run. It never widens what the sweep may delete.
 The sweep removes a checkout on three routes, and each asks a different
 question first. A branch with nothing committed is removed only when its
 dispatch is older than `EMPTY_BRANCH_STALE_HOURS` and the checkout has been
-silent for `STALE_MINUTES`. A branch the trunk already contains is removed
-only once the checkout has been silent for `STALE_MINUTES`. A branch with
-commits to merge is removed once its review has ended, or, under
-`--skip-review`, once the checkout has been silent for `STALE_MINUTES`. A
+silent for `heartbeats.STALE_MINUTES`. A branch the trunk already contains is
+removed only once the checkout has been silent for `heartbeats.STALE_MINUTES`.
+A branch with commits to merge is removed once its review has ended, or, under
+`--skip-review`, once the checkout has been silent for
+`heartbeats.STALE_MINUTES`. That same half hour of silence also holds back the
+two things the sweep does short of removing a checkout: committing what a
+worker left loose, and `bin/worktrees.py reclaim` taking a slot back. A
 recorded review pass is taken as the statement that the work is finished, so
 a reviewed checkout is cleaned up on the next sweep even if a session is still
 working in it: a reviewer or fixer dispatched into a worker's checkout should
