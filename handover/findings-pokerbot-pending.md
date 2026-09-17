@@ -68,13 +68,16 @@ the "sees" half. Also for the reconciler: the three number checkers
 (design, table-size, evaluation) share scaffolding and are filed for
 consolidation (queue 78dfd89d332f).
 
-## Operator questions outstanding
+## Operator answers 2026-09-17 (Mac session; verbatim in the task at score 80)
 
-1. Did the operator authorise Rohit's rewrite of CLAUDE.md (forefront rule
-   and laptop limit repealed)? heater's record says the carve-out is open.
-2. May the PC open draft PRs / push branches as work starts (the rule
-   both wrote; blocked by the permission classifier)?
-3. The IRC Poker Database: copyright notice, no licence — usable as read
-   data? (routed by the exploitation survey.)
-4. fpdb-3's AGPL (routed by the exploitation survey).
-5. Rohit's branch has no PR; the board only works if both sides use it.
+1. Rohit's CLAUDE.md rewrite: NOT authorised as written, but the substance is
+   now decided: AI may WRITE decision code; no model call in the live
+   decision path; decision code is ordinary testable code. Rewrite the rule
+   in the operator's words, then review codex/tonight against it; he opens a
+   PR.
+2. PC may push branches without prompting.
+3-4. Licences: "just use the code"; repository may go private later.
+5. "Hours on one laptop" is KEPT (compute budget, not usage; the operator
+   had read it as usage).
+6. A research note on LLM poker failure modes is owed; its named mistakes
+   stay out of the decision code.
