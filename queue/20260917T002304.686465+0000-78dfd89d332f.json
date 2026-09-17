@@ -7,6 +7,11 @@
   "path": "tools/check_evaluation_numbers.py",
   "origin": "",
   "summary": "Three markdown number checkers now exist or are pending (tools/check_design_numbers.py on main, tools/check_table_size_numbers.py on worker/984aa6810a05, tools/check_evaluation_numbers.py on worker/45e49ce81e40); each re-implements the same Document/Checker scaffolding. Consolidate into one shared module once all three have landed.",
-  "delivered_at": null,
-  "resolution": null
+  "delivered_at": "2026-09-17T01:56:44.421842+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T02:00:40.847019+00:00",
+    "score": 35,
+    "task_id": "7fe519618ee3"
+  }
 }

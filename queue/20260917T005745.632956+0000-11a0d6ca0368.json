@@ -7,6 +7,11 @@
   "path": "RESOURCES_EXPLOITATION.md:26",
   "origin": "",
   "summary": "RESOURCES_EXPLOITATION.md:26 says 'Those three numbers have names' and then names four (VPIP, PFR, AF, WTSD); pre-existing, left alone by the trunk touch-up",
-  "delivered_at": null,
-  "resolution": null
+  "delivered_at": "2026-09-17T01:56:44.421842+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T02:00:40.873339+00:00",
+    "score": 25,
+    "task_id": "b7676f101b91"
+  }
 }
