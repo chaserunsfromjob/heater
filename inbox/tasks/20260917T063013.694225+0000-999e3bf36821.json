@@ -1,0 +1,10 @@
+{
+  "id": "999e3bf36821",
+  "created": "2026-09-17T06:30:13.694225+00:00",
+  "score": 44,
+  "title": "reconcile report: a kept live worker shows as a bare id in awaiting_review with no reason",
+  "source_finding": "60fe0c36366f",
+  "project": "heater",
+  "path": "tools/dispatch.py",
+  "done_at": null
+}
