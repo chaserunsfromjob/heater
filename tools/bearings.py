@@ -5,6 +5,12 @@ The first thing the stoker runs after a night away, and the thing to run before
 deciding anything. Every number comes from a live query rather than from a file
 somebody updated by hand.
 
+It also does one thing rather than only reporting: it pushes committed work that
+has never left this machine. Every session runs this first, so this is the one
+moment guaranteed to come round on every machine, and the operator should never
+have to type a git command to keep work safe. `tools/unpushed.py` holds the
+sweep, and pushes before the repository section is read so the two agree.
+
 Exit 0 when nothing needs attention, 1 when something does.
 """
 
@@ -25,6 +31,7 @@ import inbox
 import jsonstore
 import queue
 import store
+import unpushed
 import worktrees
 from heater_hook import heartbeat_dir
 
@@ -143,6 +150,7 @@ def report() -> tuple[str, bool]:
         ("Heartbeats", heartbeats()),
         ("Worktree slots", slots()),
         ("This machine", machine()),
+        ("Pushed", unpushed.report()),
         ("Fleet repository", repository()),
     ):
         blocks.append(section(title, lines))
