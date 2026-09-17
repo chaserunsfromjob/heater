@@ -1,0 +1,12 @@
+{
+  "id": "11a0d6ca0368",
+  "created": "2026-09-17T00:57:45.632956+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "RESOURCES_EXPLOITATION.md:26",
+  "origin": "",
+  "summary": "RESOURCES_EXPLOITATION.md:26 says 'Those three numbers have names' and then names four (VPIP, PFR, AF, WTSD); pre-existing, left alone by the trunk touch-up",
+  "delivered_at": null,
+  "resolution": null
+}

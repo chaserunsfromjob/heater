@@ -1,0 +1,17 @@
+{
+  "id": "9f4b2c7a1e63",
+  "created": "2026-09-17T00:29:00.000000+00:00",
+  "change": "114e5b3f5b1b",
+  "project": "pokerbot",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 10,
+  "wording_only": false,
+  "files": 5,
+  "insertions": 727,
+  "deletions": 22,
+  "cost_usd": null,
+  "duration_s": 1200.0,
+  "note": "PC-session reviewer at 27154d9: FAIL, 4 substantive + 6 wording. LICENSE byte-identical to gnu.org gpl-3.0.txt (sha256 verified independently); GPL-3.0 the right choice (vendor licence is GPL-3 + a s.7 indemnification addition, no conflict); forefront rule text untouched, carve-out recorded open; stage 1 superseded, no plan invented; GitHub section traces to the sources; all twenty (e) marks checked, DecisionHoldem move right; suite 25 passed, design checker 680 match. F1 RESOURCES_BOTS.md:1011-1013 still argues from 'CLAUDE.md names fedden as the base and stage 1 is the conversion' — false on this branch. F2 REFERENCE_NOTES.md:66-67 'why a copy not a submodule' rests on stage 1. F3 CLAUDE.md:63 'binds anything published alongside it' overstates GPL-3.0 s.5 (aggregates). F4 CLAUDE.md:38 'This stage was…' is history in a rule file. W1 rating-key columns overlap; W2 AGPL not expanded; W3 'carve-out' undefined; W4 'never for play' firmer than sources; W5 restates cut-from-trunk; W6 README reads the conversion as live. Findings in handover/findings-114e5b3f5b1b-rules-r1.md. Cost: 33 tool calls, ~20 min; no dollar figure."
+}

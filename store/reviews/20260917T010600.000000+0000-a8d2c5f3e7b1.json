@@ -1,0 +1,17 @@
+{
+  "id": "a8d2c5f3e7b1",
+  "created": "2026-09-17T01:06:00.000000+00:00",
+  "change": "048795519f43",
+  "project": "pokerbot",
+  "round": 8,
+  "lens": "default",
+  "verdict": "pass",
+  "findings": 2,
+  "wording_only": true,
+  "files": 12,
+  "insertions": 1683,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 840.0,
+  "note": "PC-session reviewer at aadb5f1: PASS, wording only (2) — first wording-only round; confirming round 9 needed. Round-7 F1 now true of both engine-survey counts (block at :418-428 of 52bd81d); F2's third site (:1170) rightly left; W1-W5 as asked; seventeen fresh fetches exact (deepsolver api+pricing, pokerai.bet + terms, HRC, gtobase, gtostrategy, spinwize, preflopranges, pokercoaching, gtosims, four GitHub repos); Appendix A figures match every raw log in research/solvers/; nothing settled; twelve additions; suite 20 passed. W1 Appendix B :1346-1348 GTO+ quotation stops before the tax sentence the body now carries. W2 :102-104 'play a hand out to a showdown' — most hands end on folds; 'to the end'. Landing notes: re-point CLAUDE.md citations after the licence change; :99-100's ENGINE_ALTERNATIVES.md:418-428 is 52bd81d numbering (6720c8a is one later); delete findings r3-r7. Findings in handover/findings-048795519f43-solvers-r8.md. Cost: 26 tool calls, 17 fetches, ~14 min; no dollar figure."
+}
