@@ -1,6 +1,6 @@
 # Handover
 
-<!-- handover-commit: 59aac7e -->
+<!-- handover-commit: 34f476f -->
 
 Written on `main`, 2026-09-17 about 05:05Z, on the Mac, at 34% context with
 four agents out. Verify with `bin/handover.py`. A snapshot, not a log;
