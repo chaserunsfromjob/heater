@@ -1,0 +1,10 @@
+{
+  "id": "79e6cd271cff",
+  "created": "2026-09-17T02:35:43.783887+00:00",
+  "score": 58,
+  "title": "pokerbot needs a gate script: pytest from the venv plus both number checkers; unittest discover runs nothing and exits 0",
+  "source_finding": "c8e9d94e8545",
+  "project": "pokerbot",
+  "path": "tests",
+  "done_at": null
+}

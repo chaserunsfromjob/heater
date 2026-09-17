@@ -1,0 +1,17 @@
+{
+  "id": "e0b326932a51",
+  "created": "2026-09-17T02:34:05.404766+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "CLAUDE.md",
+  "origin": "",
+  "summary": "pokerbot CLAUDE.md says 'Mark the pull request ready when the work is done', but worker briefs require the PR stay draft until a fresh reviewer passes it; the two rules disagree about who flips draft to ready",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T02:35:43.869019+00:00",
+    "score": 40,
+    "task_id": "33364d7ca3e1"
+  }
+}

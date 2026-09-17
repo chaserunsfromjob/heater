@@ -23,14 +23,12 @@ that stage is applied by the session and landed.
   the IRC corpus's copyright question routed to the operator).
 - 984aa6810a05 table-size notes — b5924bf (round 9's single stale commit
   id applied and landed under the cap; 233 figures pinned).
+- 45e49ce81e40 evaluation strategy — 5f13aa8 (round 8's single wrong clause
+  applied and landed under the cap; 234 checks pinned; three wording
+  observations recorded in the fix commit, not applied).
 
 ## Still open
 
-- 45e49ce81e40 evaluation strategy (worker/45e49ce81e40 @ d865bb0):
-  round 7 FAIL — the coverage passage over-reaches for the fifth round;
-  fixer 7 RUNNING with orders to NARROW THE WORDS to what the checker pins
-  (no more checker extension). Then round 8: wording-only → land (it is at
-  seven rounds; the cap applies). Findings r3-r7 beside this file.
 - 7eead182560d RESOURCES_DICKREUTER.md (worker/7eead182560d @ b0c5b4a):
   round 1 FAIL on six substantive (nine seats ARE offered; not on the
   solvers' scale; the equity gap has a second cause in the opponent-deal

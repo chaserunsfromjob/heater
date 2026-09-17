@@ -1,0 +1,17 @@
+{
+  "id": "70345729a724",
+  "created": "2026-09-17T02:33:59.535189+00:00",
+  "change": "45e49ce81e40",
+  "project": "pokerbot",
+  "round": 8,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 4,
+  "wording_only": false,
+  "files": 2,
+  "insertions": 80,
+  "deletions": 31,
+  "cost_usd": null,
+  "duration_s": 1500.0,
+  "note": "Fresh reviewer at 6d800f9: FAIL on one single-clause substantive finding; all four round-7 over-reaches fixed and proved by 93 mutations (56/56 pinned caught, 31/32 unpinned behaved). F1 :2020-2024 says 'the 14,128' in the pooled-headline paragraph is unpinned, but the first copy (:1151 'each gets 14,128 per arm') IS pinned by check_rotation_nights; only the second (:1155) is loose. O1 :2058-2064 list omits the nightly-cell-count every_occurrence check; O2 :2036 'five copies of 4,438' vs six literal occurrences; O3 :2040 second 56,414 quotation at :1024 also left standing. O4 project-level: unittest discover runs 0 tests and exits 0; suite is pytest (41 passed). Merges clean into b5924bf; checker 234 checks green. Eighth round: under the operator's cap the session applies the one clause and lands. Cost: 15 tool calls, ~25 min, 93 mutations, 92k tokens."
+}

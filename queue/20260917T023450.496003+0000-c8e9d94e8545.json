@@ -1,0 +1,17 @@
+{
+  "id": "c8e9d94e8545",
+  "created": "2026-09-17T02:34:50.496003+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "tests",
+  "origin": "",
+  "summary": "pokerbot has no gate script and 'python3 -m unittest discover -s tests' runs 0 tests and exits 0 because every test is pytest-style; a gate that used unittest would go green having run nothing. Add a bin/gate.sh to pokerbot that runs the venv's pytest and both number checkers, and record the venv path (.venv is only in some worktrees; system python3 has no pytest).",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T02:35:43.792341+00:00",
+    "score": 58,
+    "task_id": "79e6cd271cff"
+  }
+}
