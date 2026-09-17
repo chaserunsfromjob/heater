@@ -1,0 +1,17 @@
+{
+  "id": "3c1f0a7d9e2b",
+  "created": "2026-09-17T00:15:00.000000+00:00",
+  "change": "048795519f43",
+  "project": "pokerbot",
+  "round": 6,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 7,
+  "wording_only": false,
+  "files": 12,
+  "insertions": 1614,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 1200.0,
+  "note": "PC-session reviewer at 72d5b7f: FAIL, 3 substantive + 3 wording found, plus F4 filed from the licence change. All seven round-5 fixes verified correct against live sources (MonkerGuy ladder, GTOpen head-note on branch master, 0.706 s timer committed, counts dropped, F5-F7 wording); eleven fresh citations exact; suite 20 passed; treys/phevaluator re-run on the PC 80,087/s and 782,785/s, ratio 9.8x inside 5-15x. F1 (fail-class) :785/:789/:791 entry 19 prices: PioSOLVER is EUR 450 Pro / EUR 800 Edge on piosolver.com/products (doc: $249/$475); GTO+ is $75 main / $40 second / $50 upgrade on gtoplus.com/purchase (doc: $75-$375); Jesolver $200 has no live source (site root is one byte). F2 :92-96 mis-describes the engine survey's play-out counts as whole hands. F3 :908 Preflop Wizard 'printable PDF' does not exist. F4 criterion (e) premise (never distributed) now false: repo public, GPL-3.0. W1 bare 'today' at ~8 sites vs two 09-16 dates; W2 commas inside quoted MonkerGuy names; W3 '5.5 to 8 s' flat where 8 s is an untimed remark. Findings in handover/findings-048795519f43-solvers-r6.md. Cost: 33 tool calls, ~20 min, 19 fetches; no dollar figure."
+}

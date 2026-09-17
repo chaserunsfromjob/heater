@@ -1,0 +1,17 @@
+{
+  "id": "e8a3f61c2d47",
+  "created": "2026-09-17T00:22:00.000000+00:00",
+  "change": "984aa6810a05",
+  "project": "pokerbot",
+  "round": 5,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 9,
+  "wording_only": false,
+  "files": 3,
+  "insertions": 2092,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 1500.0,
+  "note": "PC-session reviewer at c859c66: FAIL, 5 substantive + 4 wording. All five round-4 findings resolved as asked and verified against trunk REFERENCE_NOTES.md and OPPONENT_MODEL_DESIGN.md; checker pins 232 figures, eighteen hand-traced, repeat-guard real; all 50 internal links resolve; engine survey never quoted as settled; nothing settled, nothing irreversible. F1 tools/check_table_size_numbers.py:503-507 crashes with UnicodeEncodeError on a cp1252 console (≤ and − in failure lines) so it cannot name the drifted figure; test_drift_in_table_3 red on Windows, green only with PYTHONIOENCODING=utf-8. F2 :124-127 (+:493-495, :1043-1044) calls REFERENCE_NOTES.md one of 'the four surveys'; name ENGINE_ALTERNATIVES, RESOURCES_BOTS, RESOURCES_SOLVERS. F3 :1398-1402 cites a consolidation task that fell off the list (8edd19d47712); state the work in the document. F4 :114-128 etc. engine dependency one decision stale: operator chose OpenSpiel universal_poker 2026-09-16; open question is the action-chooser carve-out. F5 :1155 'Thirty-two runs' in words is not pinned by the checker. W1 six abbreviations never expanded (VPIP, AF, pp, DBR, DBBR, bb/100; DBR vs DBBR undistinguished). W2 Table 2 caption leads with the formula. W3 §1.0 'three questions' but the third is a fact. W4 :97-99 drops 'at least' and misreads 'claimed'. Suite: checker exit 0 (232 match); 12 passed 1 failed (F1); trunk test_design_numbers 5 passed from an export. Findings in handover/findings-984aa6810a05-tablesize-r5.md. Cost: 49 tool calls, ~25 min; no dollar figure."
+}
