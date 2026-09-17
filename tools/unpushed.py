@@ -24,11 +24,13 @@ Set `HEATER_AUTOPUSH=0` to turn the sweep off, which the test suite does: a
 suite that pushed the branches of whatever machine it ran on would be a side
 effect nobody asked for. A reviewer session turns it off for itself, because a
 reviewer never writes. `HEATER_AUTOPUSH_DEADLINE` bounds how long the whole
-sweep may take before the checkouts it has not reached are reported as skipped.
+sweep may take; whatever it has not reached by then, checkout or branch, is
+reported as skipped rather than tried.
 """
 
 from __future__ import annotations
 
+import math
 import os
 import subprocess
 import sys
@@ -89,15 +91,22 @@ def enabled() -> bool:
 
 
 def deadline_seconds() -> float:
-    """How long the whole sweep may take. Unset or unreadable means the default."""
+    """How long the whole sweep may take. Unset or unreadable means the default.
+
+    `nan` is rejected along with unreadable text, because every comparison
+    against it is false: a deadline that is never past is no deadline at all,
+    which is the one thing this value exists to prevent. `inf` says the same
+    thing in plainer words and goes the same way.
+    """
     raw = (os.environ.get(DEADLINE_ENV) or "").strip()
     try:
-        return float(raw)
+        value = float(raw)
     except ValueError:
         return float(SWEEP_DEADLINE)
+    return value if math.isfinite(value) else float(SWEEP_DEADLINE)
 
 
-def git(path: Path, *args: str, timeout: int = 30) -> tuple[int, str]:
+def git(path: Path, *args: str, timeout: float = 30) -> tuple[int, str]:
     try:
         done = subprocess.run(["git", "-C", str(path), *args],
                               capture_output=True, text=True, timeout=timeout)
@@ -192,8 +201,11 @@ def unpushed_branches(path: Path) -> list[str]:
     been deleted on the remote, is asked the expensive question instead: it is
     exactly the branch a finished session forgot about.
     """
+    # The full refname, lstripped of `refs/heads/`, never `%(refname:short)`:
+    # git shortens a branch to `heads/<name>` when a tag of the same name makes
+    # the short form ambiguous, and `refs/heads/heads/<name>` names nothing.
     code, output = git(path, "for-each-ref",
-                       "--format=%(refname:short)%09%(upstream)%09%(upstream:track)",
+                       "--format=%(refname:lstrip=2)%09%(upstream)%09%(upstream:track)",
                        "refs/heads")
     if code != 0:
         return []
@@ -215,18 +227,53 @@ def unpushed_branches(path: Path) -> list[str]:
     return branches
 
 
-def remote_reachable(path: Path) -> tuple[bool, str]:
-    """Whether origin answers. A machine that is merely offline is not a failure."""
-    code, output = git(path, "remote", timeout=PROBE_TIMEOUT)
+def remote_reachable(path: Path, timeout: float = PROBE_TIMEOUT) -> tuple[bool, str]:
+    """Whether origin answers. A machine that is merely offline is not a failure.
+
+    The timeout is passed in rather than fixed, so what is left of the sweep
+    deadline can cut a probe short instead of the probe outliving the deadline.
+    """
+    code, output = git(path, "remote", timeout=timeout)
     if code != 0 or REMOTE not in output.split():
         return False, f"no {REMOTE} remote"
-    code, output = git(path, "ls-remote", "--heads", REMOTE, timeout=PROBE_TIMEOUT)
+    code, output = git(path, "ls-remote", "--heads", REMOTE, timeout=timeout)
     if code != 0:
         return False, "offline"
     return True, ""
 
 
-def push(path: Path, branch: str) -> tuple[bool, str]:
+DIVERGED = ("origin already has commits this branch does not; "
+            "the two histories need combining")
+
+# git's own names for the same situation: the remote ref is not an ancestor of
+# what is being pushed, so accepting it would drop commits.
+DIVERGENCE_WORDS = ("non-fast-forward", "fetch first", "stale info")
+
+
+def refusal_detail(output: str) -> str:
+    """The one line of a refused push worth showing, said in plain words.
+
+    git ends a rejected push with a hint line pointing at `git push --help`,
+    and the last line is the line that gets read. It tells an operator with no
+    git background nothing at all, so the line that actually carries the
+    refusal is picked out instead and prefixed with what it means. git's own
+    text is kept in brackets after it, because that is what a search, or a
+    person who does know git, will want.
+    """
+    lines = [line.strip() for line in output.strip().splitlines() if line.strip()]
+    if not lines:
+        return ""
+    salient = next((line for line in lines
+                    if ("[rejected]" in line and line.startswith("!"))
+                    or line.startswith("error:")), lines[-1])
+    # git pads its columns; a run of spaces inside one sentence reads as a gap.
+    salient = " ".join(salient.split())
+    if any(word in salient for word in DIVERGENCE_WORDS):
+        return f"{DIVERGED} ({salient})"
+    return salient
+
+
+def push(path: Path, branch: str, timeout: float = PUSH_TIMEOUT) -> tuple[bool, str]:
     """Plain push, upstream set, the ref named in full on both sides.
 
     `git push origin <branch>` takes a refspec, not a name, so a branch legally
@@ -235,8 +282,22 @@ def push(path: Path, branch: str) -> tuple[bool, str]:
     a push that would discard work is then refused by git as it should be.
     """
     refspec = f"refs/heads/{branch}:refs/heads/{branch}"
-    code, output = git(path, "push", "-u", REMOTE, refspec, timeout=PUSH_TIMEOUT)
-    return code == 0, output.strip().splitlines()[-1] if output.strip() else ""
+    code, output = git(path, "push", "-u", REMOTE, refspec, timeout=timeout)
+    if code != 0:
+        return False, refusal_detail(output)
+    return True, output.strip().splitlines()[-1] if output.strip() else ""
+
+
+def budget(expires: float | None, cap: float) -> float:
+    """How long one git command may take: its own cap, or what is left of the sweep.
+
+    Never less than a second, because a command given no time at all cannot
+    even fail usefully; the sweep may therefore overrun its deadline by about
+    one command, which is the price of ever finishing a command at all.
+    """
+    if expires is None:
+        return cap
+    return max(1.0, min(cap, expires - time.monotonic()))
 
 
 def sweep(paths: list[Path] | None = None) -> list[dict[str, Any]]:
@@ -244,30 +305,45 @@ def sweep(paths: list[Path] | None = None) -> list[dict[str, Any]]:
 
     Records, not printed lines, so the caller decides how to say it and a test
     can read the outcome rather than parse prose.
+
+    The deadline is consulted before every branch, not only before every
+    checkout: one checkout holding four branches origin will not answer for
+    costs four push timeouts otherwise, all of them inside the first command
+    every session runs. What the deadline cuts short is reported as skipped,
+    branch by branch, so no local work goes unmentioned.
     """
     results: list[dict[str, Any]] = []
     limit = deadline_seconds()
     # Started before the checkouts are even enumerated: finding them asks each
     # candidate directory a git question, and that stalls on the same network.
     expires = time.monotonic() + limit if limit > 0 else None
+    missed_reason = (f"not reached inside the {limit:g}s sweep "
+                     f"deadline ({DEADLINE_ENV})")
+
+    def out_of_time() -> bool:
+        return expires is not None and time.monotonic() >= expires
+
     targets = checkouts() if paths is None else [Path(p) for p in paths]
     for index, path in enumerate(targets):
-        if expires is not None and time.monotonic() >= expires:
+        if out_of_time():
             results += [{"path": str(missed), "branch": "", "status": "skipped",
-                         "detail": f"not reached inside the {limit:g}s sweep "
-                                   f"deadline ({DEADLINE_ENV})"}
+                         "detail": missed_reason}
                         for missed in targets[index:]]
             break
         branches = unpushed_branches(path)
         if not branches:
             continue
-        reachable, why = remote_reachable(path)
+        reachable, why = remote_reachable(path, timeout=budget(expires, PROBE_TIMEOUT))
         if not reachable:
             results.append({"path": str(path), "branch": "", "status": "skipped",
                             "detail": f"{why}; {len(branches)} branch(es) still local"})
             continue
-        for branch in branches:
-            done, detail = push(path, branch)
+        for position, branch in enumerate(branches):
+            if out_of_time():
+                results += [{"path": str(path), "branch": missed, "status": "skipped",
+                             "detail": missed_reason} for missed in branches[position:]]
+                break
+            done, detail = push(path, branch, timeout=budget(expires, PUSH_TIMEOUT))
             results.append({"path": str(path), "branch": branch,
                             "status": "pushed" if done else "refused", "detail": detail})
     return results
@@ -292,6 +368,8 @@ def render(results: list[dict[str, Any]]) -> tuple[list[str], bool]:
             attention = True
             lines.append(f"  {result['branch']} in {where} was refused by {REMOTE}: "
                          f"{result['detail'] or 'no reason given'}")
+        elif result["branch"]:
+            lines.append(f"  {result['branch']} in {where} skipped: {result['detail']}")
         else:
             lines.append(f"  {where} skipped: {result['detail']}")
     return lines, attention

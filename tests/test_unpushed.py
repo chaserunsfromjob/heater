@@ -163,6 +163,26 @@ class TestSweep(SweepCase):
         self.assertEqual(self.statuses(results), {("+main", "pushed")})
         self.assertEqual(self.on_origin("+main"), head)
 
+    def test_a_branch_a_tag_also_names_is_pushed_under_its_own_name(self):
+        """A tag of the same name makes the branch's short name ambiguous.
+
+        Reproduced by hand first: with `refs/tags/worker/amb` present, git
+        renders `%(refname:short)` for `refs/heads/worker/amb` as
+        `heads/worker/amb`, and a push of `refs/heads/heads/worker/amb` names a
+        ref that does not exist. The branch is then either dropped from the
+        sweep or reported refused for ever.
+        """
+        self.branch("worker/amb")
+        head = self.commit("m.txt", "work under a name a tag also claims")
+        run("git", "tag", "worker/amb", "main", cwd=self.repo)
+
+        self.assertEqual(unpushed.unpushed_branches(self.repo), ["worker/amb"])
+
+        results = unpushed.sweep([self.repo])
+
+        self.assertEqual(self.statuses(results), {("worker/amb", "pushed")})
+        self.assertEqual(self.on_origin("worker/amb"), head)
+
     def test_a_leased_worktree_counts_as_the_repository_it_was_cut_from(self):
         """Worktrees share refs, so sweeping both would ask the same question twice."""
         tree = self.root / "tree"
@@ -219,6 +239,11 @@ class TestSweep(SweepCase):
 
         self.assertTrue(attention, "a divergence nobody has resolved is waiting")
         self.assertTrue(any("refused" in line for line in lines))
+        said = "\n".join(lines)
+        self.assertIn("origin already has commits this branch does not", said)
+        self.assertIn("the two histories need combining", said)
+        self.assertNotIn("hint:", said, "git's last line is a hint, not the reason")
+        self.assertIn("[rejected]", said, "git's own words are kept, in brackets")
 
     def test_a_checkout_that_is_not_a_repository_is_ignored(self):
         plain = self.root / "plain"
@@ -311,12 +336,15 @@ class TestDeadline(SweepCase):
         self.addCleanup(setattr, unpushed, "unpushed_branches", original)
 
     def test_checkouts_past_the_deadline_are_skipped_with_the_reason(self):
+        # The slow step is the push, so the deadline falls between the first
+        # checkout's only branch and the second checkout: the branch reached in
+        # time goes, and the checkout after it is reported, not attempted.
         second = self.root / "second"
         second.mkdir()
-        self.env("HEATER_AUTOPUSH_DEADLINE", "0.2")
+        self.env("HEATER_AUTOPUSH_DEADLINE", "0.3")
         self.branch("worker/first")
         self.commit("l.txt", "reached in time")
-        self.crawl(0.4)
+        self.crawl_push(0.5)
 
         results = unpushed.sweep([self.repo, second])
 
@@ -326,7 +354,7 @@ class TestDeadline(SweepCase):
         self.assertEqual(self.statuses([r for r in results if r["status"] == "pushed"]),
                          {("worker/first", "pushed")})
 
-    def test_the_whole_sweep_returns_inside_the_deadline(self):
+    def test_one_slow_checkout_does_not_multiply_by_the_rest(self):
         self.env("HEATER_AUTOPUSH_DEADLINE", "0.2")
         self.crawl(0.3)
 
@@ -335,6 +363,50 @@ class TestDeadline(SweepCase):
         spent = time.monotonic() - started
 
         self.assertLess(spent, 1.5, "one slow checkout must not multiply by the rest")
+
+    def crawl_push(self, seconds: float) -> None:
+        """Make each push take longer than the deadline allows."""
+        original = unpushed.push
+
+        def slow(path, branch, timeout=None):
+            time.sleep(seconds)
+            return original(path, branch)
+
+        unpushed.push = slow
+        self.addCleanup(setattr, unpushed, "push", original)
+
+    def test_branches_past_the_deadline_inside_one_checkout_are_skipped(self):
+        """The bound is on the sweep, so it has to hold inside a checkout too.
+
+        Four stalled pushes in one checkout cost four full push timeouts when
+        the deadline was only consulted between checkouts, which is the first
+        command every session runs sitting there for minutes.
+        """
+        for name in ("one", "two", "three", "four"):
+            run("git", "checkout", "-q", "main", cwd=self.repo)
+            self.branch(f"worker/{name}")
+            self.commit(f"{name}.txt", name)
+        self.env("HEATER_AUTOPUSH_DEADLINE", "0.5")
+        self.crawl_push(0.5)
+
+        started = time.monotonic()
+        results = unpushed.sweep([self.repo])
+        spent = time.monotonic() - started
+
+        self.assertLess(spent, 2.0, "the deadline bounds the branches within a checkout")
+        self.assertEqual(len(results), 4, "every branch is accounted for, reached or not")
+        skipped = [r for r in results if r["status"] == "skipped"]
+        self.assertTrue(skipped, "the branches not reached must be reported, not dropped")
+        self.assertTrue(all("deadline" in r["detail"] for r in skipped))
+        self.assertTrue(all(r["branch"] for r in skipped), "a skipped branch is named")
+
+    def test_a_nonsense_deadline_falls_back_to_the_default(self):
+        """`nan` compares false against everything, so it is no bound at all."""
+        for value in ("nan", "inf", "-inf", "banana"):
+            with self.subTest(value=value):
+                self.env(unpushed.DEADLINE_ENV, value)
+                self.assertEqual(unpushed.deadline_seconds(),
+                                 float(unpushed.SWEEP_DEADLINE))
 
     def test_a_deadline_skip_is_news_not_a_failure(self):
         second = self.root / "second"
