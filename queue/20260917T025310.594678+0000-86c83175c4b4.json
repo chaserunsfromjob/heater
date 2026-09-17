@@ -7,7 +7,7 @@
   "path": "",
   "origin": "",
   "summary": "pokerbot: requirements-vendor.txt installs only the vendored short-deck engine, so open_spiel must be pip-installed by hand before anything under research/decision_layer/ (or any universal_poker work) can run; path /Users/chasethompson/.heater/worktrees/pokerbot/92f9116b2f10/requirements-vendor.txt",
-  "delivered_at": null,
+  "delivered_at": "2026-09-17T02:54:23.742148+00:00",
   "resolution": {
     "action": "dismissed",
     "at": "2026-09-17T02:54:18.226350+00:00",

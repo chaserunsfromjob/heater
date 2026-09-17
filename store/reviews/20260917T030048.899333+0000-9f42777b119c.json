@@ -1,0 +1,17 @@
+{
+  "id": "9f42777b119c",
+  "created": "2026-09-17T03:00:48.899333+00:00",
+  "change": "3b2131f2f81c",
+  "project": "pokerbot",
+  "round": 1,
+  "lens": "default",
+  "verdict": "pass",
+  "findings": 0,
+  "wording_only": false,
+  "files": 9,
+  "insertions": 238,
+  "deletions": 188,
+  "cost_usd": null,
+  "duration_s": 60.0,
+  "note": "Landed on automated checks under the operator's pace decision, no reviewer: mechanical restatement of the landed forefront rule across nine documents; grep for stale wording returns only the model text at RESOURCES_BOTS.md:910; check_design_numbers 685, check_table_size_numbers 233, check_evaluation_numbers 234 all match; pytest 68 passed; no numeral changed except the new FOREFRONT_QUOTE_COUNT = 3."
+}
