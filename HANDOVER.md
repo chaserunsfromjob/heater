@@ -37,8 +37,15 @@ Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-No agent is out. Every change dispatched tonight has landed; reconcile at
-07:43Z reported nothing open. The last two: `39abff43a4ee` (Table C
+One agent is out: `e4e3d988ff3f` pokerbot worker (worktree
+pokerbot/469ceed9d852, task 96243ce4163a): a "Firm requirements" section in
+CLAUDE.md (2-9 players, true no-limit, exploitative play keyed to the named
+player) and a goal line that agrees. On report: the session reads it (a
+rule-file change, three bullets), lands `--skip-review --reason` with `bash
+bin/gate.sh`. Task f2f8237946ac was closed as recorded (compute budget
+section exists; the never-distributed half was superseded by the public
+decision). Everything dispatched before it has landed; reconcile at 07:43Z
+reported nothing open. The last two: `39abff43a4ee` (Table C
 re-pinned, PR #18, pokerbot d986bfe) and `25aa0c5c14e2` (heater 895c954:
 tools/fleetrepo.py makes every store and queue write reach the fleet
 repository from any leased checkout, HEATER_REPO overrides; a close whose
