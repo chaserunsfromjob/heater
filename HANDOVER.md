@@ -33,7 +33,7 @@ Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-Four agents are out (T2 fixer 1, T3 fixer 1, reconcile reviewer 3, taper fixer 7); each report needs one action. Compaction keeps them;
+Four agents are out (T2 reviewer 2 deciding, T3 fixer 1, reconcile fixer 4, taper fixer 7); each report needs one action. Compaction keeps them;
 a fresh session must read the branches on origin instead.
 
 - `8edc0ce3e009` T2 the first bot, PR #15, tip d1bf741, worktree
@@ -72,9 +72,10 @@ a fresh session must read the branches on origin instead.
   consecutive wording-only rounds; empty branch never landed; merged branch
   told apart from never-started by the lease's base_sha), tip 79e31c2,
   worktree heater/5663ae84bf74. Round 2 FAIL: the already-in-trunk route
-  has no heartbeat check, so a worker that pulled the trunk before its
-  first commit loses its checkout. FIXER round 3 out (also adds `--reason`
-  to land/reconcile --skip-review). Then a confirming round; land; tasks
+  has no heartbeat check; fixer 3 guarded it. Round 3 found the third
+  route (merge with --skip-review) unguarded; FIXER round 4 out, told it is
+  the last (also records the sweep-override policy in skills/dispatch).
+  Then a confirming round; land; tasks
   f16c56933d8a, dc8e3ac0bd7f, f0b91b86f69f done then. Pre-existing sibling
   filed as task b3b71f0512ac (worktrees.reclaim has no heartbeat check).
 - `c79a35661f9c` heater usage taper (bands, pacing line, debrief page,
