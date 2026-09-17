@@ -1,0 +1,17 @@
+{
+  "id": "5a468f29fdf6",
+  "created": "2026-09-17T16:15:58.466454+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "pokerbot/scoreboard.py",
+  "origin": "",
+  "summary": "OPERATOR STANDING INSTRUCTION, 2026-09-17, verbatim: 'if there is ever any spot that you are unsure about, i would really like you to go into my browser and manually check the spot. this should help you in your task to build a baseline, and even just checking a small number of hands (could be anything from 10 to 1000) will really help you get a feel for that baseline so please go into my gto frequently to check hands that the bot is playing and keep training it.' Build the harness this needs: a command that samples N decisions the bot faced in a scoreboard or arena run (seat count, positions, stacks, action so far, board, hole cards, the bot's chosen action and the search's frequencies over the fchpa menu) and prints each in a form the stoker can enter into GTO Wizard by hand; a record file (research/results/theory_agreement/) where the stoker writes the reference's action and frequencies per spot; and a summary that reports the agreement rate with an interval, split preflop/postflop. The stoker (the only agent with browser tools) does the entering in the operator's signed-in Chrome; workers cannot. Disagreements feed Stage 5's baseline tuning; nothing is copied out of GTO Wizard into the bot's tables. This is the measurement behind the operator's bar 'somewhat similar to theory'",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T16:15:58.557606+00:00",
+    "score": 56,
+    "task_id": "2cad7f367ed1"
+  }
+}
