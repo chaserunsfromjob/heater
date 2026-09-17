@@ -37,13 +37,16 @@ Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-One agent is out: `39abff43a4ee` pokerbot worker (worktree
-pokerbot/d74c6bebfd5a, task 480764e787ea): re-pin OPPONENT_MODEL_DESIGN.md
-Table C from the measured baseline and recompute the derived figures,
-keeping check_design_numbers green. On report: the session reads the
-figure table (a document change under the pace rule), lands with
-`--skip-review --reason` and `bash bin/gate.sh`. Everything dispatched
-before it has landed; reconcile at 07:15Z reported nothing open.
+No agent is out. Every change dispatched tonight has landed; reconcile at
+07:25Z reported nothing open. The last was `39abff43a4ee` (Table C re-pinned
+from the measured baseline, PR #18, d986bfe; checker now 705 figures).
+
+pokerbot main is at d986bfe. Next work when the band allows (weekly 81% at
+07:20Z, four days left; the five-hour window resets 09:10Z): the list's top
+is d67cffad749a (jsonstore.REPO resolves to the worktree: findings and
+store records written from a worker checkout land in a stale copy) and
+bc471f09618e (close_dispatch with a refused release still reads landed).
+Both are fleet safety and fit one heater worker.
 
 - `6e3f3af1ef5c` heater sweep/store truthfulness: LANDED 87f9569 (round 1
   fail, round 2 pass, two wording items by the session). The sweep's exit
@@ -132,5 +135,5 @@ to the worktree; widen to the stores). D1/D2 remain the operator's.
 
 ## Cost
 
-Session about $300 by `~/.heater/context.json`; 55 review rounds over 21
+Session about $305 by `~/.heater/context.json`; 55 review rounds over 21
 changes today; no round carries a dollar figure.

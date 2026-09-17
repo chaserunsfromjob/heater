@@ -1,0 +1,17 @@
+{
+  "id": "695e0d0cf21a",
+  "created": "2026-09-17T07:24:05.725472+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "OPPONENT_MODEL_DESIGN.md",
+  "origin": "",
+  "summary": "OPPONENT_MODEL_DESIGN.md stamps 'Computed by tools/check_design_numbers.py, 2026-09-15' in Table C's intro and the provenance table though the script recomputes on every run; the date is stale in several places and adds nothing",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T07:24:20.182557+00:00",
+    "score": 35,
+    "task_id": "cfa73b305514"
+  }
+}
