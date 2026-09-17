@@ -1,0 +1,12 @@
+{
+  "id": "0d40372ace19",
+  "created": "2026-09-17T22:06:56.447973+00:00",
+  "kind": "report",
+  "urgency": "high",
+  "project": "",
+  "path": "",
+  "origin": "debrief",
+  "summary": "What the agents did in the last 5 hours\nWritten Thu 17 Sep 2026, 18:06 EDT.\n\nEvery line below is read back from what the agents wrote down as they worked,\nso none of it is anybody's recollection.\n\n3 agents were working in this window, 2 of them sent out inside it and one\nalready running when it began. 2 of them finished, and one is still running.\n\n1.\n   Review round 1 of a separate copy of the work (pr #25): a file in the\n   project status and the operator's 2026-09-17 decisions, readme 'Working\n   from another machine'; document-only, lands on one wording-only pass.\n   Sent out 5 hours 22 minutes ago, to check someone else's work.\n   It could not finish, 4 hours 46 minutes ago.\n   It has not been checked over yet.\n\n2.\n   Done when the four files updated, land detects document-only from the diff\n   and requires one round for it, tests for doc-only, code, and mixed\n   branches, full suite green, a file in the project exit 0, branch pushed.\n   Sent out 4 hours 45 minutes ago, to build something.\n   Still running: nothing has come back from it yet.\n   Checked over 6 times, and the last check sent it back with 4 things to put\n   right.\n\n3.\n   Done when verdict recorded with an explicit wording-only statement.\n   Sent out 4 hours 36 minutes ago, to check someone else's work.\n   It could not finish, 4 hours 26 minutes ago.\n   It has not been checked over yet.\n\none further round of checking went on work that was not sent out in this\nwindow.\n\nNo check recorded what it cost.\n\n10 things were noticed in passing by an agent and written down for the stoker\nto judge rather than for you; all of them have been judged.\n\nOne separate working copy of a project is still set aside for these agents to\nwork in (a copy set aside like that is called a checkout), and 0 others were\nhanded back.\n\nStill out: one agent. Stopping now leaves their work where it stands, on its\nown copy, and it can be picked up again.",
+  "delivered_at": null,
+  "resolution": null
+}
