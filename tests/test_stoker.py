@@ -28,16 +28,20 @@ import session_start  # noqa: E402
 
 
 class StoreCase(unittest.TestCase):
-    ENV = ("HEATER_DISPATCHES_DIR", "HEATER_QUEUE_DIR", "HEATER_TASKS_DIR",
-           "HEATER_REVIEWS_DIR", "HEATER_SUITES_DIR", "HEATER_LOG_DIR", "HEATER_ROLE")
+    DIRS = ("HEATER_DISPATCHES_DIR", "HEATER_QUEUE_DIR", "HEATER_TASKS_DIR",
+            "HEATER_REVIEWS_DIR", "HEATER_SUITES_DIR", "HEATER_LOG_DIR")
+    ENV = DIRS + ("HEATER_ROLE", "HEATER_AUTOPUSH")
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.previous = {k: os.environ.get(k) for k in self.ENV}
         root = Path(self.tmp.name)
-        for key in self.ENV[:-1]:
+        for key in self.DIRS:
             os.environ[key] = str(root / key.lower())
         os.environ.pop("HEATER_ROLE", None)
+        # Taking bearings pushes unpushed branches. A suite must never push the
+        # real branches of whatever machine it happens to be running on.
+        os.environ["HEATER_AUTOPUSH"] = "0"
 
     def tearDown(self):
         for key, value in self.previous.items():
@@ -275,7 +279,7 @@ class TestBearings(StoreCase):
     def test_reports_every_section(self):
         text, _ = bearings.report()
         for heading in ("Fleet", "Dispatches out", "Heartbeats", "This machine",
-                        "Fleet repository", "Review load"):
+                        "Pushed", "Fleet repository", "Review load"):
             self.assertIn(f"## {heading}", text)
 
     def test_is_stamped_with_when_it_ran(self):

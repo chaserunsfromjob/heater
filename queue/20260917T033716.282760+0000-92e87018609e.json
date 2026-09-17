@@ -1,0 +1,12 @@
+{
+  "id": "92e87018609e",
+  "created": "2026-09-17T03:37:16.282760+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "",
+  "path": "",
+  "origin": "",
+  "summary": "skills/bearings/SKILL.md section table and README.md's bin/bearings.py line do not mention the new Pushed section or that bearings now pushes unpushed branches",
+  "delivered_at": null,
+  "resolution": null
+}
