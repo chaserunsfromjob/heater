@@ -230,6 +230,13 @@ class GitCase(StoreCase):
     def stored(self, dispatch_id: str) -> dict:
         return next(d for d in jsonstore.load(dispatch.dispatches_dir()) if d["id"] == dispatch_id)
 
+    def sweep(self, *args: str) -> tuple[int, str]:
+        """The sweep as a wake runs it: what it printed, and what it exited."""
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            code = dispatch.main(["dispatch.py", "reconcile", *args])
+        return code, printed.getvalue()
+
     def beat(self, cwd: Path, *, minutes_ago: float = 0.0, session: str = "s1") -> None:
         # Where the PostToolUse hook writes: alongside the log directory.
         directory = self.root / "heartbeat"
@@ -681,12 +688,6 @@ class TestTheSweepsExitCodeSaysWhatItFound(GitCase):
     on a wake at four in the morning is nobody.
     """
 
-    def sweep(self, *args: str) -> tuple[int, str]:
-        printed = io.StringIO()
-        with contextlib.redirect_stdout(printed):
-            code = dispatch.main(["dispatch.py", "reconcile", *args])
-        return code, printed.getvalue()
-
     def clean_report(self, **extra) -> dict:
         report = {"at": jsonstore.now(), "landed": [], "abandoned": [], "held": [],
                   "awaiting_review": [], "needs_fix": [], "runs_finished": []}
@@ -771,12 +772,15 @@ class TestClosingSaysWhatItRestedOn(GitCase):
         self.work(record)
         worktrees.release(record["lease_id"], "taken back by hand", force=True)
 
-        dispatch.reconcile()
+        code, printed = self.sweep()
 
         note = self.stored(record["id"])["note"]
         self.assertIn("no checkout to consolidate", note)
         self.assertIn("no round recorded", note,
                       "a close that consulted no review must say so in the note")
+        self.assertEqual(self.stored(record["id"])["outcome"], "failed",
+                         "its commits never reached the trunk")
+        self.assertEqual(code, 1, printed)
 
     def test_a_dispatch_with_no_checkout_names_a_failed_round(self):
         record = self.worker()
@@ -784,9 +788,12 @@ class TestClosingSaysWhatItRestedOn(GitCase):
         self.round_of(record["id"], 3, "fail", findings=2)
         worktrees.release(record["lease_id"], "taken back by hand", force=True)
 
-        dispatch.reconcile()
+        code, printed = self.sweep()
 
         self.assertIn("round 3: fail", self.stored(record["id"])["note"])
+        self.assertEqual(self.stored(record["id"])["outcome"], "failed",
+                         "its commits never reached the trunk")
+        self.assertEqual(code, 1, printed)
 
     def test_already_in_the_trunk_records_the_review_state_it_closed_on(self):
         record = self.worker()
@@ -813,6 +820,68 @@ class TestClosingSaysWhatItRestedOn(GitCase):
         dispatch.reconcile()
 
         self.assertIn("round 2: fail", self.stored(record["id"])["note"])
+
+
+class TestAReleasedSlotIsNotProofOfLanding(GitCase):
+    """A lease handed back by hand or by `reclaim` says nothing about the trunk.
+
+    The slot going back means the checkout is gone, not that its commits are
+    anywhere. Closing that as `landed` records work the trunk never received,
+    and `landed` is a clean key, so the wake reads green over commits still
+    sitting on a branch nobody will look at again.
+    """
+
+    def lease_of(self, record: dict) -> dict:
+        return next(l for l in jsonstore.load(worktrees.leases_dir())
+                    if l["id"] == record["lease_id"])
+
+    def test_commits_left_off_the_trunk_are_reported_and_not_landed(self):
+        record = self.worker()
+        self.work(record)
+        branch = self.lease_of(record)["branch"]
+        worktrees.release(record["lease_id"], "taken back by hand", force=True)
+
+        code, printed = self.sweep()
+
+        self.assertNotEqual(self.stored(record["id"])["outcome"], "landed",
+                            "nothing reached the trunk; the record may not say it did")
+        self.assertEqual(self.stored(record["id"])["outcome"], "failed")
+        self.assertEqual(code, 1, f"commits left off the trunk are not green:\n{printed}")
+        self.assertIn("left_behind", printed)
+        self.assertIn(branch, printed, "the line has to say which branch still holds it")
+
+    def test_the_report_names_the_branch_it_left_behind(self):
+        record = self.worker()
+        self.work(record)
+        branch = self.lease_of(record)["branch"]
+        worktrees.release(record["lease_id"], "taken back by hand", force=True)
+
+        report = dispatch.reconcile()
+
+        self.assertEqual(report["landed"], [])
+        self.assertEqual([e["branch"] for e in report["left_behind"]], [branch])
+        self.assertIn("left_behind", dispatch.reconcile_unclean(report))
+
+    def test_commits_already_in_the_trunk_still_land(self):
+        record = self.worker()
+        self.work(record)
+        lease = self.lease_of(record)
+        run("git", "merge", "--no-ff", lease["branch"], "-m", "landed by hand", cwd=self.repo)
+        worktrees.release(record["lease_id"], "taken back by hand")
+
+        code, printed = self.sweep()
+
+        self.assertEqual(self.stored(record["id"])["outcome"], "landed")
+        self.assertEqual(code, 0, printed)
+
+    def test_a_dispatch_that_never_took_a_checkout_still_lands(self):
+        """There is no branch to ask git about, so there is nothing left behind."""
+        record = dispatch.open_dispatch("read the options and write them up", project="api")
+
+        code, printed = self.sweep()
+
+        self.assertEqual(self.stored(record["id"])["outcome"], "landed")
+        self.assertEqual(code, 0, printed)
 
 
 class TestAnAbandonedWorkerIsNotALanding(GitCase):

@@ -78,14 +78,49 @@ def record_suite(command: str, passed: bool, *, duration_s: float | None = None,
     return record
 
 
+def cutoff(days: int | None) -> str:
+    """The oldest timestamp a window of this many days takes, or "" for all time."""
+    if days is None:
+        return ""
+    return (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+
 def within(records: list[dict[str, Any]], days: int | None, project: str) -> list[dict[str, Any]]:
     kept = records
     if project:
         kept = [r for r in kept if r.get("project") == project]
-    if days is None:
+    if not (oldest := cutoff(days)):
         return kept
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
-    return [r for r in kept if r.get("created", "") >= cutoff]
+    return [r for r in kept if r.get("created", "") >= oldest]
+
+
+def changes_landed(days: int | None, project: str) -> list[str]:
+    """Changes whose review loop ended, and ended inside this window.
+
+    Asked of each change's whole history, never of the rounds the window kept.
+    A review runs for as long as it takes: round 1 can be a month old while the
+    round that ended it arrived this morning. Window the rounds first and that
+    change loses its opening round, its remaining rounds are not the end of a
+    loop, and the week's report says nothing landed while `dispatch` lands it.
+
+    The window still decides which changes are counted; it is applied to the
+    round that ended the review, which is when the change actually landed.
+    """
+    everything = jsonstore.load(reviews_dir())
+    if project:
+        everything = [r for r in everything if r.get("project") == project]
+
+    per_change: dict[str, list[dict[str, Any]]] = {}
+    for record in everything:
+        per_change.setdefault(record["change"], []).append(record)
+
+    oldest = cutoff(days)
+    landed = []
+    for change, rounds in per_change.items():
+        history = reviewloop.ordered(rounds)
+        if reviewloop.ended(history) and history[-1].get("created", "") >= oldest:
+            landed.append(change)
+    return landed
 
 
 def query(days: int | None = None, project: str = "") -> dict[str, Any]:
@@ -103,8 +138,9 @@ def query(days: int | None = None, project: str = "") -> dict[str, Any]:
     # on, asked of the same module. Counting a change landed because some round
     # of it once passed is the stale-pass reading: rounds 5, 6 and 7 can fail
     # after a round-4 pass, and the sweep will rightly refuse to land any of it
-    # while this figure says eleven changes went out.
-    landed = [c for c, rs in per_change.items() if reviewloop.ended(rs)]
+    # while this figure says eleven changes went out. Asked of the full history
+    # rather than of `rounds`, which the window has already cut down.
+    landed = changes_landed(days, project)
     first_time = [c for c, rs in per_change.items()
                   if len(rs) == 1 and rs[0]["verdict"] == "pass"]
 

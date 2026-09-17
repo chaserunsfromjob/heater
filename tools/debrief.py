@@ -276,7 +276,7 @@ OUTCOME_WORDS = {
               "waiting to be joined onto the shared one (joining it on is called merging)",
     "escalated": "stopped partway and asked for a decision",
     "failed": "could not finish",
-    "abandoned": "was called off",
+    "abandoned": "stopped without producing anything",
 }
 
 # What kind of agent it was, by what it was there to do. Any kind may be

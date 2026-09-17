@@ -13,6 +13,7 @@ import os
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -196,6 +197,41 @@ class TestChangesLandedAgreesWithDispatch(StoreCase):
         self.assertEqual(by_dispatch, ["landed-change"])
         self.assertEqual(self.landed(), len(by_dispatch))
         self.assertEqual(self.landed(days=7), len(by_dispatch))
+
+    def backdate(self, record: dict, days: float) -> None:
+        """Move one recorded round's clock back, in the file it already lives in.
+
+        Rewritten in place rather than re-recorded: the filename carries the
+        timestamp, so a second write would leave two files with one id.
+        """
+        when = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(timespec="microseconds")
+        path = next(Path(os.environ["HEATER_REVIEWS_DIR"]).glob(f"*{record['id']}.json"))
+        path.write_text(path.read_text().replace(record["created"], when), encoding="utf-8")
+
+    def test_a_review_that_began_before_the_window_and_ended_inside_it_counts(self):
+        """The change landed this week; only its opening round is a month old.
+
+        Windowing the rounds before asking whether the loop ended cuts that
+        first round off, leaves one pass behind, and reports nothing landed —
+        while the sweep, which reads the whole history, lands it.
+        """
+        first = store.record_review("auth", 1, "default", "pass", findings=2, wording_only=True)
+        store.record_review("auth", 2, "default", "pass")
+        self.backdate(first, 30)
+
+        self.assertTrue(dispatch.reviewed("auth"))
+        self.assertEqual(self.landed(days=7), 1,
+                         "a change is landed by its whole history, not by the window")
+
+    def test_a_review_that_ended_before_the_window_is_not_counted_in_it(self):
+        """Attributed to the window by the round that ended it, which is old."""
+        first = store.record_review("auth", 1, "default", "pass", findings=2, wording_only=True)
+        second = store.record_review("auth", 2, "default", "pass")
+        self.backdate(first, 40)
+        self.backdate(second, 30)
+
+        self.assertEqual(self.landed(days=7), 0, "it landed last month, not this week")
+        self.assertEqual(self.landed(), 1, "all time still has it")
 
     def test_the_query_command_still_runs_over_a_window(self):
         self.end_review_of("auth")

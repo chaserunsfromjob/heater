@@ -321,7 +321,7 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
     """
     report: dict[str, Any] = {"at": jsonstore.now(), "landed": [], "abandoned": [],
                               "held": [], "awaiting_review": [], "needs_fix": [],
-                              "runs_finished": []}
+                              "left_behind": [], "runs_finished": []}
     leases = {l["id"]: l for l in jsonstore.load(worktrees.leases_dir())}
 
     candidates = [d for d in live()
@@ -332,12 +332,24 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
     for record in candidates:
         lease = leases.get(record.get("lease_id", ""))
         if lease is None or lease.get("released_at"):
-            # The slot has already gone back, so there is no branch to merge
-            # and no checkout to protect, and the review store decides nothing
-            # here. Where the record stood in its review is written down all the
-            # same: a close that says nothing about review reads exactly like
-            # one that was reviewed, and the note is the only place this can be
-            # checked from afterwards.
+            # The slot has already gone back, so there is no branch to merge and
+            # no checkout to protect, and the review store decides nothing here.
+            # Whether anything landed is still git's to say: a slot handed back
+            # by hand or by `reclaim` frees the checkout without merging, so the
+            # branch can be sitting there with every commit the worker made.
+            # Where the record stood in its review is written down either way: a
+            # close that says nothing about review reads exactly like one that
+            # was reviewed, and the note is the only place this can be checked
+            # from afterwards.
+            if (why := left_behind(lease)):
+                # Not abandoned: the work exists, and nobody called it off. It
+                # is simply not in the trunk, so it is somebody's to finish.
+                close_dispatch(record["id"], "failed",
+                               f"no checkout to consolidate, but {why}; "
+                               f"{review_state(record['id'])}")
+                report["left_behind"].append({"dispatch": record["id"],
+                                              "branch": lease.get("branch", ""), "why": why})
+                continue
             close_dispatch(record["id"], "landed",
                            f"no checkout to consolidate; {review_state(record['id'])}")
             report["landed"].append(record["id"])
@@ -467,6 +479,39 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
 NEVER_COMMITTED = "has no commits of its own yet"
 BASE_UNRECORDED = ("has no commits the trunk lacks and no record of the commit "
                    "it was cut from")
+
+
+def left_behind(lease: dict[str, Any] | None) -> str:
+    """Why this released slot's commits are not in the trunk, or "" when they are.
+
+    A slot going back says the checkout is gone. It says nothing about where the
+    commits went: `reclaim` and a release by hand both free the checkout without
+    merging anything, and the branch stays in the project with all of the
+    worker's commits on it. Reading the released slot as a landing records work
+    the trunk never received and, because landing is a clean outcome, lets the
+    wake read green over it.
+
+    Asked of the branch in the project itself, because the checkout is gone by
+    the time this is asked. A branch that cannot be found or cannot be compared
+    is reported rather than assumed landed: the whole point here is to stop
+    guessing that work arrived.
+    """
+    if lease is None:
+        # No slot was ever taken, so there is no branch and nothing to leave.
+        return ""
+    repo, branch = Path(lease.get("repo", "")), lease.get("branch", "")
+    trunk = lease.get("base_branch") or "main"
+    if not branch or not repo.exists():
+        return f"whether its work reached {trunk} cannot be checked: {repo} is not there"
+    code, tip = worktrees.git(repo, "rev-parse", "--verify", f"{branch}^{{commit}}")
+    if code != 0:
+        return f"{branch} is no longer in {repo}, so what it held cannot be checked"
+    code, output = worktrees.git(repo, "merge-base", "--is-ancestor", tip.strip(), trunk)
+    if code == 0:
+        return ""
+    if code == 1:
+        return f"{branch} still holds commits {trunk} does not"
+    return f"{branch} could not be compared with {trunk}: {output}"
 
 
 def empty_branch(lease: dict[str, Any], trunk: str) -> str:
@@ -635,6 +680,14 @@ def render_reconcile(result: dict[str, Any]) -> str:
         # function was never taught to print, and an exit of 1 with nothing on
         # screen to explain it is the failure being fixed, one step along.
         lines.append(f"  not finished: {', '.join(rest)}")
+        for key in rest:
+            for entry in result[key]:
+                # Whatever the entry says of itself. A branch left holding
+                # commits has to be named on screen, or the line says work was
+                # left somewhere without saying where.
+                if isinstance(entry, dict):
+                    lines.append(f"    {entry.get('branch') or entry.get('dispatch', '?')}: "
+                                 f"{entry.get('why', '')}")
     if result["runs_finished"]:
         lines.append(f"  runs fully consolidated: {', '.join(result['runs_finished'])}")
     return "\n".join(lines)

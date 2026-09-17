@@ -87,10 +87,14 @@ somebody to answer — held, needing a fixer, or anything else it reports that i
 not a landing, an abandoned empty branch or a worker still awaiting review —
 exits 1, so a wake that reads the exit code alone still sees it.
 
-Where the commits were already in the trunk, or the checkout was already gone,
-there is nothing to merge and the dispatch is closed on the spot. The note says
-which review state it was closed on, so the close can be checked afterwards
-rather than taken on trust.
+Where the commits are already in the trunk, or the slot has gone back and git
+shows the branch reached the trunk anyway, there is nothing to merge and the
+dispatch closes as `landed` on the spot. Where the slot has gone back and the
+branch still holds commits the trunk does not — a slot handed back by hand, or
+reclaimed from a worker that never landed — nothing was abandoned and nothing
+landed, so the dispatch closes as `failed`, the branch is named on screen, and
+the sweep exits 1. Every one of these closes says which review state it rested
+on, so it can be checked afterwards rather than taken on trust.
 
 Nothing is deleted until its commits are provably reachable from the trunk. That
 check is the invariant the whole sweep rests on, and `finish` raises rather than
