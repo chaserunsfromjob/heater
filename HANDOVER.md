@@ -33,7 +33,7 @@ Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-One agent is out (taper fixer 7); each report needs one action. Compaction keeps them;
+Two agents are out (taper reviewer 8 deciding; Stage 2 worker 9d68697caeb0); each report needs one action. Compaction keeps them;
 a fresh session must read the branches on origin instead.
 
 - `8edc0ce3e009` T2 the first bot: LANDED 3a54ce2 (PR #15) on a round-2
@@ -69,10 +69,11 @@ a fresh session must read the branches on origin instead.
   opinion 14), tip 1d175b8, worktree heater/03a2b608f262. Seven rounds; the
   taper half was sound from round 4 and the status-line writer is verified
   against Claude Code 2.1.274; fixer 6 applied the four debrief-page
-  findings plus tasks 001bbe019ca8 and 06e6e60bc3f7 (539 tests). Round 7
-  FAIL on three page regressions and a merge conflict with main (README,
-  tools/bearings.py); FIXER round 7 is out, told it is the last: the
-  stoker lands on round 8 if only wording remains. On pass:
+  findings plus tasks 001bbe019ca8 and 06e6e60bc3f7. Round 7 FAIL on three
+  page regressions and a merge conflict; fixer 7 (a7b9fa4, 574 tests)
+  merged main and applied them with two argued departures (done_when not
+  gated by _says_the_work; no standalone colon-list rule, because both
+  silenced entry 15). REVIEWER round 8 (deciding) is out. On pass:
   `bin/dispatch.py land c79a35661f9c --gate "bash bin/gate.sh"`, push,
   delete handover/findings-c79a35661f9c-* in the landing commit (or right
   after), delete the branch; tasks 32cbdf129bdf, ab4ea92fcb09,
@@ -80,13 +81,16 @@ a fresh session must read the branches on origin instead.
   the next status-line render and bearings shows the five-hour figure and
   the pacing line: pace agents by it.
 
-Nothing else is dispatched. Next: land the taper; then Stage 2 of
-BUILD_PLAN.md as one pokerbot worker: register T2's search bot with
-league.register_bot, run `python -m pokerbot.scoreboard --bot search` over
-the nine personas at seats 2/6/8/9 (about 4 minutes for the 52-cell grid),
-commit the report (under 200 lines) and say what it shows; fold task
-d077f18909a7 (one home for the trivial agents) into the same brief. D1/D2
-remain the operator's.
+- `9d68697caeb0` Stage 2 first measurement, worktree pokerbot/41aac718851b,
+  cut from 88ffff1: registers the search bot with the scoreboard, runs the
+  52-cell grid, commits research/results/stage2_search_vs_personas.txt and
+  a README paragraph; then makes personas.py the one home for the trivial
+  agents (deletes baselines.py; tasks d077f18909a7, 6805b01c7bd2). On
+  report: one reviewer round (default lens; it is code plus a measurement),
+  fixer, land with `bash bin/gate.sh`. Its verdict is the first real answer
+  to "is the bot any good": carry it to the operator in the next report.
+
+D1/D2 remain the operator's.
 
 ## Traps
 

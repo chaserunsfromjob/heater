@@ -1,0 +1,18 @@
+{
+  "id": "9d68697caeb0",
+  "created": "2026-09-17T05:44:31.834583+00:00",
+  "task": "Stage 2 first measurement: register T2's search bot with the T3 scoreboard, run it over the nine personas at seats 2/6/8/9, commit the report; and make personas.py the one home for the three trivial agents (shim arena.py to it, delete baselines.py)",
+  "project": "pokerbot",
+  "done_when": "python -m pokerbot.scoreboard --bot search produces a full report committed under 200 lines with its verdict; arena.py runs on personas.py's agents with the 1,000-hand evidence test still green; baselines.py gone; bash bin/gate.sh passed; branch pushed, draft PR",
+  "task_id": "d077f18909a7",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/41aac718851b",
+  "lease_id": "41aac718851b",
+  "branch": "worker/9d68697caeb0",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}
