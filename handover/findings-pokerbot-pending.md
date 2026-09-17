@@ -52,6 +52,10 @@ that stage is applied by the session and landed.
   an archive-seeded prior is worth 22-31 hands; crossover about 30 observed
   hands; Table C's fold-to-c-bet opportunity rate is 0.030 not 0.15.
 
+- c91832fe9882 BUILD_PLAN.md, the reconciliation — 96aa546 (one round, seven
+  exact edits by a fixer). D1 arena/rules fix and D2 seeing the table are the
+  operator's; T1 dispatched.
+
 ## Still open
 
 - 7eead182560d RESOURCES_DICKREUTER.md (worker/7eead182560d @ b0c5b4a):
@@ -69,32 +73,6 @@ that stage is applied by the session and landed.
   changes in codex-tonight-required-changes-2026-09-17.md and GitHub issue #4.
   His move. Do not merge.
 
-## After the surveys: the reconciliation (not yet dispatched)
+## After the surveys
 
-ONE worker reads the four surveys (bots, exploitation, solvers, engine —
-the engine survey still on its branch), the dickreuter assessment, the
-table-size notes and the design, and puts the open decisions to the
-operator as plain choices: (1) the forefront carve-out — who chooses the
-action on top of OpenSpiel; (2) the opponent baseline — the 2009 archive
-vs observe-first; (3) what "based on dickreuter" means (the assessment's
-recommendation); (4) the licence questions routed to them — fpdb-3's AGPL
-and the IRC corpus's copyright notice; (5) whether unlicensed code scores
-1 of 3 (solvers) or ~ (bots). Known unknown for that brief: how the bot
-sees a real table and acts on it — the dickreuter assessment now answers
-the "sees" half. Also for the reconciler: the three number checkers
-(design, table-size, evaluation) share scaffolding and are filed for
-consolidation (queue 78dfd89d332f).
-
-## Operator answers 2026-09-17 (Mac session; verbatim in the task at score 80)
-
-1. Rohit's CLAUDE.md rewrite: NOT authorised as written, but the substance is
-   now decided: AI may WRITE decision code; no model call in the live
-   decision path; decision code is ordinary testable code. Rewrite the rule
-   in the operator's words, then review codex/tonight against it; he opens a
-   PR.
-2. PC may push branches without prompting.
-3-4. Licences: "just use the code"; repository may go private later.
-5. "Hours on one laptop" is KEPT (compute budget, not usage; the operator
-   had read it as usage).
-6. A research note on LLM poker failure modes is owed; its named mistakes
-   stay out of the decision code.
+The reconciliation is BUILD_PLAN.md on main. Build from its stages; T1 first.
