@@ -39,7 +39,8 @@ def suites_dir() -> Path:
 
 
 def record_review(change: str, round_number: int, lens: str, verdict: str, *,
-                  findings: int = 0, wording_only: bool = False, files: int = 0,
+                  findings: int = 0, wording_only: bool = False, document_only: bool = False,
+                  files: int = 0,
                   insertions: int = 0, deletions: int = 0, cost_usd: float | None = None,
                   duration_s: float | None = None, project: str = "", note: str = "") -> dict[str, Any]:
     if lens not in LENSES:
@@ -56,7 +57,8 @@ def record_review(change: str, round_number: int, lens: str, verdict: str, *,
     record = {
         "id": jsonstore.new_id(), "created": jsonstore.now(), "change": change.strip(),
         "project": project, "round": round_number, "lens": lens, "verdict": verdict,
-        "findings": findings, "wording_only": wording_only, "files": files,
+        "findings": findings, "wording_only": wording_only,
+        "document_only": bool(document_only), "files": files,
         "insertions": insertions, "deletions": deletions, "cost_usd": cost_usd,
         "duration_s": duration_s, "note": note,
     }
@@ -118,7 +120,12 @@ def changes_landed(days: int | None, project: str) -> list[str]:
     landed = []
     for change, rounds in per_change.items():
         history = reviewloop.ordered(rounds)
-        if reviewloop.ended(history) and history[-1].get("created", "") >= oldest:
+        # How many passes this change takes, from what its own rounds recorded.
+        # Without it a document that ended on one round is never counted here
+        # while `dispatch` has already landed it, and "how many rounds do
+        # documents take" has nothing to read.
+        needed = reviewloop.needed_from_rounds(history)
+        if reviewloop.ended(history, needed) and history[-1].get("created", "") >= oldest:
             landed.append(change)
     return landed
 
@@ -158,6 +165,7 @@ def query(days: int | None = None, project: str = "") -> dict[str, Any]:
             "passed_first_round": len(first_time),
             "failed_rounds": sum(1 for r in rounds if r["verdict"] == "fail"),
             "wording_only_rounds": sum(1 for r in rounds if r.get("wording_only")),
+            "document_only_rounds": sum(1 for r in rounds if r.get("document_only")),
             "cost_usd_total": round(sum(costs), 4) if costs else None,
             "cost_usd_per_change": round(sum(costs) / len(per_change), 4) if costs and per_change else None,
             "rounds_missing_cost": sum(1 for r in rounds if not isinstance(r.get("cost_usd"), (int, float))),
@@ -185,6 +193,7 @@ def render(result: dict[str, Any]) -> str:
         f"  passed first round     {reviews['passed_first_round']}",
         f"  failed rounds          {reviews['failed_rounds']}",
         f"  wording-only rounds    {reviews['wording_only_rounds']}",
+        f"  document-only rounds   {reviews['document_only_rounds']}",
         f"  lines changed          {reviews['lines_changed']}",
         f"  cost                   {reviews['cost_usd_total']} total, "
         f"{reviews['cost_usd_per_change']} per change",
@@ -209,6 +218,9 @@ def main(argv: list[str]) -> int:
     review.add_argument("--verdict", choices=VERDICTS, required=True)
     review.add_argument("--findings", type=int, default=0)
     review.add_argument("--wording-only", action="store_true")
+    review.add_argument("--document-only", action="store_true",
+                        help="every path this change touched is prose, so it ends on one "
+                             "such round; the query's landed count reads this")
     review.add_argument("--files", type=int, default=0)
     review.add_argument("--insertions", type=int, default=0)
     review.add_argument("--deletions", type=int, default=0)
@@ -235,7 +247,8 @@ def main(argv: list[str]) -> int:
     if args.action == "review":
         record = record_review(
             args.change, args.round, args.lens, args.verdict, findings=args.findings,
-            wording_only=args.wording_only, files=args.files, insertions=args.insertions,
+            wording_only=args.wording_only, document_only=args.document_only,
+            files=args.files, insertions=args.insertions,
             deletions=args.deletions, cost_usd=args.cost_usd, duration_s=args.duration,
             project=args.project, note=args.note)
         print(f"recorded round {record['round']} of {record['change']}: {record['verdict']} ({record['id']})")

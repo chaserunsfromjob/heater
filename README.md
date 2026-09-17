@@ -171,7 +171,14 @@ complete.
       fixer agent. Judge-only is enforced by the guard, not by the tool list,
       because Bash is a write tool and a reviewer needs it to run tests.
 - [x] **4. A review-rounds store** the skill writes to, and one query over it,
-      plus a suite-run store beside it.
+      plus a suite-run store beside it. A round records the change it belongs
+      to, its number, the lens, the verdict, how many findings it raised,
+      whether those were wording only (`--wording-only`), whether every path
+      the change touched was a document (`--document-only`), the change size,
+      and the cost. The query counts a change landed by the same rule
+      `bin/dispatch.py land` lands it on, and `--document-only` is how it
+      knows which rule applied: by the time a week is counted the branch is
+      merged and there is no diff left to read.
 - [x] **5. The findings inbox**, with dismiss and promote. Findings live in the
       queue store rather than a second directory, so one finding has one record.
       The dismissal reason is what `check` uses to refuse a refile.

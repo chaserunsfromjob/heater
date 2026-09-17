@@ -34,6 +34,9 @@ from heartbeats import STALE_MINUTES, beats, someone_working_in  # noqa: F401
 # `reviewloop` is there for the same reason: `store`'s query counts the changes
 # that landed and cannot import this module back, so when a review has ended is
 # decided below both of them. The rule it ends on is re-exported, not restated.
+# The two readers differ only in where they learn how many rounds a change takes,
+# because only one of them has a checkout: here it is read from the diff, and in
+# the query from the `document_only` flag the round itself recorded.
 from reviewloop import (  # noqa: F401
     ROUNDS_TO_END_DOCUMENT_REVIEW,
     ROUNDS_TO_END_REVIEW,
@@ -184,16 +187,45 @@ def changed_paths(path: Path, trunk: str) -> list[str]:
     return [line.strip() for line in output.splitlines() if line.strip()]
 
 
-def rounds_needed(lease: dict[str, Any] | None) -> int:
-    """How many wording-only passes this branch takes, from what it changed.
+def trunk_of(repo: Path) -> str:
+    """The branch this repository treats as its trunk, for a checkout with no lease.
+
+    A leased checkout records what it was cut from; a worker in the project's
+    own checkout records nothing, so the trunk has to be read back off the
+    repository. What the remote points its HEAD at, and failing that whichever
+    of the usual two names exists.
+    """
+    code, name = worktrees.git(repo, "symbolic-ref", "--quiet", "--short",
+                               "refs/remotes/origin/HEAD")
+    if code == 0 and (short := name.strip().rsplit("/", 1)[-1]):
+        return short
+    for candidate in ("main", "master"):
+        if worktrees.git(repo, "rev-parse", "--verify", "--quiet", candidate)[0] == 0:
+            return candidate
+    return "main"
+
+
+def rounds_needed(record: dict[str, Any] | None, lease: dict[str, Any] | None = None) -> int:
+    """How many wording-only passes this change takes, from what it changed.
 
     What a branch touched is git's to say, not the brief's: a brief can call a
     change a document and still carry a rewrite of the guard.
+
+    A worker with no leased checkout wrote in the project's own checkout, which
+    `land` supports, and a document written there is still a document: the diff
+    is read from the dispatch's `workdir` against that repository's trunk. Work
+    committed straight onto the trunk itself has an empty three-dot diff, which
+    `reviewloop` reads as code, so nothing lands on one round for want of a
+    branch to compare.
     """
-    if not lease or not lease.get("path"):
+    if lease and lease.get("path"):
+        path, trunk = Path(lease["path"]), lease.get("base_branch") or "main"
+    elif record and record.get("workdir"):
+        path = Path(record["workdir"])
+        trunk = trunk_of(path)
+    else:
         return ROUNDS_TO_END_REVIEW
-    paths = changed_paths(Path(lease["path"]), lease.get("base_branch") or "main")
-    return reviewloop.rounds_needed(paths)
+    return reviewloop.rounds_needed(changed_paths(path, trunk))
 
 
 def reviewed(change: str, needed: int = ROUNDS_TO_END_REVIEW) -> bool:
@@ -268,7 +300,7 @@ def land(dispatch_id: str, *, gate: str = "", change: str = "",
 
     # Read before the review check, because how many rounds this change takes
     # depends on what its branch touched, and only the checkout can say.
-    needed = rounds_needed(lease)
+    needed = rounds_needed(record, lease)
 
     # What the landing rests on, written into the record either way: an override
     # that leaves no trace reads exactly like a change that was reviewed.
@@ -415,6 +447,13 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
         trunk = lease.get("base_branch") or "main"
         branch = lease["branch"]
 
+        # The same question `land` asks, asked the same way: how many wording-only
+        # passes this branch takes is what it changed, not which command is doing
+        # the landing. A sweep holding a document for a second round of commas
+        # while `land` would take it is the rule meaning two different things
+        # depending on who runs it.
+        needed = rounds_needed(record, lease)
+
         # The trunk must be clean and checked out before anything merges into it.
         if str(repo) not in checked:
             checked[str(repo)] = trunk_state(repo, trunk)
@@ -433,7 +472,7 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
         # The later guards stay: they read the heartbeat again nearer the moment
         # a checkout is removed, with git and the gate run in between.
         working = still_in_use(path, f"{branch} is checked out")
-        if working and not (require_review and reviewed(record["id"])):
+        if working and not (require_review and reviewed(record["id"], needed)):
             if require_review:
                 # Where every worker spends most of its life, so it is reported
                 # the way it was before autosave moved below this guard: waiting
@@ -491,7 +530,7 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
             report["landed"].append(record["id"])
             continue
 
-        if require_review and not reviewed(record["id"]):
+        if require_review and not reviewed(record["id"], needed):
             report["awaiting_review"].append(record["id"])
             continue
 
@@ -522,7 +561,7 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
             report["needs_fix"].append({"dispatch": record["id"], "branch": branch, "why": why})
             continue
 
-        approval = review_note(record["id"]) if require_review else override_note(reason)
+        approval = review_note(record["id"], needed) if require_review else override_note(reason)
         finish(record, lease, branch, repo, trunk, f"{why}; {approval}")
         report["landed"].append(record["id"])
 

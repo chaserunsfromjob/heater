@@ -165,8 +165,9 @@ The operator, 2026-09-17, in their own words:
 > discretion dont get too into the weeds on things. we dont need perfection
 > here, just something that we know is beating real players
 
-What the fleet does: a research document lands within two review rounds, the
-stoker applies small findings itself and lands with `bin/dispatch.py land
+What the fleet does: a research document lands within one review round — two
+until opinion 15 lowered it, and that opinion governs the count — the stoker
+applies small findings itself and lands with `bin/dispatch.py land
 --skip-review` recording why in the store note, and code still gets a fresh
 reviewer round.
 
@@ -255,12 +256,12 @@ The operator, 2026-09-17, in their own words:
 > yes to document only changes we definitely only need one check. for bigger
 > things we should stay at two but that can change to one.
 
-Review is the most expensive thing the fleet does, and most of it is spent on
-changes that cannot break anything. A change where every file it touches is
-prose — anything ending `.md` or `.txt`, or anything under `handover/` or
-`research/results/` — ends its review on one round that passes finding only
-wording. The stoker applies those wording findings itself rather than sending
-the change out for another round of commas.
+A round spent on prose that cannot break anything buys less than the same round
+spent on code that can, and review is not free. A change where every file it
+touches is prose — anything ending `.md` or `.txt`, or anything under
+`handover/` or `research/results/` — ends its review on one round that passes
+finding only wording. The stoker applies those wording findings itself rather
+than sending the change out for another round of commas.
 
 Every other change keeps two consecutive rounds that find only wording. Code
 that runs can be wrong in ways a second reader catches and a first one misses,

@@ -1106,5 +1106,119 @@ class TestADocumentOnlyChangeLandsOnOneRound(GitCase):
         self.assertEqual(self.diffed(record), ["survey.md"])
 
 
+class TestTheSweepLandsADocumentOnOneRound(GitCase):
+    """Task b5a600efb0ff: the sweep held documents `land` would have taken.
+
+    Only `land` read the diff, so the same branch took one round when the
+    stoker named it and two when the sweep found it. A rule that means two
+    different things depending on which command runs it is not a rule.
+    """
+
+    def test_a_document_branch_is_swept_after_one_wording_only_round(self):
+        record = self.worker("write the survey")
+        self.work(record, "survey.md", "# survey\n")
+        self.wording_pass(record["id"], 1)
+
+        report = dispatch.reconcile()
+
+        self.assertIn(record["id"], report["landed"])
+        self.assertEqual(self.stored(record["id"])["outcome"], "landed")
+        self.assertTrue((self.repo / "survey.md").is_file())
+
+    def test_the_note_says_which_round_the_document_landed_on(self):
+        record = self.worker("write the survey")
+        self.work(record, "survey.md", "# survey\n")
+        self.wording_pass(record["id"], 1)
+        dispatch.reconcile()
+        self.assertIn("round 1", self.stored(record["id"])["note"])
+
+    def test_a_code_branch_still_waits_for_a_second_round(self):
+        record = self.worker("add a flag")
+        self.work(record, "flag.py", "FLAG = 1\n")
+        self.wording_pass(record["id"], 1)
+
+        report = dispatch.reconcile()
+
+        self.assertIn(record["id"], report["awaiting_review"])
+        self.assertFalse((self.repo / "flag.py").is_file(),
+                         "code may not reach the trunk on one round")
+
+    def test_a_code_branch_is_swept_on_the_second_round(self):
+        record = self.worker("add a flag")
+        self.work(record, "flag.py", "FLAG = 1\n")
+        self.wording_pass(record["id"], 1)
+        self.clean_pass(record["id"], 2)
+
+        self.assertIn(record["id"], dispatch.reconcile()["landed"])
+
+    def test_a_live_document_checkout_is_cleaned_up_like_any_ended_review(self):
+        """One round ends the review, so the sweep treats it as ended throughout."""
+        record = self.worker("write the survey")
+        self.work(record, "survey.md", "# survey\n")
+        self.wording_pass(record["id"], 1)
+        self.beat(Path(record["workdir"]))
+
+        report = dispatch.reconcile()
+
+        self.assertIn(record["id"], report["landed"])
+
+
+class TestADocumentInTheProjectCheckoutLandsOnOneRound(GitCase):
+    """A worker with no leased slot writes in the project's own checkout.
+
+    `land` supports that route, but the round count was read only from a lease,
+    so a document written there was held for a second round of commas that the
+    same document in a leased checkout never needed.
+    """
+
+    def in_place(self, task: str) -> dict:
+        with mock.patch.object(dispatch, "needs_its_own_checkout", return_value=False):
+            return dispatch.open_dispatch(task, project="api", repo=str(self.repo))
+
+    def on_a_branch(self, name: str, filename: str, body: str) -> None:
+        run("git", "checkout", "-q", "-b", name, cwd=self.repo)
+        (self.repo / filename).write_text(body)
+        run("git", "add", "-A", cwd=self.repo)
+        run("git", "commit", "-qm", f"add {filename}", cwd=self.repo)
+
+    def test_a_document_written_in_the_project_checkout_lands_on_one_round(self):
+        record = self.in_place("write the survey")
+        self.assertEqual(record["lease_id"], "")
+        self.on_a_branch("survey", "survey.md", "# survey\n")
+        self.wording_pass(record["id"], 1)
+
+        landed = dispatch.land(record["id"])
+
+        self.assertEqual(landed["outcome"], "landed")
+        self.assertIn("round 1", landed["note"])
+
+    def test_code_written_in_the_project_checkout_still_takes_two(self):
+        record = self.in_place("add a flag")
+        self.on_a_branch("flag", "flag.py", "FLAG = 1\n")
+        self.wording_pass(record["id"], 1)
+        with self.assertRaises(dispatch.NotReadyToLand):
+            dispatch.land(record["id"])
+
+    def test_the_diff_is_read_against_the_repositorys_own_trunk(self):
+        record = self.in_place("write the survey")
+        self.on_a_branch("survey", "survey.md", "# survey\n")
+        self.assertEqual(dispatch.trunk_of(self.repo), "main")
+        self.assertEqual(dispatch.rounds_needed(record),
+                         dispatch.ROUNDS_TO_END_DOCUMENT_REVIEW)
+
+    def test_work_committed_straight_onto_the_trunk_takes_the_code_rule(self):
+        """Nothing to compare against, so there is nothing saying it is prose."""
+        record = self.in_place("write the survey")
+        (self.repo / "survey.md").write_text("# survey\n")
+        run("git", "add", "-A", cwd=self.repo)
+        run("git", "commit", "-qm", "survey", cwd=self.repo)
+        self.assertEqual(dispatch.rounds_needed(record), dispatch.ROUNDS_TO_END_REVIEW)
+
+    def test_a_dispatch_with_no_workdir_at_all_takes_the_code_rule(self):
+        record = dispatch.open_dispatch("read the options and write them up", project="api")
+        self.assertEqual(record["workdir"], "")
+        self.assertEqual(dispatch.rounds_needed(record), dispatch.ROUNDS_TO_END_REVIEW)
+
+
 if __name__ == "__main__":
     unittest.main()

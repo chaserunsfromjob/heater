@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
 import dispatch  # noqa: E402
+import jsonstore  # noqa: E402
 import store  # noqa: E402
 
 
@@ -241,6 +242,55 @@ class TestChangesLandedAgreesWithDispatch(StoreCase):
             code = store.main(["store.py", "query", "--days", "7"])
         self.assertEqual(code, 0)
         self.assertIn("(1 landed)", printed.getvalue())
+
+
+class TestADocumentRoundIsCountedAsLanded(StoreCase):
+    """The query could not see the rule the sweep lands documents on.
+
+    A document ends its review on one wording-only round. The query had no way
+    to tell that round from an unfinished code review, so every document the
+    fleet landed was missing from the week's figure, and how many rounds
+    documents take could not be asked at all.
+    """
+
+    def landed(self) -> int:
+        return store.query()["reviews"]["changes_landed"]
+
+    def test_one_wording_only_round_on_a_document_is_landed(self):
+        store.record_review("survey", 1, "default", "pass", findings=2,
+                            wording_only=True, document_only=True)
+        self.assertEqual(self.landed(), 1)
+
+    def test_one_wording_only_round_on_code_is_not_landed(self):
+        store.record_review("guard", 1, "default", "pass", findings=2, wording_only=True)
+        self.assertEqual(self.landed(), 0, "code keeps two consecutive rounds")
+
+    def test_a_document_round_that_failed_is_not_landed(self):
+        store.record_review("survey", 1, "default", "fail", findings=3, document_only=True)
+        self.assertEqual(self.landed(), 0)
+
+    def test_a_document_whose_latest_round_grew_code_takes_two(self):
+        store.record_review("survey", 1, "default", "pass", findings=1,
+                            wording_only=True, document_only=True)
+        store.record_review("survey", 2, "default", "fail", findings=4)
+        store.record_review("survey", 3, "default", "pass", findings=1, wording_only=True)
+        self.assertEqual(self.landed(), 0, "the latest round says code, so code it is")
+
+    def test_the_flag_is_recorded_from_the_command_line(self):
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            store.main(["store.py", "review", "--change", "survey", "--round", "1",
+                        "--lens", "default", "--verdict", "pass", "--findings", "2",
+                        "--wording-only", "--document-only"])
+        recorded = jsonstore.load(store.reviews_dir())[0]
+        self.assertTrue(recorded["document_only"])
+        self.assertEqual(self.landed(), 1)
+
+    def test_rounds_spent_on_documents_can_be_counted(self):
+        store.record_review("survey", 1, "default", "pass", findings=2,
+                            wording_only=True, document_only=True)
+        store.record_review("guard", 1, "default", "fail", findings=5)
+        self.assertEqual(store.query()["reviews"]["document_only_rounds"], 1)
 
 
 class TestAgentsAndSkills(unittest.TestCase):

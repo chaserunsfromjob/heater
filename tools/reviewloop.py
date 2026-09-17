@@ -104,3 +104,21 @@ def ended(rounds: list[dict[str, Any]], needed: int = ROUNDS_TO_END_REVIEW) -> b
     if len(counted) < needed:
         return False
     return all(settled(r) for r in counted[-needed:])
+
+
+def needed_from_rounds(rounds: list[dict[str, Any]]) -> int:
+    """How many passes these recorded rounds themselves say the change takes.
+
+    `dispatch` asks git, which is the better answer and the one a landing rests
+    on. A query over the store has no checkout to ask — the branch is merged and
+    gone by the time the week is counted — so the rounds have to carry it, and
+    `bin/store.py review --document-only` is where that is written down.
+
+    The latest round decides, as everywhere else here: a change that was prose
+    in round 1 and grew a code file by round 3 takes the code rule. An
+    unflagged round says nothing, and silence is read as code.
+    """
+    counted = ordered(rounds)
+    if counted and counted[-1].get("document_only"):
+        return ROUNDS_TO_END_DOCUMENT_REVIEW
+    return ROUNDS_TO_END_REVIEW

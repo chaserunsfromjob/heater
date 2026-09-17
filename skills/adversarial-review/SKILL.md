@@ -42,9 +42,14 @@ Review ends when **two consecutive rounds find only wording** — or, for a
 **document-only change**, on the **first** such round.
 
 A change is document-only when every path in `git diff --name-only <trunk>...HEAD`
-ends `.md` or `.txt` or sits under `handover/` or `research/results/`. The stoker
-applies that round's wording findings itself and lands; it does not send a
-document out again. `bin/dispatch.py land` reads the diff and enforces both counts.
+ends `.md` or `.txt` or sits under `handover/` or `research/results/`. A diff with
+nothing in it, and one that cannot be read at all, count as code: silence says
+nothing about what changed, and reading it as prose lands code on one round. The
+stoker applies that round's wording findings itself, records why in the store
+note, and lands; it does not send a document out again. `bin/dispatch.py land`
+and `bin/dispatch.py reconcile` read the diff and enforce both counts. Record the
+round with `--document-only` so the store's landed count reads it the same way,
+the branch being merged and gone by the time the week is counted.
 
 For everything else, run one final round. Record its wording findings as
 observations rather than findings, and land on its pass. A third round of commas
