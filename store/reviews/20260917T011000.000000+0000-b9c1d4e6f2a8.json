@@ -1,0 +1,17 @@
+{
+  "id": "b9c1d4e6f2a8",
+  "created": "2026-09-17T01:10:00.000000+00:00",
+  "change": "36e2ae4be45b",
+  "project": "pokerbot",
+  "round": 9,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 5,
+  "wording_only": false,
+  "files": 1,
+  "insertions": 88,
+  "deletions": 30,
+  "cost_usd": null,
+  "duration_s": 660.0,
+  "note": "PC-session reviewer at c0fa920 (branch worker/142074837788 from local main): FAIL, 1 substantive + 4 wording. Round-8 S1 gate arithmetic verified at every hand count across all four places; S2 conservative reading applied consistently, no engine mechanism invented, CLAUDE.md row quoted right; W1/W2 quotations verbatim from the PDFs (AISTATS09 §5.2; Ganzfried & Sandholm 'at the given public history set'); W3 open_raise five-way; W4 branch facts true. Checker 680, 25 passed, encoding-safe (names the drifted figure). F1: the fix's own boundary figures (50-199, 200 vs 50, clears at 200 at :1350-1352, :1383-1386, :1549-1557) are not pinned — five mutations all exit 0, figure count unchanged at 680, tools/tests untouched. Add checks against MIN_CLASSIFY_HANDS and WARMUP_HANDS. W1 :1363 Tier 1 table's load column still omits warm-up. W2 :315 gloss 'PFR split five ways' vs §4.2's first-in-no-prior-raiser definition. W3 :1046-1048 Tier 2 named as where a flag could reach play but Tier 2 consumes rates, not flags. W4 :1290-1291 two commit hashes that go stale. Findings in handover/findings-36e2ae4be45b-design-r9.md. Cost: 27 tool calls, ~11 min; no dollar figure."
+}
