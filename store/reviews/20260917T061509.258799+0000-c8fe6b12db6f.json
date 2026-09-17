@@ -1,0 +1,17 @@
+{
+  "id": "c8fe6b12db6f",
+  "created": "2026-09-17T06:15:09.258799+00:00",
+  "change": "ced8b534b39b",
+  "project": "heater",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 6,
+  "wording_only": false,
+  "files": 6,
+  "insertions": 247,
+  "deletions": 57,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "Both fixes mutation-proved; no cycle; reviewed-dispatch exemption exact. F1 the early hold reclassifies a live unreviewed worker from awaiting_review to held, so reconcile exits 1 on every wake with a worker out (unrecorded); F2 reclaim names only the heartbeat reason, not unpushed work; F3-F6 wording. Lease-not-listed observation = task d67cffad749a (jsonstore.REPO resolves to the worktree); widen that task to the stores."
+}
