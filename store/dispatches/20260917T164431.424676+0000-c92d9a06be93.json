@@ -1,0 +1,18 @@
+{
+  "id": "c92d9a06be93",
+  "created": "2026-09-17T16:44:31.424676+00:00",
+  "task": "Review round 1 of worker/112be809c0fb (PR #25): BUILD_PLAN.md status and the operator's 2026-09-17 decisions, README 'Working from another machine'; document-only, lands on one wording-only pass",
+  "project": "pokerbot",
+  "done_when": "verdict recorded with an explicit wording-only statement",
+  "task_id": "",
+  "agent": "reviewer",
+  "repo": "",
+  "workdir": "",
+  "lease_id": "",
+  "branch": "",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

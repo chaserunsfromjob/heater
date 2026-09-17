@@ -12,7 +12,7 @@
   "branch": "worker/112be809c0fb",
   "run_id": "",
   "part": "",
-  "closed_at": null,
-  "outcome": null,
-  "note": ""
+  "closed_at": "2026-09-17T16:44:30.688460+00:00",
+  "outcome": "pushed",
+  "note": "BUILD_PLAN.md status + renumber (8 stages) + D2 + Stage 8 app; README 'Working from another machine'; PR #25; gate exit 0; doc-only +283/-35"
 }
