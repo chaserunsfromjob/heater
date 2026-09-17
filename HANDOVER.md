@@ -1,6 +1,6 @@
 # Handover
 
-<!-- handover-commit: PENDING -->
+<!-- handover-commit: dd9f533 -->
 
 Written on `main`, 2026-09-17 about 17:50Z, on the Mac, at 35% context, the
 operator clearing the session with one reviewer still out. Verify with `bin/handover.py`. A snapshot, not a log;
