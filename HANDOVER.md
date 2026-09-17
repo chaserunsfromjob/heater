@@ -37,7 +37,7 @@ Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-Two agents are out (9d68697caeb0 reviewer 1; ced8b534b39b fixer 1); each report needs one action. Compaction keeps them;
+One agent is out (9d68697caeb0 fixer 1); each report needs one action. Compaction keeps them;
 a fresh session must read the branches on origin instead.
 
 - `8edc0ce3e009` T2 the first bot: LANDED 3a54ce2 (PR #15) on a round-2
@@ -78,16 +78,12 @@ a fresh session must read the branches on origin instead.
   --queue`. Opinion 14 in OPINIONS.md carries the operator's words. Tasks
   32cbdf129bdf, ab4ea92fcb09, 001bbe019ca8, 06e6e60bc3f7, 62a5a521a2f4 done.
   Findings files r3-r5 deleted.
-- `ced8b534b39b` heater worker, worktree heater/8212f4d02130: the two
-  remaining ways a live worker loses its checkout (worktrees.reclaim with
-  no heartbeat check, task b3b71f0512ac; reconcile autosaving loose files
-  before the guards, task d80c47c137ae). Round 1 FAIL: the early hold made
-  reconcile exit 1 whenever a worker is out (must stay awaiting_review), and
-  reclaim named only one of its two keep reasons; FIXER round 1 out, then a
-  confirming round, land with `bash bin/gate.sh`. Task d67cffad749a
-  (jsonstore.REPO resolves to the worktree) also covers store/leases and
-  store/dispatches: a worker checkout never sees its own lease, and
-  reconcile/reclaim run from inside one write to a stale copy.
+- `ced8b534b39b` heater live-worker hazards: LANDED 1ae176d (round 1 fail
+  on a reclassification that made reconcile exit 1 with any worker out,
+  fixed; round 2 pass, one rename by the session). tools/heartbeats.py now
+  owns the 30-minute silence rule; reclaim and autosave both ask it. Tasks
+  b3b71f0512ac, d80c47c137ae done; 999e3bf36821 filed (kept live worker
+  shows as a bare id in awaiting_review).
 - `9d68697caeb0` Stage 2 first measurement, PR #17, tip f1182c3, worktree
   pokerbot/41aac718851b. DONE: the search bot on the 52-cell scoreboard at
   500 hands a cell (23 min; 1,000 would take over an hour). Verdict ACCEPT
@@ -99,8 +95,13 @@ a fresh session must read the branches on origin instead.
   size of the number says how bad they are, not how good the bot is.
   Also: baselines.py deleted, arena on personas.py, evidence unchanged.
   Commit 0066098 on the branch is internally broken (baselines deleted
-  early); tip is green. REVIEWER round 1 out. On pass land with `bash
-  bin/gate.sh`; tasks d077f18909a7, 6805b01c7bd2 done then. Carry the
+  early); tip is green. Round 1 FAIL (measurement reproduced cell-exact;
+  the results file did not flag its halved sample size; README mixed the
+  paired headline with the bot's own table). FIXER round 1 out. On its
+  report: land by `gh pr merge 17 --squash --delete-branch` (squash because
+  0066098 does not import), then `bin/dispatch.py close 9d68697caeb0
+  --outcome landed --note ...`, pull and push pokerbot main; tasks
+  d077f18909a7, 6805b01c7bd2 done then. Carry the
   verdict and the two losses to the operator in the next report: the next
   Stage 2 work is beating nit and tag, which is what BUILD_PLAN.md's
   opponent model is for.
@@ -139,5 +140,5 @@ D1/D2 remain the operator's.
 
 ## Cost
 
-Session about $260 by `~/.heater/context.json`; 55 review rounds over 21
+Session about $290 by `~/.heater/context.json`; 55 review rounds over 21
 changes today; no round carries a dollar figure.
