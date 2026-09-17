@@ -7,7 +7,7 @@
   "path": ".git/config",
   "origin": "",
   "summary": "pokerbot commits from worktrees are authored as chasethompson@Chases-MacBook-Air.local, not the operator's GitHub email, so GitHub does not link them to the account",
-  "delivered_at": null,
+  "delivered_at": "2026-09-17T14:21:30.302658+00:00",
   "resolution": {
     "action": "promoted",
     "at": "2026-09-17T14:20:55.713626+00:00",

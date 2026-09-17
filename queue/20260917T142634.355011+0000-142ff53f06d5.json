@@ -1,0 +1,17 @@
+{
+  "id": "142ff53f06d5",
+  "created": "2026-09-17T14:26:34.355011+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "CLAUDE.md",
+  "origin": "",
+  "summary": "CLAUDE.md names dickreuter/Poker only as 'the reference for table-state capture'; the operator delegated one more clause ('add that in if you think its good') and RESOURCES_DICKREUTER.md (landed bf148db) recommends it: dickreuter's architecture as the template and its capture layer as the eyes, with OpenSpiel making every decision. One small CLAUDE.md change, worded from the document's section 7",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T14:26:34.416052+00:00",
+    "score": 46,
+    "task_id": "f2ff0c6cbe23"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "id": "752c1731f876",
+  "created": "2026-09-17T14:23:47.972052+00:00",
+  "change": "7eead182560d",
+  "project": "pokerbot",
+  "round": 3,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 3,
+  "wording_only": false,
+  "files": 1,
+  "insertions": 1443,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 720.0,
+  "note": "Reviewer's verdict was PASS on substance with one non-wording item, recorded here as fail because the store refuses pass with substantive findings. R2-1 to R2-6 and R2-8 all confirmed resolved: nine CLAUDE.md block quotes string-matched, seven solvers citations land on the quoted text, both open judgments still open with nothing resting on them, the clamp and IndexError reproduced in the clone. Finding 1: section 5 line 849 says four of five 'What may be coded' bullets bear and omits CLAUDE.md:27 (observed population), which lines 910 and 1078 rest on; quote it and say all five. Finding 2 wording: quotation marks around the inflection 'left to the engine' at line 932. Finding 3 wording: two ragged wraps at 328-330 and 1155-1156. No verdict, score or recommendation moves. Gate 339 passed 1 skipped exit 0. 27 tool calls, about 12 min."
+}

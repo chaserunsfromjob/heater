@@ -81,17 +81,6 @@ that stage is applied by the session and landed.
 
 ## Still open
 
-- 7eead182560d RESOURCES_DICKREUTER.md (worker/7eead182560d @ b0c5b4a):
-  round 1 FAIL on six substantive (nine seats ARE offered; not on the
-  solvers' scale; the equity gap has a second cause in the opponent-deal
-  loop; game_logger.py uploads every hand with the computer name to the
-  author's server; the forefront reading presented as settled; four counts
-  off) — the recommendation itself (capture layer + architecture, OpenSpiel
-  decides; not its brain) judged right. Fixer 1 RUNNING (merges main
-  first). Then round 2. When it lands: record the one clause in CLAUDE.md
-  the operator delegated ("add that in if you think its good") —
-  dickreuter's architecture as the template and its capture layer as the
-  eyes; OpenSpiel makes the decisions — as a separate small change.
 - codex/tonight (Rohit): reviewed against the new rule 2026-09-17; 24 required
   changes in codex-tonight-required-changes-2026-09-17.md and GitHub issue #4.
   His move. Do not merge.
