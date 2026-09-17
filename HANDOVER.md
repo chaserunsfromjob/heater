@@ -1,6 +1,6 @@
 # Handover
 
-<!-- handover-commit: 59f4284 -->
+<!-- handover-commit: 59aac7e -->
 
 Written on `main`, 2026-09-17 about 05:05Z, on the Mac, at 34% context with
 four agents out. Verify with `bin/handover.py`. A snapshot, not a log;
@@ -22,9 +22,13 @@ None of that is repeated here.
   Rohit (GitHub issue #13), and D1/D2 still theirs (report 8983491d91ab).
 - ~04:35Z: run as many agents as the five-hour window allows, spread across
   the whole window, on the most important work (task ab4ea92fcb09, score
-  83, verbatim in OPINIONS.md opinion 14 on the taper branch). Until the
-  taper lands there is no usage reading; pace by hand at about five agents,
-  never a burst of eight (that hit the limit at 03:45Z).
+  83, verbatim in OPINIONS.md opinion 14). The meter is live since
+  b46a010: at 05:55Z it read weekly 80% used with 4 days left (resets Mon
+  21 Sep 01:00 EDT), five-hour 40% used and slightly ahead of an even
+  spread, band TOP_OF_LIST_ONLY (at most 3 agents). The WEEKLY figure is
+  the binding one: at 80% with four days to go, keep to two or three agents
+  on top-of-list work and read `bin/bearings.py` "Plan usage" before every
+  dispatch.
 
 ## Where things stand
 
@@ -33,7 +37,7 @@ Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-Two agents are out (taper reviewer 8 deciding; Stage 2 worker 9d68697caeb0); each report needs one action. Compaction keeps them;
+Two agents are out (Stage 2 worker 9d68697caeb0; ced8b534b39b fixer 1); each report needs one action. Compaction keeps them;
 a fresh session must read the branches on origin instead.
 
 - `8edc0ce3e009` T2 the first bot: LANDED 3a54ce2 (PR #15) on a round-2
@@ -65,22 +69,25 @@ a fresh session must read the branches on origin instead.
   (documented in skills/dispatch and README step 7). Tasks f16c56933d8a,
   dc8e3ac0bd7f, f0b91b86f69f done. Siblings filed: b3b71f0512ac
   (worktrees.reclaim no heartbeat), d80c47c137ae (autosave before guards).
-- `c79a35661f9c` heater usage taper (bands, pacing line, debrief page,
-  opinion 14), tip 1d175b8, worktree heater/03a2b608f262. Seven rounds; the
-  taper half was sound from round 4 and the status-line writer is verified
-  against Claude Code 2.1.274; fixer 6 applied the four debrief-page
-  findings plus tasks 001bbe019ca8 and 06e6e60bc3f7. Round 7 FAIL on three
-  page regressions and a merge conflict; fixer 7 (a7b9fa4, 574 tests)
-  merged main and applied them with two argued departures (done_when not
-  gated by _says_the_work; no standalone colon-list rule, because both
-  silenced entry 15). REVIEWER round 8 (deciding) is out. On pass:
-  `bin/dispatch.py land c79a35661f9c --gate "bash bin/gate.sh"`, push,
-  delete handover/findings-c79a35661f9c-* in the landing commit (or right
-  after), delete the branch; tasks 32cbdf129bdf, ab4ea92fcb09,
-  001bbe019ca8, 06e6e60bc3f7 done then. Then ~/.heater/usage.json appears on
-  the next status-line render and bearings shows the five-hour figure and
-  the pacing line: pace agents by it.
-
+- `c79a35661f9c` heater usage taper: LANDED b46a010 after eight rounds
+  (reasoned --skip-review override recorded in the dispatch note). bearings
+  now prints "Plan usage" (five-hour and weekly bands, a pacing line) once
+  the status line has written ~/.heater/usage.json, which happens on its
+  next render in an interactive session; until then it says so. At the
+  five-hour 95% band: stop every agent and `bin/debrief.py --hours 5
+  --queue`. Opinion 14 in OPINIONS.md carries the operator's words. Tasks
+  32cbdf129bdf, ab4ea92fcb09, 001bbe019ca8, 06e6e60bc3f7, 62a5a521a2f4 done.
+  Findings files r3-r5 deleted.
+- `ced8b534b39b` heater worker, worktree heater/8212f4d02130: the two
+  remaining ways a live worker loses its checkout (worktrees.reclaim with
+  no heartbeat check, task b3b71f0512ac; reconcile autosaving loose files
+  before the guards, task d80c47c137ae). Round 1 FAIL: the early hold made
+  reconcile exit 1 whenever a worker is out (must stay awaiting_review), and
+  reclaim named only one of its two keep reasons; FIXER round 1 out, then a
+  confirming round, land with `bash bin/gate.sh`. Task d67cffad749a
+  (jsonstore.REPO resolves to the worktree) also covers store/leases and
+  store/dispatches: a worker checkout never sees its own lease, and
+  reconcile/reclaim run from inside one write to a stale copy.
 - `9d68697caeb0` Stage 2 first measurement, worktree pokerbot/41aac718851b,
   cut from 88ffff1: registers the search bot with the scoreboard, runs the
   52-cell grid, commits research/results/stage2_search_vs_personas.txt and
@@ -107,8 +114,11 @@ D1/D2 remain the operator's.
   findings itself for research documents and lands `--skip-review`; code
   gets a confirming round.
 - Confirming rounds on fleet code keep finding one small thing in the last
-  fix (auto-push: four rounds of it). Scope each fixer brief to the finding
-  and each reviewer brief to "confirm the fix, say if wording only".
+  fix (auto-push five rounds, taper eight). Scope each fixer brief to the
+  finding and each reviewer brief to "confirm the fix, say if wording
+  only". Main's `land` now refuses without two consecutive wording-only
+  passes; `--skip-review --reason "..."` is the override and the note
+  records the reason.
 - Workers cannot file findings unless they run bin/queue.py add against the
   main checkout (some do); judge whatever appears in the inbox.
 - The auto-mode classifier refuses briefs that edit `hooks/`.
@@ -121,5 +131,5 @@ D1/D2 remain the operator's.
 
 ## Cost
 
-Session about $215 by `~/.heater/context.json`; 55 review rounds over 21
+Session about $260 by `~/.heater/context.json`; 55 review rounds over 21
 changes today; no round carries a dollar figure.
