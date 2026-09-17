@@ -1,0 +1,17 @@
+{
+  "id": "a2c4e6f8b1d5",
+  "created": "2026-09-17T02:20:00.000000+00:00",
+  "change": "7eead182560d",
+  "project": "pokerbot",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 13,
+  "wording_only": false,
+  "files": 1,
+  "insertions": 1067,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 900.0,
+  "note": "PC-session reviewer at b0c5b4a (RESOURCES_DICKREUTER.md): FAIL, 6 substantive + 7 wording; the recommendation itself judged right and most of the document unusually well evidenced. Verified sound: no opponent modelling (commented-out name reading; the one branch calls a function defined nowhere inside a bare except; no VPIP/PFR/aggression anywhere); server dependency (config.ini db=dickreuter.com:7778, six modules, nothing shipped locally, pymongo unused, endpoints 200 as guest); vboxapi GPL-2-only/CDDL, 4,539 lines, imported nowhere; every architecture line number exact; README quotations verbatim; GitHub/OpenSpiel facts to the digit; capture tests 24 passed live; suite 25; nothing settled, no carve-out granted. F1 'never 9 seats' false (table_setup_form.ui offers 2-9); F2 not on the solvers scale ((e) caveat stale; GTOpen misquoted (e) 3 vs 1; criterion (b) redefined); F3 split-pot diagnosis incomplete (pooled 0.6825 above both references; a second cause in the opponent-deal loop); F4 game_logger.py POSTs every hand with COMPUTERNAME to the author's server, no local store, yet sits in the allowed column; F5 misstates the first forefront bullet and settles the AI-written-vs-third-party reading; F6 four counts off. W1-W7 citations, one description, acronyms, 'equity'. Findings in handover/findings-7eead182560d-dickreuter-r1.md. Cost: 29 tool calls, ~15 min, 12 fetches; no dollar figure."
+}

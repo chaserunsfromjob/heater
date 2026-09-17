@@ -1,0 +1,17 @@
+{
+  "id": "b6d8f2a4c7e1",
+  "created": "2026-09-17T02:25:00.000000+00:00",
+  "change": "45e49ce81e40",
+  "project": "pokerbot",
+  "round": 7,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 3,
+  "wording_only": false,
+  "files": 3,
+  "insertions": 3554,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 2400.0,
+  "note": "PC-session reviewer at d865bb0: FAIL, 1 substantive + 2 wording — the coverage passage over-reaches for the fifth round. 682 mutations: every claim about the statistical tables, the budget table's columns, the rotation-night table, the report block's claimed items, both throughputs in every copy, the five gate copies holds; 'all 8 seat counts' unpinned and not claimed (fixer right); round-6 W1-W3 resolved; checker sound; nothing settled; suite 41; 234 checks. F1 four over-reaches: (a) :2021 'the budget figures the provenance table restates' — nine figures in :2088 and all of :2087 unpinned; (b) :2010-2012 'every hand count and hour in §3.6' — escapes at :1058, :1150, :1155, :1153, :1069, :985, :1059 (incl. the 10-hour cap); (c) :2024-2032 three of five every-copy groups not pinned everywhere (cores, 141,280, the four-run window); (d) :2019 'every phrasing' over a three-phrasing guard. Resolve by NARROWING THE WORDS (operator's cap). W1 :2007-2009 only the right-hand 7,064 at :1716 pinned; W2 :2034-2037 the primary line :946 is also invented. Findings in handover/findings-45e49ce81e40-evaluation-r7.md. Cost: ~40 tool calls, 682 mutations, ~40 min; no dollar figure."
+}
