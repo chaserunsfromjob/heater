@@ -1,0 +1,17 @@
+{
+  "id": "2163e80e74d4",
+  "created": "2026-09-17T03:14:39.158245+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "",
+  "origin": "",
+  "summary": "EVALUATION_STRATEGY.md Engine requirements (:1615-1700) still calls the vendored 20-card fedden engine 'the engine vendored today' and says seats 8-9 cannot deal; CLAUDE.md on main names OpenSpiel universal_poker as the engine road, where 2-9 seats deal",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T03:16:17.293784+00:00",
+    "score": 46,
+    "task_id": "f1981528d19d"
+  }
+}

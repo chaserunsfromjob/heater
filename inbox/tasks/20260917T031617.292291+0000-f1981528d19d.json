@@ -1,0 +1,10 @@
+{
+  "id": "f1981528d19d",
+  "created": "2026-09-17T03:16:17.292291+00:00",
+  "score": 46,
+  "title": "EVALUATION_STRATEGY.md 'Engine requirements' (:1615-1700) still describes the vendored 20-card engine as today's; restate against OpenSpiel in the next clean-up sweep",
+  "source_finding": "2163e80e74d4",
+  "project": "pokerbot",
+  "path": "",
+  "done_at": null
+}
