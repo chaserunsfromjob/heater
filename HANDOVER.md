@@ -28,27 +28,22 @@ None of that is repeated here.
 
 ## Where things stand
 
-pokerbot main is at 7b1545c (T1 the table landed on a round-2 pass, PR #11).
+pokerbot main is at 3a54ce2 (T1 the table, PR #11, and T2 the first bot, PR #15, landed).
 Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-Four agents are out (T2 reviewer 2 deciding, T3 fixer 1, reconcile fixer 4, taper fixer 7); each report needs one action. Compaction keeps them;
+Three agents are out (T3 reviewer 2 deciding, reconcile reviewer 4 deciding, taper fixer 7); each report needs one action. Compaction keeps them;
 a fresh session must read the branches on origin instead.
 
-- `8edc0ce3e009` T2 the first bot, PR #15, tip d1bf741, worktree
-  pokerbot/732f0d699fca. Built: 1,000 hands at six seats vs random, 0
-  invariant failures, max decision 61 ms, +2265 bb/100 [+849, +3750],
-  reproduced by the reviewer to the decimal. Round 1 FAIL (store
-  480b01dad5b2): seen_cards() took fchpa action codes 0-4 for cards, so
-  imagined deals left out ~2.5 real cards per decision; result is preflop-
-  only (1215/14/0/0 by street) and that was recorded nowhere. FIXER round 1
-  is out (re-records the 1,000-hand run after the fix). Then a confirming
-  round; land with `bin/dispatch.py land 8edc0ce3e009 --gate "bash
-  bin/gate.sh"`, push pokerbot main, delete branch. At the second of T2/T3
-  to land: keep T3's personas.py as the one home for always_fold/
-  always_call/uniform_random and shim arena.py to it; delete baselines.py
-  (reviewer's recommendation; the two differ in signature, not behaviour).
+- `8edc0ce3e009` T2 the first bot: LANDED 3a54ce2 (PR #15) on a round-2
+  wording-only pass. Evidence: 1,000 hands at six seats vs random, 0
+  invariant failures, max decision 82 ms, +2286 bb/100 [+801, +3824];
+  1216 of 1242 decisions preflop (random opponents shove), stated in the
+  README. T3 cut from 7b1545c: at its landing, merge may touch README.md
+  (both add sections); then keep personas.py as the one home for the three
+  trivial agents and shim arena.py to it; delete baselines.py (task
+  6805b01c7bd2 covers the __init__ docstring).
 - `1fd3a6ebe936` T3 the scoreboard, PR #16, tip 7469d54, worktree
   pokerbot/4ecb51776067. Built; closed form, rule rejection, pairing and
   engine-only hand strength confirmed; full 52-cell run works (204 s).
@@ -72,10 +67,9 @@ a fresh session must read the branches on origin instead.
   consecutive wording-only rounds; empty branch never landed; merged branch
   told apart from never-started by the lease's base_sha), tip 79e31c2,
   worktree heater/5663ae84bf74. Round 2 FAIL: the already-in-trunk route
-  has no heartbeat check; fixer 3 guarded it. Round 3 found the third
-  route (merge with --skip-review) unguarded; FIXER round 4 out, told it is
-  the last (also records the sweep-override policy in skills/dispatch).
-  Then a confirming round; land; tasks
+  has no heartbeat check; fixer 3 guarded it. Fixer 4 guarded the third
+  route (merge with --skip-review) and recorded the sweep-override policy
+  in skills/dispatch; REVIEWER round 4 (deciding) is out. On pass land; tasks
   f16c56933d8a, dc8e3ac0bd7f, f0b91b86f69f done then. Pre-existing sibling
   filed as task b3b71f0512ac (worktrees.reclaim has no heartbeat check).
 - `c79a35661f9c` heater usage taper (bands, pacing line, debrief page,
