@@ -37,7 +37,7 @@ Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-Two agents are out (Stage 2 worker 9d68697caeb0; ced8b534b39b fixer 1); each report needs one action. Compaction keeps them;
+Two agents are out (9d68697caeb0 reviewer 1; ced8b534b39b fixer 1); each report needs one action. Compaction keeps them;
 a fresh session must read the branches on origin instead.
 
 - `8edc0ce3e009` T2 the first bot: LANDED 3a54ce2 (PR #15) on a round-2
@@ -88,14 +88,22 @@ a fresh session must read the branches on origin instead.
   (jsonstore.REPO resolves to the worktree) also covers store/leases and
   store/dispatches: a worker checkout never sees its own lease, and
   reconcile/reclaim run from inside one write to a stale copy.
-- `9d68697caeb0` Stage 2 first measurement, worktree pokerbot/41aac718851b,
-  cut from 88ffff1: registers the search bot with the scoreboard, runs the
-  52-cell grid, commits research/results/stage2_search_vs_personas.txt and
-  a README paragraph; then makes personas.py the one home for the trivial
-  agents (deletes baselines.py; tasks d077f18909a7, 6805b01c7bd2). On
-  report: one reviewer round (default lens; it is code plus a measurement),
-  fixer, land with `bash bin/gate.sh`. Its verdict is the first real answer
-  to "is the bot any good": carry it to the operator in the next report.
+- `9d68697caeb0` Stage 2 first measurement, PR #17, tip f1182c3, worktree
+  pokerbot/41aac718851b. DONE: the search bot on the 52-cell scoreboard at
+  500 hands a cell (23 min; 1,000 would take over an hour). Verdict ACCEPT
+  vs always_call, +2368 bb/100 [+2028, +2692]. The bot's own table: beats 7
+  of 13 (fold/call/raise/coin-flip/calling_station/maniac/tilter), LOSES
+  to nit and tag (the two disciplined personas) at most sizes, too close
+  to call vs never_bluffs, fit_or_fold, lag, sizing_tell. Caveat in the
+  README: caricature opponents and a call-everything reference arm, so the
+  size of the number says how bad they are, not how good the bot is.
+  Also: baselines.py deleted, arena on personas.py, evidence unchanged.
+  Commit 0066098 on the branch is internally broken (baselines deleted
+  early); tip is green. REVIEWER round 1 out. On pass land with `bash
+  bin/gate.sh`; tasks d077f18909a7, 6805b01c7bd2 done then. Carry the
+  verdict and the two losses to the operator in the next report: the next
+  Stage 2 work is beating nit and tag, which is what BUILD_PLAN.md's
+  opponent model is for.
 
 D1/D2 remain the operator's.
 
