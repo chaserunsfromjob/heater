@@ -1,0 +1,17 @@
+{
+  "id": "be89a77948bf",
+  "created": "2026-09-17T14:28:01.207418+00:00",
+  "change": "0a62853153e4",
+  "project": "pokerbot",
+  "round": 3,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 3,
+  "wording_only": false,
+  "files": 7,
+  "insertions": 258,
+  "deletions": 21,
+  "cost_usd": null,
+  "duration_s": 720.0,
+  "note": "R2-F1 resolved (smuggled value raises; allow-list values are real engine menus; no caller passes anything else); R2-F2 resolved and re-measured (22.1 MiB every case). FAIL: R3-F1 DECISION_LAYER_SEARCH.md:151 the new heads-up clause is inverted (under firstPlayer 2 1 1 1 with the big blind on seat 0, the SMALL blind acts first preflop and the big blind first after: the table's own order with the seat labels exchanged); R3-F2 raw bench_fullgame.txt and bench_table_budget_10s.txt headers claim the acting order was reversed but contain no two-seat run (3 and 6 seats used 3 1 1 1, identical to the table); R3-F3 tests parametrise over a local tuple not asserted equal to table.BETTING_ABSTRACTIONS and its comment calls three menus 'the engine's own' though the engine also accepts fc. Gate 354 passed 1 skipped exit 0. 14 tool calls, about 12 min."
+}

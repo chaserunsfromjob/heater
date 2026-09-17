@@ -12,7 +12,7 @@
   "branch": "worker/ad631141c9de",
   "run_id": "",
   "part": "",
-  "closed_at": null,
-  "outcome": null,
-  "note": ""
+  "closed_at": "2026-09-17T14:28:01.282373+00:00",
+  "outcome": "failed",
+  "note": "Round 3 fail on two document facts and a test tie; findings in handover/findings-0a62853153e4-bench-r3.md; fixer 3 dispatched [slot held: 1c8786a5fc8e still holds work on worker/ad631141c9de that exists nowhere else; land it or push it before releasing the slot]"
 }

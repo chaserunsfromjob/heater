@@ -1,0 +1,18 @@
+{
+  "id": "07e6bf6db514",
+  "created": "2026-09-17T14:28:01.356507+00:00",
+  "task": "Fixer 3 on worker/0a62853153e4 (bench blinds): correct the inverted heads-up clause, scope the two raw-file headers to the blind reversal, tie the test's menu list to table.BETTING_ABSTRACTIONS",
+  "project": "pokerbot",
+  "done_when": "R3-F1 to R3-F3 applied, suite green, gate exit 0, pushed",
+  "task_id": "815aea61d060",
+  "agent": "fixer",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/66181ae88945",
+  "lease_id": "66181ae88945",
+  "branch": "worker/07e6bf6db514",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}
