@@ -39,8 +39,13 @@ assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
 One agent is out: `6e3f3af1ef5c` heater worker (worktree
 heater/72da1e0f2c8b) on the three sweep/store truthfulness defects (tasks
-68b249e08219, 3259f1e2808e, 917775c34006). On report: one reviewer round,
-fixer, land with `bash bin/gate.sh`. Everything dispatched before it has
+68b249e08219, 3259f1e2808e, 917775c34006). Round 1 FAIL: the no-checkout
+close still records "landed" with commits off the trunk (must ask git and
+report `left_behind`, exit 1), and store.query windows rounds before
+judging (must judge on full history, attribute by the ending round). FIXER
+round 1 out; then a confirming round; land with `bash bin/gate.sh`. Also
+filed from its worker: bc471f09618e (close_dispatch with a refused release
+still reads landed), e50000f4b9fb. Everything dispatched before it has
 landed; reconcile at 06:37Z reported nothing open.; each report needs one action. Compaction keeps them;
 a fresh session must read the branches on origin instead.
 
