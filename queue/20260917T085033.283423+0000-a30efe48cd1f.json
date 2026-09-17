@@ -1,0 +1,17 @@
+{
+  "id": "a30efe48cd1f",
+  "created": "2026-09-17T08:50:33.283423+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "pokerbot/profile.py",
+  "origin": "",
+  "summary": "A printed profile does not show which rung of the baseline chain each rate was shrunk towards, so a rate resting on the no-observations 0.0 reads exactly like one resting on a qualified population; Reading.baseline_source already carries it and render() drops it",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T08:51:56.331953+00:00",
+    "score": 47,
+    "task_id": "cebaf6f30150"
+  }
+}

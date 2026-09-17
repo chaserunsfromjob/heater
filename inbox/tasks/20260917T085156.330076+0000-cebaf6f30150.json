@@ -1,0 +1,10 @@
+{
+  "id": "cebaf6f30150",
+  "created": "2026-09-17T08:51:56.330076+00:00",
+  "score": 47,
+  "title": "profile render drops Reading.baseline_source, so a rate shrunk towards no-observations 0.0 reads like one shrunk towards a population",
+  "source_finding": "a30efe48cd1f",
+  "project": "pokerbot",
+  "path": "pokerbot/profile.py",
+  "done_at": null
+}
