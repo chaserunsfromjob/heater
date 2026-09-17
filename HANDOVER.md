@@ -2,8 +2,8 @@
 
 <!-- handover-commit: 086694f -->
 
-Written on `main`, 2026-09-17 about 05:05Z, on the Mac, at 28% context with
-five agents out. Verify with `bin/handover.py`. A snapshot, not a log;
+Written on `main`, 2026-09-17 about 05:05Z, on the Mac, at 29% context with
+four agents out. Verify with `bin/handover.py`. A snapshot, not a log;
 rewrite, do not append.
 
 Read `README.md` for what is built, `OPINIONS.md` for the operator's
@@ -33,7 +33,7 @@ Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-Five agents are out; each report needs one action. Compaction keeps them;
+Four agents are out; each report needs one action. Compaction keeps them;
 a fresh session must read the branches on origin instead.
 
 - `8edc0ce3e009` T2 the first bot, PR #15, tip d1bf741, worktree
@@ -49,12 +49,11 @@ a fresh session must read the branches on origin instead.
   T2 and T3 do not touch each other's files; T3's always_fold/always_call/
   uniform_random duplicate T2's baselines.py: reconcile at the second
   landing (keep one, task 6805b01c7bd2 covers the __init__ docstring).
-- `20b9ff39b519` heater auto-push in bearings, tip ea5497d, worktree
-  heater/21ff69684a3f. Rounds 1-4 all fail-then-fixed on ever-smaller
-  points; round 5 (confirming) is out. On pass: `bin/dispatch.py land
-  20b9ff39b519 --gate "bash bin/gate.sh"`, push heater main, dismiss the
-  branch's queue note 92e87018609e (docs done). Then the PC's next bearings
-  run pushes the dickreuter branch.
+- `20b9ff39b519` heater auto-push in bearings: LANDED 3b26e74 on a round-5
+  clean pass (five rounds). Every bearings read now pushes unpushed local
+  branches in every known checkout; HEATER_AUTOPUSH=0 turns it off; it
+  pushed the taper fixer's in-progress commit on its first live run. The
+  PC's next bearings run pushes the dickreuter branch.
 - `ecc208e2d0d6` heater reconcile landing fixes (latest round decides; two
   consecutive wording-only rounds; empty branch never landed; merged branch
   told apart from never-started by the lease's base_sha), tip 79e31c2,
