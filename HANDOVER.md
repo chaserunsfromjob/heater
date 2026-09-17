@@ -1,109 +1,111 @@
 # Handover
 
-<!-- handover-commit: 8fe7217 -->
+<!-- handover-commit: 36bf403 -->
 
-Written at `8fe7217` on `main`. Verify with `bin/handover.py`. A snapshot,
-not a log — rewrite it, do not append.
+Written 2026-09-17 about 01:30Z on the operator's Windows PC. A snapshot,
+not a log — rewrite it, do not append. Read `README.md` for what is built,
+`OPINIONS.md` for the operator's positions, `rules/` for the rules, and
+commit messages for why. What follows is only what you cannot look up.
 
-Read `README.md` for what is built and what is next, `OPINIONS.md` for the
-operator's positions, `rules/` for the rules, and commit messages for why.
-**None of that is repeated here.** What follows is only what you cannot look
-up.
+## First: which machine you are on, and what that means
 
----
+**PC** (`C:\Users\chase\heater`, `C:\Users\chase\pokerbot`): the operator's
+decision of 2026-09-16 — this machine is NOT a stoker instance. It does
+pokerbot research with plain git and subagents and pushes to GitHub itself
+(OPINIONS §2 knowingly overridden for it). Python 3.13 is at
+`C:\Users\chase\AppData\Local\Programs\Python\Python313\python.exe` (not on
+PATH in bash; `py` not installed). Worktrees for every branch under
+`C:\Users\chase\.heater\worktrees\pokerbot\{solvers,evaluation,tablesize,
+engine,codex,trunk,dickreuter,touchup,design,rules}`; the primary clone sits
+on worker/76bbf2823a53. `bin/*.py` run here (the licence worker used
+`bin/inbox.py` and `bin/queue.py`), but nothing here runs `bin/stoker.sh`.
 
-## First: seven agents are running (the table is current as of the stamp) and will report to you
+**Mac** (`/Users/chasethompson/heater`): the stoker, session named `stoker`
+in Remote Control, offline as of 2026-09-16 evening. Its previous HANDOVER
+(seven agents out, store notes, findings files) is superseded by this one:
+every one of those rounds has since been run again from the PC and is in
+the store. Start with `git pull` on both repositories.
 
-The operator cleared the context with agents still out (the limits had just
-reset; the operator said "lets continue with the agents and the work", then
-"lets wipe the context"). A cleared context keeps its subagents: their
-reports arrive in the new context as messages headed "Subagent hand-back".
-Act on each as it lands; do not re-dispatch a round that is already out.
+## The operator's standing instructions given on the PC (2026-09-17)
 
-| Agent name (as its report will show) | Change | Round out | On its report |
+- Trackers (PokerTracker etc.) STAY in the exploitation survey: "we will
+  need them for keeping track of players".
+- "the bot should be based off of openspiel or whatever, but also should be
+  dickreuter. check the dickreuter poker bot to see if it seems good to
+  base it off of and add that in if you think its good" — a worker is
+  writing RESOURCES_DICKREUTER.md on worker/7eead182560d; its
+  recommendation decides what gets recorded in CLAUDE.md (nothing recorded
+  yet).
+- Keep 5-7 agents running on research until it is finished.
+- Keep the PC, the Mac and the classmate (Rohit) informed. Draft pull
+  requests are the agreed board but the PC could not open them (permission
+  classifier blocks API writes); none exist. Rohit's branch has none either.
+- At 40% of the five-hour usage window: push everything, clear the context,
+  resume. The status line now records the meter to `~/.heater/usage.json`
+  (`~/.heater/statusline_usage.py`, set in `~/.claude/settings.json`); a
+  loop watches it. THIS handover is the push-and-clear.
+
+## Two questions only the operator can answer (asked, not yet answered)
+
+1. **Rohit's branch `codex/tonight`** rewrites pokerbot/CLAUDE.md citing
+   "Scope authorized by the operator, September 16, 2026" that repeals the
+   forefront rule and the laptop limit. heater's record (fb353c6, and the
+   landed licence change) says the carve-out stays OPEN. Did the operator
+   authorise it? Full assessment in
+   `handover/codex-tonight-assessment-2026-09-17.md`. Do not merge it.
+2. Whether the PC may open draft PRs / push branches as work starts (the
+   rule the operator and Rohit wrote) — the operator has now said push
+   everything at 40%, which this handover does; PRs still need a permission
+   allow or the operator's own hand.
+
+## pokerbot: where every change stands (local main is ahead of origin until this push)
+
+| Change | Document | Branch | State |
 | --- | --- | --- | --- |
-| (none running) usage taper | `c79a35661f9c` | round 5 failed on the debrief page only (5 substantive, 6 wording; see `handover/findings-c79a35661f9c-taper-r5.md`); taper half sound four rounds running. Fixer 5 waits for a slot behind the research | when a slot is free after the research: fixer 5 from that file, then review 6; wording-only → confirming round → `bin/dispatch.py land`; at landing mark task 32cbdf129bdf done |
-| Fix evaluation strategy round 3 | `45e49ce81e40` | fixer 3 (round 3 failed 2026-09-15 21:22Z: gated on a 52-card conversion trunk says is out, summary carries the abolished four-seat grid, a weights arithmetic error, the sha-gating rule stated five ways; findings recovered from the reviewer transcript into `handover/findings-45e49ce81e40-evaluation-r3.md`) | dispatch review round 4 |
-| Review table-size notes round 4 | `984aa6810a05` | review 4 (round-3 fixes at 9c4a168; cross-references judged against trunk's OPPONENT_MODEL_DESIGN.md at 5aa40b8 and REFERENCE_NOTES.md's seven-seat ceiling) | record; fail → fixer; wording-only → confirming round |
-| (none running) reconcile change | `059566b3e160` | fixer 5 done at 79d66c1 on origin (`land` records where the commits went via `close_landed`; `consolidated_now` re-asks git at every sweep; SKILL.md rows; 475 tests, gate 0). Review 6 waits for a slot behind the research (operator's instruction 2026-09-15 late: wrap the research inside this usage window) | when a slot is free after the research: review round 6 at 79d66c1; wording-only → failure-mode lens, then land by merging from trunk with the gate. Note for that reviewer: the two-round landing rule is still not coded (task f16c56933d8a) |
-| (none running) automatic handoff | `46e285e1bfd0` | fixer 8 done at 1c55d7f on origin (all four text findings applied, 497 tests, gate 0); one in-change finding dismissed and carried: the `end_session` docstring at tools/stoker.py:827-828 still promises a fresh session, false on the two exit paths. Review 9 waits for a slot: the operator's order puts research ahead of the handoff, and the operator has asked to wrap the research inside this usage window | when a slot is free after the research: review round 9 (default + failure-mode) at 1c55d7f, carrying the docstring finding; wording-only → confirming round → merge from trunk, tell the operator to start `bin/stoker.sh` once |
-| Review opponent-model design round 8 | `36e2ae4be45b` | review 8 against trunk pokerbot main (design landed at 659c6b7 on a stale pass; round-7 fixes at 72eff27, then 5f7a1a8; rounds 5-7 notes were never stored) | record; wording-only → done, delete the design section from `handover/findings-pokerbot-pending.md`; substantive → tell the operator the cost, no round 9 unasked |
-| Review exploitation survey round 6 | `76bbf2823a53` | review 6 (round-5 fixes at 9dea35e: DriveHUD re-read with a browser user-agent, key clause for partly-evidenced ~, four wording; fixer flagged the converter-price caveat at about :152 for the reviewer) | record; fail → fixer; wording-only → confirming round; never run reconcile while its pass is recorded and it is unlanded |
-| Fix engine survey round 2 | `7f09949cb56f` | fixer 2 | dispatch review round 3 |
-| Confirming review bots survey round 7 | `14d64950c0bc` | round 6 PASSED wording-only; then reconcile LANDED it early on pokerbot main at ea013b5 (see the trap below) with fixer 6's autosave, which carries the fixed bonusbots tagline; round-6 F2 (PokerScreenBot quote, about :682-683) still open. Confirming round 7 running against trunk, told to record F2 as known | wording-only → one fixer on a fresh branch from trunk applies F2 plus any new wording, lands via `bin/dispatch.py land`, deletes `handover/findings-14d64950c0bc-bots-r{4,5}.md`; substantive → fixer on a fresh branch, then round 8. Undo path if ever needed: `git -C /Users/chasethompson/pokerbot revert -m 1 ea013b5` |
-| Fix solvers survey round 4 | `048795519f43` | fixer 4 (round 4 failed: 7 substantive, evidence base all held; "buy preflop ranges" under "settled", MonkerSolver scripting wording, one summary row, one unpublished load, an unsourced play-out count, Deepsolver pricing, an Appendix contradiction; see `handover/findings-048795519f43-solvers-r4.md`) | dispatch review round 5 |
+| 76bbf2823a53 | RESOURCES_EXPLOITATION.md | landed 03622d6 | DONE (rounds 8, 9 wording-only) |
+| 114e5b3f5b1b | CLAUDE.md (public, GPL-3.0 LICENSE, GitHub rules, OpenSpiel decision), README, RESOURCES_BOTS (e), REFERENCE_NOTES | landed e67825b | DONE (round 5 empty; landed on it — see store note) |
+| 048795519f43 | RESOURCES_SOLVERS.md | worker/048795519f43 @ 3576b3f | round 9 PASS wording-only after round 8 wording-only → LAND. Landing must re-point CLAUDE.md citations: :13-15→:15-17 (at :138, :1129), :17→:19 (:997, :1069), :24→:22 (:1096), :26→:24 (:1110); and delete findings r3-r8. |
+| 8a80689e7354 | RESOURCES_EXPLOITATION.md touch-up ((e), AFq, footer dates) | worker/8a80689e7354 @ 16d2c51 | round 1 FAIL (F1 cites CLAUDE.md:45-49; F2 IRC corpus ✔ unreasoned); fixer 1 RUNNING (merges main first) → round 2 |
+| 45e49ce81e40 | EVALUATION_STRATEGY.md + checker | worker/45e49ce81e40 @ 5640284 | round 5 FAIL (6 subst.); fixer 5 done; round 6 reviewer RUNNING |
+| 984aa6810a05 | TABLE_SIZE_AND_SIZING_NOTES.md + checker | worker/984aa6810a05 @ 6c5f807 | round 7 FAIL (one regressed gloss); fixer 7 RUNNING → round 8 |
+| 36e2ae4be45b | OPPONENT_MODEL_DESIGN.md (on main) | fix on worker/142074837788 @ c0fa920 | round 9 FAIL (fix's figures unpinned by the checker); fixer 9 RUNNING → round 10 |
+| 7f09949cb56f | ENGINE_ALTERNATIVES.md | worker/7f09949cb56f @ 6720c8a (origin 52bd81d) | text findings done; F1-F3 are MAC-ONLY re-measurements — see `findings-7f09949cb56f-engine-r2-remaining.md`; no round 3 until a Mac fixer closes them |
+| 7eead182560d | RESOURCES_DICKREUTER.md (new) | worker/7eead182560d | worker RUNNING; then a review round |
+| — | codex/tonight (Rohit) | origin | assessed, untouched, waits on the operator |
 
-Every review round so far is recorded in the store. Record each new one
-with `bin/store.py review` the moment it returns (a pass with any
-substantive finding is recorded as fail). The store notes carry each round's
-findings in one line; the full findings live in the fixer briefs, which are
-gone with the context, so if a fixer's report never arrives, brief the next
-one from the store note plus a fresh read of the reviewer's transcript under
-`~/.claude/projects/-Users-chasethompson-heater/9aadbb23-…/subagents/`.
+Findings files for every open round are in `handover/`; every round is in
+`store/reviews/`. The loop: fresh reviewer each round; fixer never judges;
+land after two consecutive wording-only rounds; delete the findings files
+in the landing commit. Reviewer briefs on the PC name the checkout, the
+findings file, the Python path, and the curl user-agent that vendor pages
+need; copy the shape from the store notes.
 
-## Every open finding is under `handover/`
+After the surveys land: ONE reconciliation worker reads the four surveys
+(bots, exploitation, solvers, engine) plus the dickreuter assessment and
+puts the open decisions to the operator as plain choices: the forefront
+carve-out (who chooses the action on OpenSpiel), the opponent baseline
+(2009 archive vs observe-first), and what "based on dickreuter" means.
 
-`handover/findings-*.md`: one per pending fixer input, plus the two
-"pending" files that give the next action for every change. Delete each in
-its change's landing commit.
+## Subagents that may report into the next context
 
-## Priorities and the taper
+Four were running at this handover (dickreuter worker, table-size fixer 7,
+design fixer 9, touch-up fixer 1) plus the evaluation round-6 reviewer.
+Their reports arrive as "Subagent hand-back" messages. Record each round
+in the store as it lands (write the JSON by hand in the store's shape) and
+dispatch the next round.
 
-Operator's order: the four surveys → the reconciliation (the engine
-decision) → the design → the handoff → evaluation → table-size. Land the
-taper and the reconcile fix first anyway: small, and they make the rest
-safe. The fleet still has no live usage number until the taper lands; ask
-the operator where the windows stand if in doubt, and hold at about seven
-agents. The design document's round 8 has been waiting for a slot all day;
-take it when one frees.
+## Traps found on the PC
 
-## Traps found this session
-
-- `bin/dispatch.py reconcile` landed the design on an hours-old pass because
-  `reviewed()` accepts any pass ever recorded. Fix on `worker/059566b3e160`.
-  It bit again at 02:52Z: the bots survey was recorded as a wording-only
-  pass (round 6) and the very next reconcile merged it (ea013b5) with the
-  fixer still in the checkout, before the confirming round. Even the fixed
-  tool lands on one pass; the two-round rule is not coded (task at score
-  75). **Never run reconcile while any open dispatch has a pass recorded.**
-  Record a pass, dispatch the confirming round, and reconcile only after
-  the change is landed by hand with `bin/dispatch.py land`.
-- Reconcile's autosave commits a live worker's half-edited tree. Judged
-  intentional twice: review the branch tip against main, never commit by
-  commit. Reconcile reports the taper branch "held" whenever the fleet repo
-  has uncommitted files; commit the store first.
-- Benchmarks are noise while several agents run (load average 22 on 10
-  cores once). Every brief with timings carries a measurement rule: check
-  `uptime`, wait below 4.0, record the load beside each figure.
-- Reviewers that run `hooks/stop.py` against a branch worktree dirty its
-  copy of `queue/`; tell fixers to check `git status` first.
-- A closed dispatch releases its worktree slot; reviewers and fixers of the
-  reconcile fix make their own worktree in the scratchpad and remove it.
-- Fixers sometimes file a defect inside their own change instead of fixing
-  it; a one-line SendMessage sends them back.
-- With seven agents out the one-minute load reaches 11 and the harness
-  watchdog kills agents as "stalled: no progress for 600s"; their edits
-  survive on disk. SendMessage to the same agent id resumes it; tell it to
-  commit what is on disk first. One stalled twice in a row before resuming.
-- Two fixers substituted "Claude Opus 5" for the attribution line the brief
-  gave; harmless, do not chase it.
-- pokerbot has no remote and no `bin/gate.sh`; "push" means nothing there;
-  the suite is `tests/ground_truth` in a venv from its requirements file.
-
-## This machine
-
-MacBook, Apple M4, 16 GB, no Homebrew, no tmux. A Rust toolchain and built
-solvers exist only in fixers' scratch dirs under
-`/private/tmp/claude-501/-Users-chasethompson-heater/` (RUSTUP_HOME and
-CARGO_HOME set there), nothing in $HOME. Workers of type
-`worker`/`fixer`/`reviewer` have no WebFetch; curl and gh work. Lid-close
-stalls every subagent; on wake, SendMessage each one "the machine slept;
-continue from disk". A zip of both projects and the fleet state sits on the
-Desktop (`pokerbot-and-fleet-2026-09-15.zip`); pokerbot still has no online
-backup, and giving it a private GitHub remote is worth a dispatch.
-
-## Cost
-
-This session: about $160 (`~/.heater/context.json`), 38% context, 26 agents
-dispatched, 17 review rounds recorded. 40+ rounds carry no cost figure;
-that hole is still open.
+- The permission classifier in auto mode blocks: creating GitHub PRs via
+  the API ("External System Writes"), reading `~/.claude/.credentials.json`
+  ("Credential Exploration"), and once a fixer brief that named
+  tools/check_design_numbers.py and tests/ ("Self-Modification" — reworded
+  and it went through).
+- `git merge -F -` does not read stdin; write the message to a file.
+- A subagent's `python`/`py` are not on PATH; give the full path.
+- tests/test_design_numbers.py exists only on trunk-derived branches; the
+  old survey branches have 20 tests, trunk 25, evaluation 34, table-size 35.
+- Windows console is cp1252: checkers that print ≤ or − must reconfigure
+  stdout (table-size and evaluation checkers do; the design checker does).
+- The engine survey's line numbers differ by one between 6720c8a (local)
+  and 52bd81d (origin).
