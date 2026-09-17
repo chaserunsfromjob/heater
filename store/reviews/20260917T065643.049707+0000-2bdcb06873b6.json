@@ -1,0 +1,17 @@
+{
+  "id": "2bdcb06873b6",
+  "created": "2026-09-17T06:56:43.049707+00:00",
+  "change": "6e3f3af1ef5c",
+  "project": "heater",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 4,
+  "wording_only": false,
+  "files": 6,
+  "insertions": 450,
+  "deletions": 58,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "Exit-code and reviewloop fixes mutation-proved; live landed count 19->5 real. F1 the no-checkout route still closes 'landed' and exits 0 with commits off the trunk (probed); F2 store.query windows rounds before asking ended(), so a change whose earlier round is outside the window is not counted while dispatch.reviewed says True; F3/F4 wording."
+}
