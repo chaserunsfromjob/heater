@@ -141,6 +141,35 @@ real resources, disk space above all — not against an arbitrary headcount.
 The stoker doesn't raise or remove a cap on its own just to get past being
 blocked. It waits, or it asks. I decide that one.
 
+## 12. Full access beats menial labor
+
+The operator, 2026-09-17, in their own words:
+
+> i really dont like all this going back and forth and having to type in the
+> terminal and everything. i created this system so i didnt have to work too
+> hard to communicate to it. i would be willing to give the system and claude
+> full access to my computer or any permissions it would need so that i dont
+> have to do all of this menial labor.
+
+What the fleet does: `permissions.defaultMode` is `bypassPermissions` in
+`~/.claude/settings.json`, a session never asks the operator to type a command,
+work another machine must do is queued for that machine's next wake, and
+sessions push their own unpushed work on waking (change 20b9ff39b519, in
+review).
+
+## 13. Streamlined beats perfect
+
+The operator, 2026-09-17, in their own words:
+
+> this should be pretty streamlined so please pick up the pace, and at your
+> discretion dont get too into the weeds on things. we dont need perfection
+> here, just something that we know is beating real players
+
+What the fleet does: a research document lands within two review rounds, the
+stoker applies small findings itself and lands with `bin/dispatch.py land
+--skip-review` recording why in the store note, and code still gets a fresh
+reviewer round.
+
 ---
 
 ## Scope of this build

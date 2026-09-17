@@ -32,6 +32,7 @@ conflicts with this one.
 
 - Land a change on three things: a fresh independent review pass, a green full suite, and exit 0 from `bin/gate.sh`.
 - Land at any hour without operator approval.
+- Land a research document within two review rounds; the stoker applies wording findings itself and records why in the store note.
 - Treat done as deployed green, not merged; watch the deploy and roll back or escalate on red.
 - Delete design briefs, audits, and specs in the landing commit.
 - Move anything durable out of scaffolding into the contract doc or `OPINIONS.md` before deleting it.
@@ -78,6 +79,7 @@ conflicts with this one.
 - Ask whether an explanation landed whenever a reply introduces a genuinely new concept.
 - Lead every decision with one recommendation and the reason for it, then the alternatives.
 - Never ask the operator to choose between options they have not been given the words to compare.
+- Never ask the operator to type a command; queue the work for the machine that can run it.
 - Report what changed and whether it works, not how it was built.
 - Keep the account of how a change was made in the commit message and the handover note.
 - Never raise a defect that was found and fixed inside the same piece of work.
