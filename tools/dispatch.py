@@ -262,6 +262,11 @@ def land(dispatch_id: str, *, gate: str = "", change: str = "",
 
     The whole cycle in one step, because a merge that leaves the checkout behind
     and a checkout deleted before its merge are both ways to lose work.
+
+    The heartbeat guard the sweep applies is deliberately left off here: the
+    caller named this one dispatch rather than sweeping whatever it found, and
+    land refuses outright on uncommitted changes, so a worker mid-task is
+    stopped by the refusal rather than by being read as silent.
     """
     record = next((d for d in jsonstore.load(dispatches_dir()) if d["id"] == dispatch_id), None)
     if record is None:
@@ -442,6 +447,19 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
         if require_review and not reviewed(record["id"]):
             report["awaiting_review"].append(record["id"])
             continue
+
+        if not require_review:
+            # The third route that removes a checkout, and the one the review
+            # requirement used to stand in for: with `--skip-review` nothing
+            # else here asks whether the worker has finished, so a first commit
+            # from a session still making tool calls would be merged and its
+            # slot taken mid-task. The reviewed path stays exempt on purpose —
+            # a recorded review pass says the work itself is finished, while an
+            # override says something about the reviewer, not about the worker.
+            if (why := still_in_use(path, f"{branch} has commits {trunk} does not")):
+                report["held"].append({"dispatch": record["id"], "branch": branch,
+                                       "why": why})
+                continue
 
         if gate:
             done = subprocess.run(gate, shell=True, cwd=path, capture_output=True,
@@ -634,7 +652,7 @@ def main(argv: list[str]) -> int:
     sweep.add_argument("--gate", default="", help="command that must exit 0 in each checkout")
     sweep.add_argument("--skip-review", action="store_true")
     sweep.add_argument("--reason", default="",
-                       help="why review was skipped; recorded in the note of everything landed")
+                       help="why review was skipped; only used with --skip-review")
 
     sub.add_parser("list", help="dispatches still out")
 
@@ -645,7 +663,7 @@ def main(argv: list[str]) -> int:
     finish.add_argument("--skip-review", action="store_true",
                         help="land without a recorded review pass; for a human who has looked")
     finish.add_argument("--reason", default="",
-                        help="why review was skipped; recorded in the landing note")
+                        help="why review was skipped; only used with --skip-review")
 
     end = sub.add_parser("close", help="record that a worker reported")
     end.add_argument("dispatch_id")

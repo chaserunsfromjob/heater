@@ -111,7 +111,11 @@ checkout is dirty or on the wrong branch, or when the merge conflicts. A
 conflicting merge is aborted rather than left half-applied for someone to find.
 
 `--skip-review` exists for a human who has read the change themselves. It is not
-for getting past a review the loop has not finished.
+for getting past a review the loop has not finished. The sweep may carry it when
+a reason is recorded, so a change a human has read is not stranded waiting for
+rounds nobody is going to run. It never widens what the sweep may delete: a
+checkout whose tool calls are still returning is never removed by the sweep,
+whatever state its branch is in.
 
 ## When it did not work out
 

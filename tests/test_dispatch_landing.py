@@ -545,5 +545,45 @@ class TestAnEmptyBranchIsNotLanded(GitCase):
 
 
 
+class TestSkipReviewDoesNotTakeALiveWorkersSlot(GitCase):
+    """The third route out of reconcile that removes a checkout: the merge.
+
+    The two before it — an empty branch, and a branch the trunk already
+    contains — each ask the heartbeat before deleting anything. The merge route
+    asked only whether a review was recorded, so `--skip-review` walked a
+    running worker's first commit into the trunk and took the checkout with it.
+    """
+
+    def test_skip_review_holds_a_worker_whose_tool_calls_still_return(self):
+        record = self.worker()
+        self.work(record)
+        self.beat(Path(record["workdir"]))
+
+        report = dispatch.reconcile(require_review=False, reason="stoker override")
+
+        held = [h for h in report["held"] if h["dispatch"] == record["id"]]
+        self.assertEqual(len(held), 1, "a worker still making tool calls is not finished")
+        self.assertIn("tool call", held[0]["why"])
+        self.assertEqual(report["landed"], [])
+        self.assertTrue(Path(record["workdir"]).exists(),
+                        "a running worker's checkout must survive the sweep")
+        self.assertEqual([d["id"] for d in dispatch.live()], [record["id"]],
+                         "a worker still out is not a dispatch that landed")
+
+    def test_skip_review_lands_the_same_branch_once_the_checkout_goes_silent(self):
+        """The guard is the heartbeat, so silence still lands: otherwise the
+        override would never land anything at all."""
+        record = self.worker()
+        self.work(record)
+        self.beat(Path(record["workdir"]), minutes_ago=dispatch.STALE_MINUTES + 1)
+
+        report = dispatch.reconcile(require_review=False, reason="stoker override")
+
+        self.assertEqual(report["landed"], [record["id"]])
+        self.assertEqual(report["held"], [])
+        self.assertFalse(Path(record["workdir"]).exists())
+        self.assertIn("review skipped", self.stored(record["id"])["note"])
+
+
 if __name__ == "__main__":
     unittest.main()
