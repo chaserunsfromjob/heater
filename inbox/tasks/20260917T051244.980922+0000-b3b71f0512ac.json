@@ -1,0 +1,10 @@
+{
+  "id": "b3b71f0512ac",
+  "created": "2026-09-17T05:12:44.980922+00:00",
+  "score": 62,
+  "title": "worktrees.reclaim() releases a lease older than 240m without a heartbeat check; a live worker loses its checkout under disk pressure; route through dispatch.someone_working_in",
+  "source_finding": "659aa5f55603",
+  "project": "heater",
+  "path": "tools/worktrees.py",
+  "done_at": null
+}

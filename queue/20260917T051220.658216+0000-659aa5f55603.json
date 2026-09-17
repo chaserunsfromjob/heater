@@ -1,0 +1,17 @@
+{
+  "id": "659aa5f55603",
+  "created": "2026-09-17T05:12:20.658216+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "tools/worktrees.py",
+  "origin": "",
+  "summary": "tools/worktrees.py:270-282 reclaim() releases any lease older than worktrees.STALE_MINUTES (240m) whose work is not at risk, with no heartbeat check, and claim() calls it under disk pressure; a live worker four hours in with nothing to commit or everything pushed loses its checkout. Route reclaim through dispatch.someone_working_in (found by ecc208e2d0d6 round-2 reviewer)",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T05:12:44.982632+00:00",
+    "score": 62,
+    "task_id": "b3b71f0512ac"
+  }
+}
