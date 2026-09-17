@@ -1,0 +1,10 @@
+{
+  "id": "d80c47c137ae",
+  "created": "2026-09-17T05:36:44.330459+00:00",
+  "score": 52,
+  "title": "reconcile autosaves a live worker's loose files before any heartbeat guard; move autosave after the guards or skip it for a checkout with a fresh heartbeat",
+  "source_finding": "0ad445f7cc69",
+  "project": "heater",
+  "path": "tools/dispatch.py",
+  "done_at": null
+}
