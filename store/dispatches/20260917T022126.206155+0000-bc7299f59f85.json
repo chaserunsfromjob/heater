@@ -1,0 +1,18 @@
+{
+  "id": "bc7299f59f85",
+  "created": "2026-09-17T02:21:26.206155+00:00",
+  "task": "Research, not code. Write ONE new file, LLM_POKER_FAILURE_MODES.md, at the pokerbot root: a short note (target 80-150 lines) on what makes large language models bad at playing poker, so the project's rule can name those mistakes and keep them out of the bot's decision code. Context: the operator has decided that AI assistants may WRITE the code that makes poker decisions, but no language model may make a live decision; the rule in CLAUDE.md is being rewritten by another worker and will reference this file by name, so do NOT touch CLAUDE.md or any existing file. START by running git fetch origin and git merge origin/main into your branch, push the branch (git push -u origin <branch>), open a DRAFT pull request titled 'Research note: why language models play poker badly' (gh pr create --draft), push as you go, END with a push. Content: (1) a two-paragraph summary in plain words a non-programmer can follow; (2) a numbered list of at least six specific, named failure modes, each with: what the mistake is, the evidence (a real, verified source: paper, benchmark, or documented experiment; give the URL, authors, year, and the specific result or number), and one sentence on what it means for our decision code (the concrete thing to keep out or to require instead); candidates to check, not a required list: arithmetic and equity/pot-odds errors; inability to hold a mixed strategy or randomise properly; inconsistency across identical spots; failure to track ranges through a hand; over-folding or over-calling biases; no persistent memory of opponents across hands; prompt sensitivity and hallucinated cards or board reads; latency and cost per decision; look for PokerBench (Zhuang et al. 2025), Suspicion-Agent, PokerGPT, Husky Hold'em or other LLM poker benchmarks, and any measured head-to-head of an LLM against a solver-based or CFR bot; (3) a closing section headed 'What stays out of the decision code' with one imperative bullet per failure mode, under fifty words each, ready to be quoted by the rule. Verify EVERY source by actually visiting it (fetch the page or PDF) and say in a one-line note at the end which you visited and when; do not cite anything you could not open. Keep it small: one review round is expected. Run fleet tooling from /Users/chasethompson/heater (bin/inbox.py check --summary before filing any finding, bin/queue.py add for a finding). Report the branch name and pull request URL.",
+  "project": "pokerbot",
+  "done_when": "LLM_POKER_FAILURE_MODES.md committed on the pushed branch: plain-words summary, at least six named failure modes each with a verified cited source and a one-sentence consequence for the decision code, a closing 'What stays out of the decision code' section of imperative bullets, a visited-sources note; no other file changed; a draft pull request is open; the worker reports branch and PR URL.",
+  "task_id": "a75654d078dc",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/46088b7e3254",
+  "lease_id": "46088b7e3254",
+  "branch": "worker/bc7299f59f85",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}
