@@ -1,0 +1,17 @@
+{
+  "id": "ef0d009b9e27",
+  "created": "2026-09-17T17:40:34.582016+00:00",
+  "change": "e6dfe622fa6f",
+  "project": "heater",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 6,
+  "wording_only": false,
+  "files": 7,
+  "insertions": 215,
+  "deletions": 32,
+  "cost_usd": null,
+  "duration_s": 660.0,
+  "note": "Classifier and its tests sound and fail-safe; land applies the rule; suite 670 OK; gate exit 0. FAIL: F1 store.py changes_landed still uses the 2-round count and review records carry no document flag, so document landings become invisible to the store; F2 README step 7 says the sweep honours the one-round rule but reconcile still calls reviewed() with two; F3 the Landing bullet says 'you apply yourself' (wrong actor for reviewers) and drops 'records why in the store note'; F4 prose says 'every path is a document' while code treats an empty/unreadable diff as code, boundary unstated; F5 rounds_needed returns two when there is no lease, so a change in the project's own checkout never gets one round though the rule is unconditional; F6 OPINIONS.md opinion 15 asserts 'most expensive' and 'most of it spent on documents', figures no store can produce. 14 tool calls, about 11 min."
+}

@@ -2,8 +2,8 @@
 
 <!-- handover-commit: dd9f533 -->
 
-Written on `main`, 2026-09-17 about 17:50Z, on the Mac, at 35% context, the
-operator clearing the session with one reviewer still out. Verify with `bin/handover.py`. A snapshot, not a log;
+Written on `main`, 2026-09-17 about 17:55Z, on the Mac, at 36% context, the
+operator clearing the session; nothing is out. Verify with `bin/handover.py`. A snapshot, not a log;
 rewrite, do not append.
 
 Read `README.md` for what is built, `OPINIONS.md` for the operator's
@@ -16,21 +16,22 @@ the commit messages for why. None of that is repeated here.
 - `e6dfe622fa6f` heater, the one-round rule for document-only changes
   (branch worker/e6dfe622fa6f @ bbf5ae9, checkout
   `~/.heater/worktrees/heater/dc76881cb2a5`, dispatch OPEN so `land` works).
-  Reviewer round 1 (dispatch 347bdc7cae6a) was OUT when the operator
-  cleared this session, so its report is LOST: no round 1 is recorded in
-  the store for e6dfe622fa6f. First: `bin/dispatch.py close 347bdc7cae6a
-  --outcome abandoned`, then dispatch round 1 afresh, the reviewer reading
-  in that same checkout (no new lease; see Traps). Code change: two
-  consecutive wording-only rounds. On pass: record with `bin/store.py
-  review`, close the reviewer's dispatch, dispatch round 2 the same way; on
-  two passes `bin/dispatch.py land e6dfe622fa6f --gate "bash bin/gate.sh"`,
-  then `git push origin main`. On fail: fixer in the same checkout, then a
-  fresh round 1. The worker's own report: tests written first (4 errors),
-  then 74/74; full suite 670 OK; gate exit 0; it filed that `reconcile`
-  still applies two rounds to documents (task at 50) and that opinion 13
-  still says two (task at 47).
-- Nothing else is out. Every pokerbot slot is released; `bin/worktrees.py
-  list` should show only dc76881cb2a5.
+  Reviewer round 1 reported just before the clear: FAIL on six substantive
+  findings (the findings are
+  written in full in handover/findings-e6dfe622fa6f-docrule-r1.md). The
+  classifier, tests and land itself are sound; the failures are the store
+  not counting document landings, README claiming the sweep honours the
+  rule, the rule bullet naming the wrong actor, the empty-diff boundary
+  unstated, the no-lease path never getting one round, and a quantified
+  claim in opinion 15 no store can answer. NEXT: dispatch a fixer in that
+  same checkout (no new lease) scoped to F1-F6, then a fresh round 1; code
+  change, two consecutive wording-only rounds; then `bin/dispatch.py land
+  e6dfe622fa6f --gate "bash bin/gate.sh"` and `git push origin main`. Tasks
+  3a0e461e279d (reconcile still two rounds for documents) and 1faf8e2d11b1
+  (opinion 13 stale) may be folded into the fixer's brief since F2 and F1
+  touch the same code; say so in the brief if you do.
+- Nothing is out. Every pokerbot slot is released; `bin/worktrees.py list`
+  should show only dc76881cb2a5.
 
 ## The next session's first job: the GTO Wizard answer key
 
@@ -121,14 +122,14 @@ the Monday reset (11 points left this week; the operator was told this).
   rescored to 30 and reduced to checking that CLAUDE.md says just that.
   Never describe the project as based on dickreuter.
 - The operator's order of jobs for the next session: (1) the GTO Wizard
-  answer key above, (2) finish landing e6dfe622fa6f, (3) nothing new until
+  answer key above, (2) fixer and rounds for e6dfe622fa6f, (3) nothing new until
   the Monday reset.
 - The reviewer for the plan update ran with the safety classifier down; its
   four fact findings were each re-verified by the stoker before applying.
 
 ## Cost
 
-Session about $60 by `~/.heater/context.json`; 11 review rounds over 4
+Session about $65 by `~/.heater/context.json`; 12 review rounds over 4
 changes today (3 landed: dickreuter bf148db, bench 4bb7daf, plan c8450db);
 no round carries a dollar figure (task 3919e7a17ec6). Weekly meter 84% at
 13:47Z, 89% at 17:29Z.

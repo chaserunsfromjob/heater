@@ -12,7 +12,7 @@
   "branch": "",
   "run_id": "",
   "part": "",
-  "closed_at": null,
-  "outcome": null,
-  "note": ""
+  "closed_at": "2026-09-17T17:40:34.652348+00:00",
+  "outcome": "failed",
+  "note": "Round 1 fail on six substantive findings; findings in handover/findings-e6dfe622fa6f-docrule-r1.md; fixer to be dispatched by the next session"
 }
