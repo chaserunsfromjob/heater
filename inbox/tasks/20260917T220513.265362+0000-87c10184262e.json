@@ -1,0 +1,10 @@
+{
+  "id": "87c10184262e",
+  "created": "2026-09-17T22:05:13.265362+00:00",
+  "score": 70,
+  "title": "Record the operator's 17 Sep decisions in BUILD_PLAN.md Stage 4 before the solve starts: five depths 50/100/150/200/250 NLH with interpolation between; GTO Wizard data may feed the solver and MCCFR fills the gaps, so theory agreement scores only on spots marked HELD OUT before the solve; purified strategy (no mixing) with a below-equilibrium bluff fraction as a tunable; heads-up from open-source solves, GTO Wizard HU at 100bb only. Document-only change, one worker. Wording of each decision verbatim in queue items 5ff93dccc2a2, 37271a7dfe2d, 6bab1d206405, f163a1348282",
+  "source_finding": "5ff93dccc2a2",
+  "project": "pokerbot",
+  "path": "BUILD_PLAN.md",
+  "done_at": null
+}

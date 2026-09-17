@@ -8,5 +8,9 @@
   "origin": "",
   "summary": "OPERATOR DECISION, 2026-09-17, verbatim: 'use whatever resources available to make a great solver and then fill in the gaps yourself' (said while the stoker was taking the GTO Wizard preflop key). Also: 'check with gto wizard like 1.5x more than you think you have to', 'usage is not a concern', 'i also want to make it even a little bit more thourough than you think it needs to be'. Reading: the Stage 4 baseline may draw on the GTO Wizard preflop strategies (research/results/theory_agreement/) for the seat counts and depths the library covers, and our own MCCFR solve fills every gap (9-max at cEV, 50bb 8/9-max, 250bb 6-max/HU, interior depths). This supersedes 'nothing from it goes into the bot's tables'. Consequence for measurement: theory agreement must be scored on spots HELD OUT of whatever the bot ingests, or it measures copying, not play; the record file must mark which spots are held out before the solve starts",
   "delivered_at": null,
-  "resolution": null
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-17T22:05:13.316710+00:00",
+    "reason": "Folded into task 5ff93dccc2a2 (one document-only worker records all four 17 Sep decisions in BUILD_PLAN.md Stage 4); the verbatim words stay in this queue item"
+  }
 }

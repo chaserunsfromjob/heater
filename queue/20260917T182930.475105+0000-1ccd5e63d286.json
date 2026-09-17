@@ -8,5 +8,9 @@
   "origin": "",
   "summary": "GTO Wizard answer key started 2026-09-17: the operator's five depths multiply the spot count by five; the 4-point meter cap will not cover every seat count at every depth in one sitting, so the key is taken 6-max first (scoreboard weight 0.50) across all five depths, then 2, 8, 9; remaining depths/seat counts continue after the Monday 21 Sep reset",
   "delivered_at": "2026-09-17T19:36:51.899905+00:00",
-  "resolution": null
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-17T22:05:13.438107+00:00",
+    "reason": "Superseded: the operator raised the cap to 97% of the weekly meter the same day; the order taken (6-max at 200/150/100/50, 187 spots) and what remains are in HANDOVER.md"
+  }
 }

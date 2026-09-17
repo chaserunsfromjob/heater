@@ -8,5 +8,9 @@
   "origin": "",
   "summary": "OPERATOR, 2026-09-17, verbatim: 'the heads up section is not as important so dont do as much work there. the bot will not really be playing any heads up at all. also, it is easier to find opensource heads up information so you dont need gto wizard for that as it is mostly solved online open source'. So: the GTO Wizard key takes heads-up at one depth (100bb) only, as a sanity anchor; the heads-up baseline for the solver comes from open-source solves (a task for the Stage 4 worker to source and cite), and the scoreboard's n2 weight (0.20) should be revisited against this",
   "delivered_at": null,
-  "resolution": null
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-17T22:05:13.398369+00:00",
+    "reason": "Folded into task 5ff93dccc2a2 (one document-only worker records all four 17 Sep decisions in BUILD_PLAN.md Stage 4); the verbatim words stay in this queue item"
+  }
 }

@@ -8,5 +8,9 @@
   "origin": "",
   "summary": "GTO Wizard library as seen 2026-09-17 on the operator's account (NLH cash, classic): 6-max cEV 'with cold calls' 3x open at 200,150,125,100,90..20 (no 250/300; 300 only in the 'no cold calls' 2x/2.25x/2.5x trees); 8-max cEV 'with cold calls' at 2x..7x opens for 300,250,200,175,150,125,100 (no 50); 9-max only 8 solutions: 100bb NL50-rake (with/no cold calls, 2.5x/GTO open) and 150/200bb at LIVE 10% rake, no cEV, no 50; heads-up General cEV 2x/2.25x/2.5x at 300,200..20 (no 250). Gaps to fill with our own solve: 9-max at every depth, 50bb 8/9-max, 250bb 6-max and HU",
   "delivered_at": null,
-  "resolution": null
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-17T22:05:13.479469+00:00",
+    "reason": "Library coverage is recorded in HANDOVER.md and goes into the reference file's protocol header when the key is written up (task 5ff93dccc2a2 names the gaps); no separate task"
+  }
 }

@@ -1,0 +1,17 @@
+{
+  "id": "dab8c29de7e6",
+  "created": "2026-09-17T22:05:13.212034+00:00",
+  "change": "e6dfe622fa6f",
+  "project": "heater",
+  "round": 6,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 4,
+  "wording_only": false,
+  "files": 10,
+  "insertions": 799,
+  "deletions": 100,
+  "cost_usd": null,
+  "duration_s": 1700.0,
+  "note": "Round-5 fixes verified (bfd0a82). FAIL on two substantive: F1 land reads an already-in-trunk document branch as code (empty trunk...HEAD diff) so land needs 2 where reconcile needs 1 on the same branch; F2 the already-in-trunk stamp can label a caught-up empty branch (only the trunk's own .md gains) as document_only. Two wording: skill 'read both lists wherever the checkout still exists' now false for the already-in-trunk route; README 178 names land only. Suite 698 OK, gate exit 0. Findings written in full in handover/findings-e6dfe622fa6f-docrule-r6.md. Meter 98% (over the operator's 97% cap): no fixer dispatched this session."
+}

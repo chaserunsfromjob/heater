@@ -8,5 +8,9 @@
   "origin": "",
   "summary": "OPERATOR, 2026-09-17, verbatim: 'usage is not a concern' and 'lastly, we can go up to 97% usage', said about the GTO Wizard key work this week. The stoker's own cap for this job is 97% of the weekly meter, not the 4 points the handover set; whether bearings' bands should move is the operator's standing call, not changed by this",
   "delivered_at": null,
-  "resolution": null
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-17T22:05:13.518548+00:00",
+    "reason": "Recorded in HANDOVER.md; the 97% cap was for this week's key work only, and the bearings bands stay the operator's standing call"
+  }
 }

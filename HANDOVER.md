@@ -1,135 +1,137 @@
 # Handover
 
-<!-- handover-commit: 2c24df8 -->
-
-Written on `main`, 2026-09-17 about 17:55Z, on the Mac, at 36% context, the
-operator clearing the session; nothing is out. Verify with `bin/handover.py`. A snapshot, not a log;
+Written on `main`, 2026-09-17 about 22:10Z, on the Mac, after a machine
+compaction (the session ran to 35% context twice; the second time no
+handover preceded it, so this is rebuilt from the repository and the
+transcript summary). Verify with `bin/handover.py`. A snapshot, not a log;
 rewrite, do not append.
 
 Read `README.md` for what is built, `OPINIONS.md` for the operator's
-positions, `rules/` for the rules, pokerbot's `BUILD_PLAN.md` (landed today
-at c8450db) for the stages and the operator's 17 September decisions, and
-the commit messages for why. None of that is repeated here.
+positions, `rules/` for the rules, pokerbot's `BUILD_PLAN.md` for the stages,
+and the commit messages for why. None of that is repeated here.
+
+## Stop state
+
+The weekly meter read 98% at 22:03Z (resets Mon 21 Sep 01:00 EDT). The
+operator's cap for this week's key work was 97% ("lastly, we can go up to
+97% usage"), so the session stopped: no fixer for round 6, no more GTO
+Wizard spots. Bearings' band is NOTHING_NEW. Start nothing before the reset.
+Nothing is running. Dispatch `e6dfe622fa6f` stays OPEN on purpose so
+`land` can find its lease (see traps).
 
 ## What is in flight
 
 - `e6dfe622fa6f` heater, the one-round rule for document-only changes
-  (branch worker/e6dfe622fa6f @ bbf5ae9, checkout
-  `~/.heater/worktrees/heater/dc76881cb2a5`, dispatch OPEN so `land` works).
-  Reviewer round 1 reported just before the clear: FAIL on six substantive
-  findings (the findings are
-  written in full in handover/findings-e6dfe622fa6f-docrule-r1.md). The
-  classifier, tests and land itself are sound; the failures are the store
-  not counting document landings, README claiming the sweep honours the
-  rule, the rule bullet naming the wrong actor, the empty-diff boundary
-  unstated, the no-lease path never getting one round, and a quantified
-  claim in opinion 15 no store can answer. NEXT: dispatch a fixer in that
-  same checkout (no new lease) scoped to F1-F6, then a fresh round 1; code
-  change, two consecutive wording-only rounds; then `bin/dispatch.py land
-  e6dfe622fa6f --gate "bash bin/gate.sh"` and `git push origin main`. Tasks
-  3a0e461e279d (reconcile still two rounds for documents) and 1faf8e2d11b1
-  (opinion 13 stale) may be folded into the fixer's brief since F2 and F1
-  touch the same code; say so in the brief if you do.
-- Nothing is out. Every pokerbot slot is released; `bin/worktrees.py list`
-  should show only dc76881cb2a5.
+  (branch worker/e6dfe622fa6f @ bfd0a82, pushed; checkout
+  `~/.heater/worktrees/heater/dc76881cb2a5`; dispatch OPEN). Six rounds so
+  far: r1 fail 6, r2 fail 4, r3 fail 3, r4 pass wording-only, r5 fail 2,
+  r6 fail 2 substantive + 2 wording, findings in full in
+  `handover/findings-e6dfe622fa6f-docrule-r6.md`. NEXT: fixer in that same
+  checkout (no new lease; tell it to read the worker's checkout directly)
+  scoped to F1-F4, then round 7; code change, so two consecutive
+  wording-only rounds; then `bin/dispatch.py land e6dfe622fa6f --gate "bash
+  bin/gate.sh"` and `git push origin main`; then `bin/inbox.py done` on
+  921f9190a071. The r3 decision, recorded in the store note: the one-round
+  rule reaches only a change landed from its own leased checkout.
 
-## The next session's first job: the GTO Wizard answer key
+## The GTO Wizard preflop answer key: where it stands
 
-The operator asked (17:30Z) to "get the GTO wizard part out of the way" now,
-offering about 6% of the weekly meter. Agreed shape, told to the operator:
-NOT the bot-spot checks (the baseline they test does not exist until Stage
-4), but a PRE-REGISTERED preflop answer key so Stage 4's solver is graded
-blind. Cap it at 4 points of the weekly meter (reads 89% at 17:29Z, resets
-Mon 21 Sep 01:00 EDT); re-read `bin/bearings.py` "Plan usage" every 25
-spots and stop at the cap.
+Data lives in `handover/gto_key/` in this repository (checkpointed, 187
+spots): `spots.jsonl` (one JSON record per spot: code, depth, actions,
+acting seat, pot, action list with frequency and combos, and for each of the
+169 hands the [actionIndex, frequency] pairs, "-" meaning not in range),
+`plan.py` (prints which spots of a solution/depth are still pending),
+`ingest.py` (turns the browser's `S|...` lines into records, refuses
+duplicates and short grids), and `reference_preflop_2026-09-17.md` (the
+protocol header, now out of date on four points below).
 
-Protocol, to write into the record file's header before the first spot:
-- Site: app.gtowizard.com, already signed in in the operator's Chrome (tier
-  NLH Cash Ultra; the stoker has the Chrome tools, workers do not). Use the
-  Study library, cash, the seat counts the scoreboard weights: 2, 6, 8, 9.
-  Prefer 200bb depth to match the table; if the library only has 100bb, say
-  so in the header and use it. Record the exact solution set, rake and open
-  size shown on screen.
-- Spots: (1) first-in opening decision from every position at each seat
-  count (25 spots); (2) big blind facing each position's open (about 22);
-  (3) if the cap allows, small blind facing each open. For each spot record:
-  the action frequencies shown (raise/call/fold %) and the range as text
-  (the site copies a range as text by hand; paste it).
-- Record file: pokerbot `research/results/theory_agreement/reference_preflop_2026-09-17.md`
-  on a branch, opened as a draft PR, landed as a document-only change on one
-  round. Nothing from it goes into the bot's tables; it is the answer key
-  Stage 4's `bench`/harness compares against (queue 5a468f29fdf6 describes the
-  harness; it is not built).
-- Our menu is fchpa (half pot, pot, all-in), theirs is 2.5bb-style opens; the
-  harness maps sizes (ACTION_TRANSLATION.md §7). Record theirs as shown; do
-  not translate by hand.
+Done: 6-max cEV with-cold-calls 3x (`Cash6mGeneral_6mcEVR3`) at 200, 150,
+100 (50 spots each: every open, every seat facing every open, opener vs
+every 3-bet, 3-bettor vs 4-bet) and 37 of 50 at 50bb. Run
+`python3 handover/gto_key/plan.py Cash6mGeneral_6mcEVR3 50 6 40
+facing,vs3bet,vs4bet` for the 13 pending (UTG and HJ vs 4-bet from each
+seat behind, CO/BTN/SB vs 4-bet).
 
-## Traps found today, all costly
+Remaining, in order, per "make it even a little bit more thorough than you
+think it needs to be" and "check with gto wizard like 1.5x more": 6-max 125
+(interior check); 6-max 300 in the no-cold-calls 2.5x tree as the deep
+anchor (250 is not in the library); 8-max `Cash8mLiveGeneral_8mcEVR3` at
+300, 250, 200, 175, 150, 125, 100 (77 spots each; no 50); 9-max three
+solutions at 100bb NL50-rake and 150/200 LIVE-rake (96 spots each; no cEV,
+no 50); heads-up `CashHuGeneral_cEVR2` at 100 only (operator: HU comes from
+open-source solves). Second pass if the meter allows: 6-max no-cold-calls
+2.25x (matches fchpa half-pot) and 8-max 2.5x. Library codes and depths are
+in queue item b39685936d47 (dismissed, words kept).
+
+The protocol header must change before the write-up: 250bb is absent from
+the library (300 no-cold-calls stands in); per-hand grid frequencies replace
+"range as text"; heads-up at 100bb only; the solver MAY ingest this data
+(operator: "use whatever resources available ... then fill in the gaps
+yourself"), so the file must mark HELD-OUT spots before the solve starts and
+theory agreement scores only those. Write-up is a worker job on a pokerbot
+branch at `research/results/theory_agreement/reference_preflop_2026-09-17.md`
+plus the data file, draft PR, document-only landing. Task 87c10184262e
+(score 70) records the four 17 Sep operator decisions in BUILD_PLAN.md
+Stage 4 first; the verbatim words are in queue items 5ff93dccc2a2,
+37271a7dfe2d, 6bab1d206405, f163a1348282.
+
+## How the browser walk works (only this session knew)
+
+GTO Wizard spots are URL-addressable:
+`https://app.gtowizard.com/solutions?solution_type=gwiz&gametype=<code>&depth=<bb>&preflop_actions=<A-B-C>&history_spot=<number of actions>`
+with tokens F, C, R<size> (all-in is R<stack>). The page's localStorage
+holds the reader scripts under keys `hxsrc`, `spotsrc`, `chunksrc`,
+`rowsrc`, `descsrc`, `libsrc` (they survive reloads while the operator's
+Chrome profile does). Per spot: navigate, then
+`eval('window.__spot='+localStorage.getItem('spotsrc')); eval('window.__chunk='+localStorage.getItem('chunksrc')); await window.__spot()`,
+then `window.__chunk(0)`, `(1)`, `(2)` to read the `S|...` line in
+1000-char slices (the extension truncates any single output near 1200
+chars). `__spot` also stores the line at `localStorage['hk_'+depth+'_'+actions]`
+so a batch whose output was lost is recovered with
+`window.__last=localStorage.getItem('hk_50_F-R3-F')` and the chunks. Feed
+lines to `ingest.py` on stdin as `U|code|depth|actions` then the `S|` line.
+The grid reads per-hand frequencies from the stacked CSS background layers
+of `.ra_table_cell`, colours matched to the `.sab_btn` action buttons.
+Limits found: batches of 4-5 spots (about 20 actions) are safe, larger
+ones time out; a return value containing "=" or code-like text is blocked
+by the extension, so returns use ":" separators; the page cannot reach
+localhost or the clipboard, so data passes through the conversation; after
+many navigations the renderer freezes ("Runtime.evaluate timed out"),
+fixed by navigating again. GTO Wizard signs the Mac out when another device
+signs in; the operator was asked to keep other devices closed. The
+operator gave standing permission to stay in the browser as long as needed.
+
+## Traps still live (from the previous handover, still true)
 
 - NEVER `git checkout -B <worker branch>` inside a lease made for another
-  dispatch. Leases are git worktrees of one repo; the branch ref becomes
-  shared, and `worktrees.autosave` (run by reconcile AND bearings) commits
-  every stale tree as "Autosave uncommitted work" onto the shared branch,
-  and bearings' auto-push pushes it. Six such commits sit in
-  worker/0a62853153e4's history (net content unchanged, verified by diff).
-  Task f642286f63f2 is the fix. Until then: a reviewer or fixer on an
-  existing branch reads the WORKER's own checkout (keep the worker's
-  dispatch open), or a detached worktree in the scratchpad made with
-  `git -C <repo> worktree add --detach <scratchpad path> origin/<branch>`
-  and removed after with `git worktree remove --force`.
-- Closing a dispatch `--outcome pushed` releases its slot and DELETES its
-  checkout; `land` then cannot find a lease and the merge is by hand. Keep
-  the worker's dispatch open until `land`.
-- `bin/dispatch.py land` only works for a dispatch opened on this machine
-  with a lease; a branch built on the PC (dickreuter) was landed by hand:
-  `git merge --no-ff origin/<branch>` in `~/pokerbot` on main, gate, push,
-  `git branch -r --contains` then `git push origin --delete <branch>`.
-- `land` does not push pokerbot main; push it. The branch-protection
-  message "Bypassed rule violations" is normal for the owner.
-- `bin/store.py review` refuses `--verdict pass` with findings > 0 unless
-  `--wording-only`; a pass-on-substance with one small fact slip is
-  recorded as fail with the reasoning in --note, then landed
-  `--skip-review --reason`. Done twice today (dickreuter r3, plan update r1).
-- `work_at_risk` keys on the lease's own branch name; a checkout on another
-  branch reads as unique work and needs `bin/worktrees.py release --force`
-  after verifying HEAD is on origin or in main (task dff118e56feb).
-- The task list cap (20) dropped six low items today; nothing about the bot.
-- The auto-mode safety classifier timed out once (17:20Z) and blocked Bash
-  for a minute; read-only tools kept working. Retry, do not reroute.
-
-## Decisions the operator made today, all recorded verbatim in the queue
-
-Baseline before exploitation (5333609531ed); search is the bot, thinking
-before interfacing (548e5cdfe607); equilibrium baseline, "somewhat similar
-to theory" postflop (6fe7874ab357, ecc3ee41979c); GTO Wizard checks, no
-cap, standing browser permission (5a468f29fdf6); D2 answered: phone app
-mirrored into a phone-shaped column on the right of the Mac (8513859a2c49);
-final deliverable an installable Mac app (f2c5f8524add); one review round
-for documents (385a5a2b3b24, in flight above). All but the last are now in
-BUILD_PLAN.md. Stage 4 (the solved preflop baseline) is the top task on
-the list at score 72 (from finding 5333609531ed); do NOT start it before
-the Monday reset (11 points left this week; the operator was told this).
+  dispatch (task f642286f63f2 is the fix). A reviewer or fixer on an
+  existing branch reads the WORKER's own checkout with the worker's
+  dispatch kept open, or a detached worktree in the scratchpad.
+- Closing a dispatch `--outcome pushed` deletes its checkout; `land` then
+  cannot find a lease. Keep the worker's dispatch open until `land`.
+- `land` does not push main; push it.
+- `bin/store.py review` refuses `--verdict pass` with findings unless
+  `--wording-only`; `--duration` is seconds as a float; the store is
+  `store/reviews/`.
+- `bin/inbox.py check --summary` needs the summary text as an argument.
+- The auto-mode safety classifier times out now and then and blocks Bash
+  or Agent for a minute; retry, do not reroute.
+- Bearings' auto-push may push worker branches; reconcile at the end of
+  every wake.
 
 ## Other state only this session knows
 
-- Daniel-Shiven invited to pokerbot with write access 17:0xZ, pending.
-- `git config --global user.name/email` set on this Mac to the GitHub
-  noreply identity; the PC still needs the two lines (README says them).
-- The operator's app and mirroring method are still unnamed; they said it
-  does not matter yet.
-- The operator narrowed dickreuter at 17:48Z: "dont base the whole project
-  off of it"; it is context for screen capture only. Task f2ff0c6cbe23 is
-  rescored to 30 and reduced to checking that CLAUDE.md says just that.
-  Never describe the project as based on dickreuter.
-- The operator's order of jobs for the next session: (1) the GTO Wizard
-  answer key above, (2) fixer and rounds for e6dfe622fa6f, (3) nothing new until
-  the Monday reset.
-- The reviewer for the plan update ran with the safety classifier down; its
-  four fact findings were each re-verified by the stoker before applying.
+- The operator's job order given at the start: (1) the key, (2) fixer and
+  rounds for e6dfe622fa6f, (3) nothing new before the Monday reset. (1) and
+  (2) are both mid-way, stopped by the cap.
+- Daniel-Shiven's pokerbot invite was pending at the last check.
+- The task list dropped task f2ff0c6cbe23 (CLAUDE.md dickreuter wording,
+  score 30) past the cap when 87c10184262e was promoted; nothing about the
+  bot was lost.
 
 ## Cost
 
-Session about $65 by `~/.heater/context.json`; 12 review rounds over 4
-changes today (3 landed: dickreuter bf148db, bench 4bb7daf, plan c8450db);
-no round carries a dollar figure (task 3919e7a17ec6). Weekly meter 84% at
-13:47Z, 89% at 17:29Z.
+Weekly meter 89% at session start (17:29Z), 98% at 22:03Z; the browser
+walk itself, run inside the stoker's own context, is what spent it. Six
+review rounds on e6dfe622fa6f in total, none carrying a dollar figure (task
+3919e7a17ec6). Round 6 alone: about 76k tokens, 30 tool calls, 55 minutes.
