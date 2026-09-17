@@ -1,0 +1,18 @@
+{
+  "id": "112be809c0fb",
+  "created": "2026-09-17T16:34:53.130400+00:00",
+  "task": "Write the operator's 2026-09-17 decisions and the current status into BUILD_PLAN.md and README.md so every machine sees what is done and what is next: Stages 1-3 done, baseline (solved preflop) before exploitation, D2 answered, theory-agreement check, final deliverable an installable app, working from another machine",
+  "project": "pokerbot",
+  "done_when": "BUILD_PLAN.md carries a dated status section and the reordered stages; README.md carries a 'Working from another machine' section; gate exit 0; branch pushed; draft PR opened",
+  "task_id": "",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/d78daab2aced",
+  "lease_id": "d78daab2aced",
+  "branch": "worker/112be809c0fb",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}
