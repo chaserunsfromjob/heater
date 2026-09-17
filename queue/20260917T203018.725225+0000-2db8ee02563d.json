@@ -1,0 +1,12 @@
+{
+  "id": "2db8ee02563d",
+  "created": "2026-09-17T20:30:18.725225+00:00",
+  "kind": "finding",
+  "urgency": "low",
+  "project": "heater",
+  "path": "bin/bearings.py",
+  "origin": "",
+  "summary": "OPERATOR, 2026-09-17, verbatim: 'usage is not a concern' and 'lastly, we can go up to 97% usage', said about the GTO Wizard key work this week. The stoker's own cap for this job is 97% of the weekly meter, not the 4 points the handover set; whether bearings' bands should move is the operator's standing call, not changed by this",
+  "delivered_at": null,
+  "resolution": null
+}

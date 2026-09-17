@@ -1,0 +1,12 @@
+{
+  "id": "6bab1d206405",
+  "created": "2026-09-17T20:30:18.683425+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "BUILD_PLAN.md",
+  "origin": "",
+  "summary": "OPERATOR DECISION, 2026-09-17, verbatim: 'by the way, the bot shouldnt really do any mixing. that is something that we do not need with this bot. another thing to keep in mind are that these poker games it will be playing in are quite easy and it does not need to have as many bluffs as a normal player would. it should still have some, but not all of them'. So the Stage 4 baseline is PURIFIED from the equilibrium (each hand takes its highest-frequency action, no randomising) and its bluff frequency is deliberately BELOW equilibrium (some bluffs kept, not all); the exact bluff fraction is a tunable to be set against the scoreboard, and theory agreement is scored on the purified choice against the reference's top action, not on frequencies. Record in BUILD_PLAN.md Stage 4 and OPINIONS as a position",
+  "delivered_at": null,
+  "resolution": null
+}
