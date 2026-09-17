@@ -13,13 +13,18 @@ session happens to be sitting in, because the machine that holds the stranded
 branch is usually not the machine that notices.
 
 What it will never do: force, delete, reset, or move a branch. The only command
-it runs against a remote is `git push -u origin <branch>`, which git itself
-refuses when it would discard anything. A push that would not fast-forward is
-reported and left alone, never forced.
+it runs against a remote is
+`git push -u origin refs/heads/<branch>:refs/heads/<branch>`, spelled out on both
+sides because a branch may legally be called `+main` and a bare `+main` is how a
+forced refspec is written: git would read it as an order to overwrite `main`.
+Named in full it is a branch and nothing else, and a push that would not
+fast-forward is reported and left alone, never forced.
 
 Set `HEATER_AUTOPUSH=0` to turn the sweep off, which the test suite does: a
 suite that pushed the branches of whatever machine it ran on would be a side
-effect nobody asked for.
+effect nobody asked for. A reviewer session turns it off for itself, because a
+reviewer never writes. `HEATER_AUTOPUSH_DEADLINE` bounds how long the whole
+sweep may take before the checkouts it has not reached are reported as skipped.
 """
 
 from __future__ import annotations
@@ -27,11 +32,17 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
+# Hooks last, so a module here always wins the name. The sweep needs the hooks'
+# own answer to "what is this session", not a second copy of it: two answers
+# would drift, and the drift would surface as a reviewer pushing branches.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "hooks"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import heater_hook
 import jsonstore
 import worktrees
 
@@ -41,13 +52,49 @@ import worktrees
 PROBE_TIMEOUT = 20
 PUSH_TIMEOUT = 180
 
+# Per-checkout timeouts still let six recorded checkouts on a network that
+# swallows packets cost six probes end to end, and this hangs off the one
+# command every session is required to run first. So the sweep as a whole gets
+# one bound as well. Zero or less means no bound at all.
+SWEEP_DEADLINE = 60
+DEADLINE_ENV = "HEATER_AUTOPUSH_DEADLINE"
+
 OFF = {"0", "no", "off", "false"}
+
+# A reviewer judges and never writes. That ban is enforced on the tools the
+# session calls, which cannot see a push made inside a Python subprocess, so the
+# sweep has to refuse for itself.
+READ_ONLY_ROLES = {"reviewer"}
 
 REMOTE = "origin"
 
 
+def why_off() -> str:
+    """Empty when the sweep should run, otherwise what stopped it.
+
+    A reason rather than a bare no, because the bearings line says it out loud:
+    a sweep that quietly does nothing reads exactly like a sweep that found
+    nothing to do.
+    """
+    if (os.environ.get("HEATER_AUTOPUSH") or "").strip().lower() in OFF:
+        return "HEATER_AUTOPUSH"
+    role = heater_hook.role()
+    if role in READ_ONLY_ROLES:
+        return f"{role} sessions never write"
+    return ""
+
+
 def enabled() -> bool:
-    return (os.environ.get("HEATER_AUTOPUSH") or "").strip().lower() not in OFF
+    return not why_off()
+
+
+def deadline_seconds() -> float:
+    """How long the whole sweep may take. Unset or unreadable means the default."""
+    raw = (os.environ.get(DEADLINE_ENV) or "").strip()
+    try:
+        return float(raw)
+    except ValueError:
+        return float(SWEEP_DEADLINE)
 
 
 def git(path: Path, *args: str, timeout: int = 30) -> tuple[int, str]:
@@ -175,13 +222,20 @@ def remote_reachable(path: Path) -> tuple[bool, str]:
         return False, f"no {REMOTE} remote"
     code, output = git(path, "ls-remote", "--heads", REMOTE, timeout=PROBE_TIMEOUT)
     if code != 0:
-        return False, "remote unreachable"
+        return False, "offline"
     return True, ""
 
 
 def push(path: Path, branch: str) -> tuple[bool, str]:
-    """Plain push, upstream set. Never forced: git refuses what would discard work."""
-    code, output = git(path, "push", "-u", REMOTE, branch, timeout=PUSH_TIMEOUT)
+    """Plain push, upstream set, the ref named in full on both sides.
+
+    `git push origin <branch>` takes a refspec, not a name, so a branch legally
+    called `+main` asks for a forced overwrite of `main` on the remote. Spelling
+    both ends as `refs/heads/...` leaves no leading `+` to be read that way, and
+    a push that would discard work is then refused by git as it should be.
+    """
+    refspec = f"refs/heads/{branch}:refs/heads/{branch}"
+    code, output = git(path, "push", "-u", REMOTE, refspec, timeout=PUSH_TIMEOUT)
     return code == 0, output.strip().splitlines()[-1] if output.strip() else ""
 
 
@@ -192,7 +246,18 @@ def sweep(paths: list[Path] | None = None) -> list[dict[str, Any]]:
     can read the outcome rather than parse prose.
     """
     results: list[dict[str, Any]] = []
-    for path in (checkouts() if paths is None else [Path(p) for p in paths]):
+    limit = deadline_seconds()
+    # Started before the checkouts are even enumerated: finding them asks each
+    # candidate directory a git question, and that stalls on the same network.
+    expires = time.monotonic() + limit if limit > 0 else None
+    targets = checkouts() if paths is None else [Path(p) for p in paths]
+    for index, path in enumerate(targets):
+        if expires is not None and time.monotonic() >= expires:
+            results += [{"path": str(missed), "branch": "", "status": "skipped",
+                         "detail": f"not reached inside the {limit:g}s sweep "
+                                   f"deadline ({DEADLINE_ENV})"}
+                        for missed in targets[index:]]
+            break
         branches = unpushed_branches(path)
         if not branches:
             continue
@@ -211,8 +276,12 @@ def sweep(paths: list[Path] | None = None) -> list[dict[str, Any]]:
 def render(results: list[dict[str, Any]]) -> tuple[list[str], bool]:
     """One line per branch pushed, and whether anything still needs a person.
 
-    A push that went through is news, not a problem, so it does not raise the
-    flag. A branch still sitting on one disk does.
+    Only a refusal raises the flag, because only a refusal is a decision waiting
+    to be taken: origin answered and said no, and somebody has to reconcile the
+    two histories. A push that worked is news. So is a checkout with no remote,
+    or one whose remote could not be reached, or one the sweep ran out of time
+    to try: bearings turns this flag into exit 1, and a laptop on a train would
+    otherwise hold that exit code up until somebody found a network.
     """
     lines, attention = [], False
     for result in results:
@@ -224,13 +293,13 @@ def render(results: list[dict[str, Any]]) -> tuple[list[str], bool]:
             lines.append(f"  {result['branch']} in {where} was refused by {REMOTE}: "
                          f"{result['detail'] or 'no reason given'}")
         else:
-            attention = True
             lines.append(f"  {where} skipped: {result['detail']}")
     return lines, attention
 
 
 def report() -> tuple[list[str], bool]:
     """The bearings section: sweep every known checkout, then say what happened."""
-    if not enabled():
-        return ["  off (HEATER_AUTOPUSH)"], False
+    off = why_off()
+    if off:
+        return [f"  off ({off})"], False
     return render(sweep())

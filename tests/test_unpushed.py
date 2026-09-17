@@ -13,6 +13,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -65,6 +66,30 @@ class SweepCase(unittest.TestCase):
     def statuses(self, results: list[dict]) -> set[tuple[str, str]]:
         return {(r["branch"], r["status"]) for r in results}
 
+    def env(self, key: str, value: str | None) -> None:
+        """Set or clear an environment variable for one test, then put it back."""
+        previous = os.environ.get(key)
+
+        def restore() -> None:
+            if previous is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = previous
+
+        self.addCleanup(restore)
+        if value is None:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = value
+
+    def clone(self) -> Path:
+        """A second clone of the same origin, so origin can move underneath us."""
+        other = self.root / "other"
+        run("git", "clone", "-q", str(self.origin), str(other), cwd=self.root)
+        run("git", "config", "user.email", "t@t", cwd=other)
+        run("git", "config", "user.name", "t", cwd=other)
+        return other
+
 
 class TestSweep(SweepCase):
     def test_a_branch_that_never_reached_origin_is_pushed(self):
@@ -106,10 +131,7 @@ class TestSweep(SweepCase):
 
     def test_main_is_pushed_but_never_forced(self):
         """Origin moved on. A plain push is refused, and nothing is overwritten."""
-        other = self.root / "other"
-        run("git", "clone", "-q", str(self.origin), str(other), cwd=self.root)
-        run("git", "config", "user.email", "t@t", cwd=other)
-        run("git", "config", "user.name", "t", cwd=other)
+        other = self.clone()
         theirs = self.commit("theirs.txt", "someone else", repo=other)
         run("git", "push", "-q", "origin", "main", cwd=other)
 
@@ -118,6 +140,28 @@ class TestSweep(SweepCase):
 
         self.assertEqual(self.statuses(results), {("main", "refused")})
         self.assertEqual(self.on_origin("main"), theirs, "origin must not be overwritten")
+
+    def test_a_branch_named_like_a_forced_refspec_moves_nothing_else(self):
+        """`+main` is a legal branch name and, passed bare, a forced refspec.
+
+        Reproduced by hand before this test was written: `git push -u origin +main`
+        reports a forced update and overwrites origin/main with the local branch,
+        destroying a commit another clone had already pushed. Naming the ref on
+        both sides of a colon is what makes git read it as a branch and nothing
+        else.
+        """
+        other = self.clone()
+        theirs = self.commit("theirs.txt", "someone else", repo=other)
+        run("git", "push", "-q", "origin", "main", cwd=other)
+
+        run("git", "checkout", "-q", "-b", "+main", cwd=self.repo)
+        head = self.commit("mine.txt", "carried on a hostile branch name")
+
+        results = unpushed.sweep([self.repo])
+
+        self.assertEqual(self.on_origin("main"), theirs, "origin/main must not move")
+        self.assertEqual(self.statuses(results), {("+main", "pushed")})
+        self.assertEqual(self.on_origin("+main"), head)
 
     def test_a_leased_worktree_counts_as_the_repository_it_was_cut_from(self):
         """Worktrees share refs, so sweeping both would ask the same question twice."""
@@ -136,16 +180,45 @@ class TestSweep(SweepCase):
         self.assertEqual(second, [], "a branch already sent must not be sent again")
         self.assertEqual(self.on_origin("worker/shared"), head)
 
-    def test_an_unreachable_remote_is_skipped_with_a_reason(self):
+    def test_an_unreachable_remote_is_reported_without_raising_the_flag(self):
+        """Offline is news. Attention is what bearings turns into exit 1, and a
+        laptop on a train would otherwise hold that flag up for ever."""
         run("git", "remote", "set-url", "origin", str(self.root / "gone.git"), cwd=self.repo)
         self.branch("worker/stranded")
         self.commit("g.txt", "stuck here")
 
-        lines, attention = unpushed.render(unpushed.sweep([self.repo]))
+        results = unpushed.sweep([self.repo])
+        lines, attention = unpushed.render(results)
 
         self.assertEqual(len(lines), 1)
         self.assertIn("skipped", lines[0])
-        self.assertTrue(attention, "work still on one disk is something waiting")
+        self.assertIn("offline", lines[0])
+        self.assertFalse(attention, "a machine that is merely offline is not a failure")
+
+    def test_a_checkout_with_no_origin_is_reported_without_raising_the_flag(self):
+        """A checkout that was never given a remote has nowhere to push to. That
+        is a fact about the checkout, not a job waiting for a person."""
+        run("git", "remote", "remove", "origin", cwd=self.repo)
+        self.branch("worker/never-shared")
+        self.commit("g.txt", "no remote to send it to")
+
+        lines, attention = unpushed.render(unpushed.sweep([self.repo]))
+
+        self.assertEqual(len(lines), 1)
+        self.assertIn("no origin remote", lines[0])
+        self.assertFalse(attention)
+
+    def test_a_refused_push_still_raises_the_flag(self):
+        """The one case a person must settle: origin answered and said no."""
+        other = self.clone()
+        self.commit("theirs.txt", "someone else", repo=other)
+        run("git", "push", "-q", "origin", "main", cwd=other)
+        self.commit("mine.txt", "diverged")
+
+        lines, attention = unpushed.render(unpushed.sweep([self.repo]))
+
+        self.assertTrue(attention, "a divergence nobody has resolved is waiting")
+        self.assertTrue(any("refused" in line for line in lines))
 
     def test_a_checkout_that_is_not_a_repository_is_ignored(self):
         plain = self.root / "plain"
@@ -178,6 +251,37 @@ class TestReporting(SweepCase):
         self.assertFalse(unpushed.enabled())
         self.assertEqual(unpushed.report(), (["  off (HEATER_AUTOPUSH)"], False))
 
+    def test_a_reviewer_session_pushes_nothing(self):
+        """A reviewer judges and never writes, and a push is a write.
+
+        The write ban is enforced by hooks/pre_tool_use.py on the tools the
+        session calls. A sweep that ran inside the bearings read would push real
+        branches through a Python subprocess no hook ever sees, so the sweep has
+        to know the role itself.
+        """
+        self.env("HEATER_AUTOPUSH", None)
+        self.env("HEATER_ROLE", "reviewer")
+        self.branch("worker/unreviewed")
+        self.commit("k.txt", "a reviewer must not send this anywhere")
+        original = unpushed.checkouts
+        unpushed.checkouts = lambda: [self.repo]
+        self.addCleanup(setattr, unpushed, "checkouts", original)
+
+        self.assertFalse(unpushed.enabled())
+        lines, attention = unpushed.report()
+
+        self.assertFalse(attention)
+        self.assertEqual(lines, ["  off (reviewer sessions never write)"])
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.on_origin("worker/unreviewed")
+
+    def test_an_unmarked_session_still_sweeps(self):
+        """Turning the sweep off for a reviewer must not turn it off for everyone."""
+        self.env("HEATER_AUTOPUSH", None)
+        self.env("HEATER_ROLE", "worker")
+
+        self.assertTrue(unpushed.enabled())
+
     def test_bearings_carries_a_pushed_section(self):
         previous = os.environ.get("HEATER_AUTOPUSH")
         os.environ["HEATER_AUTOPUSH"] = "0"
@@ -185,6 +289,93 @@ class TestReporting(SweepCase):
                         if previous is None else os.environ.update(HEATER_AUTOPUSH=previous))
 
         self.assertIn("## Pushed", bearings.report()[0])
+
+
+class TestDeadline(SweepCase):
+    """One bound on the whole sweep, not one per checkout.
+
+    Six recorded checkouts against a network that swallows packets is six probe
+    timeouts in a row, and the sweep hangs off the one command every session is
+    required to run first.
+    """
+
+    def crawl(self, seconds: float) -> None:
+        """Make each checkout take longer than the deadline allows."""
+        original = unpushed.unpushed_branches
+
+        def slow(path):
+            time.sleep(seconds)
+            return original(path)
+
+        unpushed.unpushed_branches = slow
+        self.addCleanup(setattr, unpushed, "unpushed_branches", original)
+
+    def test_checkouts_past_the_deadline_are_skipped_with_the_reason(self):
+        second = self.root / "second"
+        second.mkdir()
+        self.env("HEATER_AUTOPUSH_DEADLINE", "0.2")
+        self.branch("worker/first")
+        self.commit("l.txt", "reached in time")
+        self.crawl(0.4)
+
+        results = unpushed.sweep([self.repo, second])
+
+        skipped = [r for r in results if r["status"] == "skipped"]
+        self.assertEqual([r["path"] for r in skipped], [str(second)])
+        self.assertIn("deadline", skipped[0]["detail"])
+        self.assertEqual(self.statuses([r for r in results if r["status"] == "pushed"]),
+                         {("worker/first", "pushed")})
+
+    def test_the_whole_sweep_returns_inside_the_deadline(self):
+        self.env("HEATER_AUTOPUSH_DEADLINE", "0.2")
+        self.crawl(0.3)
+
+        started = time.monotonic()
+        unpushed.sweep([self.repo, self.repo, self.repo, self.repo, self.repo])
+        spent = time.monotonic() - started
+
+        self.assertLess(spent, 1.5, "one slow checkout must not multiply by the rest")
+
+    def test_a_deadline_skip_is_news_not_a_failure(self):
+        second = self.root / "second"
+        second.mkdir()
+        self.env("HEATER_AUTOPUSH_DEADLINE", "0.2")
+        self.crawl(0.4)
+
+        lines, attention = unpushed.render(unpushed.sweep([self.repo, second]))
+
+        self.assertTrue(any("deadline" in line for line in lines))
+        self.assertFalse(attention, "a slow network is not a person's job")
+
+
+class TestTheSuiteNeverPushes(unittest.TestCase):
+    def test_importing_the_test_package_turns_the_sweep_off(self):
+        """Every test file, including ones written later that never think about it."""
+        done = subprocess.run(
+            [sys.executable, "-c", "import os, tests; print(os.environ.get('HEATER_AUTOPUSH'))"],
+            cwd=ROOT, capture_output=True, text=True, timeout=60,
+            env={**os.environ, "HEATER_AUTOPUSH": "1"})
+
+        self.assertEqual(done.stdout.strip(), "0", done.stderr)
+
+
+class TestTheDocsSayItPushes(unittest.TestCase):
+    """The sweep runs on every machine, by default, including on `main`. A
+    behaviour nobody documented is one the operator meets by surprise."""
+
+    def test_the_skill_table_carries_the_pushed_section(self):
+        text = (ROOT / "skills" / "bearings" / "SKILL.md").read_text(encoding="utf-8")
+
+        self.assertIn("| Pushed |", text)
+        self.assertIn("HEATER_AUTOPUSH", text)
+
+    def test_the_readme_names_the_switch(self):
+        text = (ROOT / "README.md").read_text(encoding="utf-8")
+
+        self.assertIn("HEATER_AUTOPUSH", text)
+
+    def test_the_module_names_the_command_it_runs(self):
+        self.assertIn("refs/heads/", unpushed.__doc__)
 
 
 if __name__ == "__main__":
