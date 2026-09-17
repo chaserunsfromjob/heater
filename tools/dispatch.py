@@ -394,20 +394,19 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
             report["held"].append({"dispatch": record["id"], "why": blocked})
             continue
 
-        # Loose work becomes a commit first, so "nothing committed" below means
-        # nothing was done rather than nothing was saved.
+        # Loose work becomes a commit first, so a branch still standing on the
+        # commit it was cut from is one nobody worked, not one nobody saved.
         worktrees.autosave(lease)
 
-        if empty_branch(lease, trunk):
-            # No commits past the trunk is work that has not started, which
-            # `merge-base` cannot tell from work that already landed. Answering
-            # "landed" here once released three running workers' slots and
-            # deleted their checkouts.
-            if (why := held_in_flight(record, lease)):
+        if (state := empty_branch(lease, trunk)):
+            # Work that has not started, which `merge-base` cannot tell from
+            # work that already landed. Answering "landed" here once released
+            # three running workers' slots and deleted their checkouts.
+            if (why := held_in_flight(record, lease, state)):
                 report["held"].append({"dispatch": record["id"], "branch": branch, "why": why})
                 continue
             finish(record, lease, branch, repo, trunk,
-                   "nothing committed, and nothing has run in the checkout for over "
+                   f"{branch} {state}, and nothing has run in the checkout for over "
                    f"{EMPTY_BRANCH_STALE_HOURS}h")
             report["landed"].append(record["id"])
             continue
@@ -445,20 +444,43 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
     return report
 
 
-def empty_branch(lease: dict[str, Any], trunk: str) -> bool:
-    """True when this branch carries no commit the trunk does not already have.
+# Why a branch carries nothing the trunk lacks. Both read as a clause after the
+# branch name, because both are said back in a held report and in a closing note.
+NEVER_COMMITTED = "has no commits of its own yet"
+BASE_UNRECORDED = ("has no commits the trunk lacks and no record of the commit "
+                   "it was cut from")
+
+
+def empty_branch(lease: dict[str, Any], trunk: str) -> str:
+    """Why this branch has nothing to land, or "" when it has work to land.
+
+    Two opposite branches carry no commit the trunk lacks: one nobody has
+    committed on, and one whose commits the trunk has already taken. Counting
+    commits alone says the same "0" for both, so merged work was held as a
+    worker still out, and a day later closed as work nobody ever did.
+
+    The commit the slot was cut from tells them apart: a branch that never
+    started still stands on it, while a merged branch has moved past it. An old
+    lease that never recorded one is held rather than guessed at, which is the
+    refusal `worktrees.work_at_risk` already makes for the same reason.
 
     Asked of git in the checkout itself, and only while the checkout is there: a
     slot whose folder has gone has nothing left to protect.
     """
     path = Path(lease.get("path", ""))
     if not path.exists():
-        return False
+        return ""
     code, output = worktrees.git(path, "rev-list", "--count", f"{trunk}..HEAD")
-    return code == 0 and output.strip() == "0"
+    if code != 0 or output.strip() != "0":
+        return ""
+    base = str(lease.get("base_sha", "")).strip()
+    code, head = worktrees.git(path, "rev-parse", "HEAD")
+    if code != 0 or not base:
+        return BASE_UNRECORDED
+    return NEVER_COMMITTED if head.strip() == base else ""
 
 
-def held_in_flight(record: dict[str, Any], lease: dict[str, Any]) -> str:
+def held_in_flight(record: dict[str, Any], lease: dict[str, Any], state: str) -> str:
     """Why an empty checkout must be kept, or "" when nobody is left to keep it for.
 
     Two things have to be true before an empty slot is taken back, because
@@ -466,13 +488,16 @@ def held_in_flight(record: dict[str, Any], lease: dict[str, Any]) -> str:
     older than anything a worker plausibly runs for, and the checkout has gone
     silent. Silence is read from the same heartbeats bearings calls dead, so a
     worker that is quiet in one place is not busy in the other.
+
+    `state` is `empty_branch`'s answer, said back as given so the hold never
+    claims more about the branch than git showed.
     """
     branch = lease.get("branch", "this branch")
     age = age_minutes(record)
     if age is None or age < EMPTY_BRANCH_STALE_HOURS * 60:
-        return f"{branch} has no commits yet; the worker is still out"
+        return f"{branch} {state}; the worker is still out"
     if someone_working_in(Path(lease.get("path", ""))):
-        return (f"{branch} has no commits yet, but its checkout made a tool call "
+        return (f"{branch} {state}, but its checkout made a tool call "
                 f"within {STALE_MINUTES}m")
     return ""
 

@@ -358,9 +358,8 @@ class TestAnEmptyBranchIsNotLanded(GitCase):
         This is the state reconcile finds after a crash between the merge and
         the cleanup: the dispatch still open, its slot still held, and the
         commits already reachable from the trunk. The checkout is gone because
-        removing it is the step that sweep got through before it stopped. While
-        the checkout is still there the branch reads as carrying no commits the
-        trunk lacks, and is held for a worker who may still be out.
+        removing it is the step that sweep got through before it stopped. The
+        same state with the checkout still in place is the test below.
         """
         record = self.worker()
         self.work(record)
@@ -376,6 +375,72 @@ class TestAnEmptyBranchIsNotLanded(GitCase):
         self.assertIn("already in the trunk", self.stored(record["id"])["note"],
                       "work the trunk already has is cleaned up, not merged again")
         self.assertFalse(Path(record["workdir"]).exists())
+
+    def test_work_merged_with_its_checkout_still_there_lands_rather_than_holding(self):
+        """Finding 113737ab1cf3: merged work was held as work that never started.
+
+        Counting the commits the trunk does not have answers 0 for two opposite
+        branches: one nobody has committed on, and one whose commits the trunk
+        already has. Asked only that way, a branch merged by hand — or by a
+        sweep that stopped before removing the checkout — is held on "no commits
+        yet; the worker is still out", and a day later closed as work nobody
+        ever did. What separates them is the commit the slot was cut from: this
+        branch has moved past it, so it has been merged, not skipped.
+        """
+        record = self.worker()
+        self.work(record)
+        self.approve(record["id"])
+        lease = next(l for l in jsonstore.load(worktrees.leases_dir())
+                     if l["id"] == record["lease_id"])
+        run("git", "merge", "--no-ff", lease["branch"], "-m", "landed by hand", cwd=self.repo)
+        self.assertTrue(Path(record["workdir"]).exists(), "the checkout is still there")
+
+        report = dispatch.reconcile()
+
+        self.assertEqual(report["held"], [], "merged work is not a worker still out")
+        self.assertEqual(report["landed"], [record["id"]])
+        self.assertIn("already in the trunk", self.stored(record["id"])["note"])
+        self.assertFalse(Path(record["workdir"]).exists(),
+                         "its slot goes back once the trunk provably has the work")
+
+    def test_an_old_silent_merged_checkout_is_not_closed_as_never_started(self):
+        """The same branch left a day, which is when the false note gets written."""
+        record = self.worker()
+        self.work(record)
+        self.approve(record["id"])
+        backdate(dispatch.dispatches_dir(), record["id"],
+                 dispatch.EMPTY_BRANCH_STALE_HOURS + 1)
+        lease = next(l for l in jsonstore.load(worktrees.leases_dir())
+                     if l["id"] == record["lease_id"])
+        run("git", "merge", "--no-ff", lease["branch"], "-m", "landed by hand", cwd=self.repo)
+
+        dispatch.reconcile()
+
+        note = self.stored(record["id"])["note"]
+        self.assertIn("already in the trunk", note)
+        self.assertNotIn("nothing committed", note,
+                         "the work is in the trunk; the record may not say there was none")
+
+    def test_a_lease_with_no_recorded_base_is_held_rather_than_guessed_at(self):
+        """Older leases never recorded where they were cut from, so nothing is assumed.
+
+        Without that commit the two empty-looking branches cannot be told
+        apart, and the safe half is holding the slot: the same refusal
+        `worktrees.work_at_risk` makes for the same missing record.
+        """
+        record = self.worker("research the options")
+        lease = next(l for l in jsonstore.load(worktrees.leases_dir())
+                     if l["id"] == record["lease_id"])
+        lease["base_sha"] = ""
+        jsonstore.write(worktrees.leases_dir(), lease)
+
+        report = dispatch.reconcile()
+
+        held = [h for h in report["held"] if h["dispatch"] == record["id"]]
+        self.assertEqual(len(held), 1)
+        self.assertIn("no record of the commit it was cut from", held[0]["why"])
+        self.assertTrue(Path(record["workdir"]).exists())
+
 
 
 if __name__ == "__main__":
