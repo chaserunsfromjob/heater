@@ -12,7 +12,7 @@
   "branch": "worker/048795519f43",
   "run_id": "",
   "part": "",
-  "closed_at": null,
-  "outcome": null,
-  "note": ""
+  "closed_at": "2026-09-17T02:08:12.014542+00:00",
+  "outcome": "landed",
+  "note": "landed on pokerbot main by the PC session (b5924bf, 0565d1a, 03622d6); record closed on the Mac 2026-09-17"
 }
