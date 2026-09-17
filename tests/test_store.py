@@ -7,15 +7,19 @@ the query, because every downstream claim about cost and review load rests on it
 
 from __future__ import annotations
 
+import contextlib
+import io
 import os
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
+import dispatch  # noqa: E402
 import store  # noqa: E402
 
 
@@ -101,9 +105,15 @@ class TestAggregates(StoreCase):
         self.seed()
         self.assertEqual(store.query()["reviews"]["passed_first_round"], 1)
 
-    def test_change_needing_a_fix_is_not_a_first_round_pass(self):
+    def test_a_change_still_in_review_has_not_landed(self):
+        """Neither seeded change has reached the end of its review loop.
+
+        auth has one pass behind a fail and parser has a single pass, and review
+        ends on two consecutive rounds that pass. Counting either as landed is
+        the stale-pass reading `dispatch.reviewed` dropped.
+        """
         self.seed()
-        self.assertEqual(store.query()["reviews"]["changes_landed"], 2)
+        self.assertEqual(store.query()["reviews"]["changes_landed"], 0)
 
     def test_cost_totals(self):
         self.seed()
@@ -142,6 +152,95 @@ class TestAggregates(StoreCase):
         self.assertEqual(result["reviews"]["rounds"], 0)
         self.assertIsNone(result["reviews"]["rounds_per_change_mean"])
         store.render(result)
+
+
+class TestChangesLandedAgreesWithDispatch(StoreCase):
+    """Task 917775c34006: the query counted a change landed if any round passed.
+
+    The same reading of a stale pass that `dispatch.reviewed` dropped, left in
+    the figure every report of what the fleet delivered is drawn from. Two
+    readers of one store have to give one answer, so both ask `reviewloop`.
+    """
+
+    def landed(self, days: int | None = None) -> int:
+        return store.query(days=days)["reviews"]["changes_landed"]
+
+    def end_review_of(self, change: str, first: int = 1) -> None:
+        store.record_review(change, first, "default", "pass", findings=2, wording_only=True)
+        store.record_review(change, first + 1, "default", "pass")
+
+    def test_a_pass_that_later_rounds_failed_is_not_landed(self):
+        self.end_review_of("auth")
+        store.record_review("auth", 3, "default", "fail", findings=4)
+        self.assertEqual(self.landed(), 0,
+                         "the latest round failed; an older pass did not land it")
+
+    def test_a_single_pass_is_not_landed(self):
+        store.record_review("auth", 1, "default", "pass")
+        self.assertEqual(self.landed(), 0, "review ends on two consecutive rounds")
+
+    def test_a_review_that_ended_is_landed(self):
+        self.end_review_of("auth")
+        self.assertEqual(self.landed(), 1)
+
+    def test_the_figure_agrees_with_the_dispatch_store(self):
+        """One store, two readers, one answer: the point of the shared judgement."""
+        self.end_review_of("landed-change")
+        self.end_review_of("reopened")
+        store.record_review("reopened", 3, "default", "fail", findings=1)
+        store.record_review("fresh", 1, "default", "pass")
+        store.record_review("failing", 1, "default", "fail", findings=9)
+
+        names = ("landed-change", "reopened", "fresh", "failing")
+        by_dispatch = [c for c in names if dispatch.reviewed(c)]
+
+        self.assertEqual(by_dispatch, ["landed-change"])
+        self.assertEqual(self.landed(), len(by_dispatch))
+        self.assertEqual(self.landed(days=7), len(by_dispatch))
+
+    def backdate(self, record: dict, days: float) -> None:
+        """Move one recorded round's clock back, in the file it already lives in.
+
+        Rewritten in place rather than re-recorded: the filename carries the
+        timestamp, so a second write would leave two files with one id.
+        """
+        when = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(timespec="microseconds")
+        path = next(Path(os.environ["HEATER_REVIEWS_DIR"]).glob(f"*{record['id']}.json"))
+        path.write_text(path.read_text().replace(record["created"], when), encoding="utf-8")
+
+    def test_a_review_that_began_before_the_window_and_ended_inside_it_counts(self):
+        """The change landed this week; only its opening round is a month old.
+
+        Windowing the rounds before asking whether the loop ended cuts that
+        first round off, leaves one pass behind, and reports nothing landed —
+        while the sweep, which reads the whole history, lands it.
+        """
+        first = store.record_review("auth", 1, "default", "pass", findings=2, wording_only=True)
+        store.record_review("auth", 2, "default", "pass")
+        self.backdate(first, 30)
+
+        self.assertTrue(dispatch.reviewed("auth"))
+        self.assertEqual(self.landed(days=7), 1,
+                         "a change is landed by its whole history, not by the window")
+
+    def test_a_review_that_ended_before_the_window_is_not_counted_in_it(self):
+        """Attributed to the window by the round that ended it, which is old."""
+        first = store.record_review("auth", 1, "default", "pass", findings=2, wording_only=True)
+        second = store.record_review("auth", 2, "default", "pass")
+        self.backdate(first, 40)
+        self.backdate(second, 30)
+
+        self.assertEqual(self.landed(days=7), 0, "it landed last month, not this week")
+        self.assertEqual(self.landed(), 1, "all time still has it")
+
+    def test_the_query_command_still_runs_over_a_window(self):
+        self.end_review_of("auth")
+        store.record_suite("bin/gate.sh", True, duration_s=1.0)
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            code = store.main(["store.py", "query", "--days", "7"])
+        self.assertEqual(code, 0)
+        self.assertIn("(1 landed)", printed.getvalue())
 
 
 class TestAgentsAndSkills(unittest.TestCase):

@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
-"""Tests for the three ways a change reached the trunk without the review it needs.
+"""Tests for the ways the sweep and its records said something that was not so.
 
 Each class is one recorded defect, reproduced before it was fixed:
 
 * a pass from an old round counting after later rounds failed,
 * one wording-only round counting as the end of a review that needs two,
-* a branch with nothing on it read as work that has already landed.
+* a branch with nothing on it read as work that has already landed,
+* a sweep that printed what it could not finish and then exited 0,
+* a dispatch closed as landed without a word about the review it rested on,
+* a worker that abandoned an empty branch recorded as one that landed work.
 
-All three end the same way — a merge nobody approved, or a live worker's
-checkout deleted — so all three are tested against the real stores and, where
-git is what decides, a real repository.
+They end the same way — a merge nobody approved, a live worker's checkout
+deleted, or a green wake over work nobody finished — so all of them are tested
+against the real stores and, where git is what decides, a real repository.
 """
 
 from __future__ import annotations
@@ -24,6 +27,7 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
@@ -226,6 +230,13 @@ class GitCase(StoreCase):
     def stored(self, dispatch_id: str) -> dict:
         return next(d for d in jsonstore.load(dispatch.dispatches_dir()) if d["id"] == dispatch_id)
 
+    def sweep(self, *args: str) -> tuple[int, str]:
+        """The sweep as a wake runs it: what it printed, and what it exited."""
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            code = dispatch.main(["dispatch.py", "reconcile", *args])
+        return code, printed.getvalue()
+
     def beat(self, cwd: Path, *, minutes_ago: float = 0.0, session: str = "s1") -> None:
         # Where the PostToolUse hook writes: alongside the log directory.
         directory = self.root / "heartbeat"
@@ -371,7 +382,7 @@ class TestAnEmptyBranchIsNotLanded(GitCase):
         backdate(dispatch.dispatches_dir(), record["id"],
                  dispatch.EMPTY_BRANCH_STALE_HOURS + 1)
         report = dispatch.reconcile()
-        self.assertIn(record["id"], report["landed"])
+        self.assertIn(record["id"], report["abandoned"])
         self.assertFalse(Path(record["workdir"]).exists())
 
     def test_an_old_empty_branch_with_a_live_heartbeat_is_kept(self):
@@ -391,7 +402,7 @@ class TestAnEmptyBranchIsNotLanded(GitCase):
                  dispatch.EMPTY_BRANCH_STALE_HOURS + 1)
         self.beat(Path(record["workdir"]), minutes_ago=dispatch.STALE_MINUTES + 1)
         report = dispatch.reconcile()
-        self.assertIn(record["id"], report["landed"])
+        self.assertIn(record["id"], report["abandoned"])
 
     def test_a_heartbeat_from_another_checkout_does_not_count(self):
         record = self.worker("research the options")
@@ -399,7 +410,7 @@ class TestAnEmptyBranchIsNotLanded(GitCase):
                  dispatch.EMPTY_BRANCH_STALE_HOURS + 1)
         self.beat(self.repo)
         report = dispatch.reconcile()
-        self.assertIn(record["id"], report["landed"])
+        self.assertIn(record["id"], report["abandoned"])
 
     def test_uncommitted_work_is_saved_and_lands_rather_than_holding(self):
         record = self.worker()
@@ -667,6 +678,268 @@ class TestSkipReviewDoesNotTakeALiveWorkersSlot(GitCase):
         self.assertEqual(report["held"], [])
         self.assertFalse(Path(record["workdir"]).exists())
         self.assertIn("review skipped", self.stored(record["id"])["note"])
+
+
+class TestTheSweepsExitCodeSaysWhatItFound(GitCase):
+    """Task 68b249e08219: a sweep printed work it could not finish and exited 0.
+
+    The stoker reads the exit code at every wake. A sweep that prints a hold and
+    then says green leaves the hold for whoever happens to read the text, which
+    on a wake at four in the morning is nobody.
+    """
+
+    def clean_report(self, **extra) -> dict:
+        report = {"at": jsonstore.now(), "landed": [], "abandoned": [], "held": [],
+                  "awaiting_review": [], "needs_fix": [], "runs_finished": []}
+        report.update(extra)
+        return report
+
+    def test_a_held_dispatch_exits_non_zero(self):
+        record = self.worker()
+        self.work(record)
+        (self.repo / "operator.txt").write_text("uncommitted work of the operator's\n")
+
+        code, printed = self.sweep()
+
+        self.assertEqual(code, 1, f"a sweep that held everything is not green:\n{printed}")
+        self.assertTrue(Path(record["workdir"]).exists())
+
+    def test_a_branch_needing_a_fixer_exits_non_zero(self):
+        record = self.worker()
+        self.work(record)
+        self.approve(record["id"])
+
+        code, printed = self.sweep("--gate", "exit 1")
+
+        self.assertEqual(code, 1, f"a branch needing a fixer is not green:\n{printed}")
+
+    def test_a_worker_still_awaiting_review_is_green(self):
+        """Settled in ced8b534b39b: every worker is unreviewed for most of its life."""
+        record = self.worker()
+        self.work(record)
+
+        code, printed = self.sweep()
+
+        self.assertIn("awaiting review  1", printed)
+        self.assertEqual(code, 0, "a live worker nobody has reviewed yet is the normal state")
+
+    def test_a_sweep_that_landed_everything_is_green(self):
+        record = self.worker()
+        self.work(record)
+        self.approve(record["id"])
+
+        code, printed = self.sweep()
+
+        self.assertEqual(code, 0, printed)
+        self.assertEqual(self.stored(record["id"])["outcome"], "landed")
+
+    def test_an_entry_the_exit_code_never_heard_of_is_not_green(self):
+        """The exit code is read off the report, not off a list of two keys.
+
+        Every way the sweep learns to say "this is not finished" — commits left
+        on a branch, commits it could not check — has to reach the wake on the
+        day it is added, not on the day somebody remembers to extend the exit.
+        """
+        report = self.clean_report(left_on_the_branch=[{"dispatch": "d1",
+                                                        "why": "never reached the trunk"}])
+        with mock.patch.object(dispatch, "reconcile", return_value=report):
+            code, printed = self.sweep()
+
+        self.assertEqual(code, 1, "work the sweep could not finish may not read as green")
+        self.assertIn("left_on_the_branch", printed,
+                      "an exit of 1 has to say on screen what it is about")
+
+    def test_the_clean_keys_are_named_and_only_those(self):
+        self.assertEqual(dispatch.reconcile_unclean(
+            self.clean_report(landed=["a"], awaiting_review=["b"], runs_finished=["r"])), [])
+        self.assertEqual(dispatch.reconcile_unclean(self.clean_report(held=[{"why": "x"}])),
+                         ["held"])
+        self.assertEqual(dispatch.reconcile_unclean(self.clean_report(needs_fix=[{"why": "x"}])),
+                         ["needs_fix"])
+
+
+class TestClosingSaysWhatItRestedOn(GitCase):
+    """Task 3259f1e2808e: two routes closed a dispatch as landed saying nothing.
+
+    Both are cleanup rather than merges — the commits are in the trunk already,
+    or there is no checkout left to consolidate — so neither reads the review
+    store before closing. That is right; saying nothing about it is not, because
+    the note is the only place a landing can be checked from afterwards.
+    """
+
+    def test_a_dispatch_with_no_checkout_records_the_review_state_it_closed_on(self):
+        record = self.worker()
+        self.work(record)
+        worktrees.release(record["lease_id"], "taken back by hand", force=True)
+
+        code, printed = self.sweep()
+
+        note = self.stored(record["id"])["note"]
+        self.assertIn("no checkout to consolidate", note)
+        self.assertIn("no round recorded", note,
+                      "a close that consulted no review must say so in the note")
+        self.assertEqual(self.stored(record["id"])["outcome"], "failed",
+                         "its commits never reached the trunk")
+        self.assertEqual(code, 1, printed)
+
+    def test_a_dispatch_with_no_checkout_names_a_failed_round(self):
+        record = self.worker()
+        self.work(record)
+        self.round_of(record["id"], 3, "fail", findings=2)
+        worktrees.release(record["lease_id"], "taken back by hand", force=True)
+
+        code, printed = self.sweep()
+
+        self.assertIn("round 3: fail", self.stored(record["id"])["note"])
+        self.assertEqual(self.stored(record["id"])["outcome"], "failed",
+                         "its commits never reached the trunk")
+        self.assertEqual(code, 1, printed)
+
+    def test_already_in_the_trunk_records_the_review_state_it_closed_on(self):
+        record = self.worker()
+        self.work(record)
+        lease = next(l for l in jsonstore.load(worktrees.leases_dir())
+                     if l["id"] == record["lease_id"])
+        run("git", "merge", "--no-ff", lease["branch"], "-m", "landed by hand", cwd=self.repo)
+
+        dispatch.reconcile()
+
+        note = self.stored(record["id"])["note"]
+        self.assertIn("already in the trunk", note)
+        self.assertIn("no round recorded", note,
+                      "the trunk has the commits; the note still has to say what that rested on")
+
+    def test_already_in_the_trunk_names_a_failed_round(self):
+        record = self.worker()
+        self.work(record)
+        self.round_of(record["id"], 2, "fail", findings=5)
+        lease = next(l for l in jsonstore.load(worktrees.leases_dir())
+                     if l["id"] == record["lease_id"])
+        run("git", "merge", "--no-ff", lease["branch"], "-m", "landed by hand", cwd=self.repo)
+
+        dispatch.reconcile()
+
+        self.assertIn("round 2: fail", self.stored(record["id"])["note"])
+
+
+class TestAReleasedSlotIsNotProofOfLanding(GitCase):
+    """A lease handed back by hand or by `reclaim` says nothing about the trunk.
+
+    The slot going back means the checkout is gone, not that its commits are
+    anywhere. Closing that as `landed` records work the trunk never received,
+    and `landed` is a clean key, so the wake reads green over commits still
+    sitting on a branch nobody will look at again.
+    """
+
+    def lease_of(self, record: dict) -> dict:
+        return next(l for l in jsonstore.load(worktrees.leases_dir())
+                    if l["id"] == record["lease_id"])
+
+    def test_commits_left_off_the_trunk_are_reported_and_not_landed(self):
+        record = self.worker()
+        self.work(record)
+        branch = self.lease_of(record)["branch"]
+        worktrees.release(record["lease_id"], "taken back by hand", force=True)
+
+        code, printed = self.sweep()
+
+        self.assertNotEqual(self.stored(record["id"])["outcome"], "landed",
+                            "nothing reached the trunk; the record may not say it did")
+        self.assertEqual(self.stored(record["id"])["outcome"], "failed")
+        self.assertEqual(code, 1, f"commits left off the trunk are not green:\n{printed}")
+        self.assertIn("left_behind", printed)
+        self.assertIn(branch, printed, "the line has to say which branch still holds it")
+
+    def test_the_report_names_the_branch_it_left_behind(self):
+        record = self.worker()
+        self.work(record)
+        branch = self.lease_of(record)["branch"]
+        worktrees.release(record["lease_id"], "taken back by hand", force=True)
+
+        report = dispatch.reconcile()
+
+        self.assertEqual(report["landed"], [])
+        self.assertEqual([e["branch"] for e in report["left_behind"]], [branch])
+        self.assertIn("left_behind", dispatch.reconcile_unclean(report))
+
+    def test_commits_already_in_the_trunk_still_land(self):
+        record = self.worker()
+        self.work(record)
+        lease = self.lease_of(record)
+        run("git", "merge", "--no-ff", lease["branch"], "-m", "landed by hand", cwd=self.repo)
+        worktrees.release(record["lease_id"], "taken back by hand")
+
+        code, printed = self.sweep()
+
+        self.assertEqual(self.stored(record["id"])["outcome"], "landed")
+        self.assertEqual(code, 0, printed)
+
+    def test_a_dispatch_that_never_took_a_checkout_still_lands(self):
+        """There is no branch to ask git about, so there is nothing left behind."""
+        record = dispatch.open_dispatch("read the options and write them up", project="api")
+
+        code, printed = self.sweep()
+
+        self.assertEqual(self.stored(record["id"])["outcome"], "landed")
+        self.assertEqual(code, 0, printed)
+
+
+class TestAnAbandonedWorkerIsNotALanding(GitCase):
+    """Task 3259f1e2808e, the half about a worker that produced nothing.
+
+    An empty branch left past `EMPTY_BRANCH_STALE_HOURS` with a silent checkout
+    is a worker that went away. Closing it as `landed` puts it in every count of
+    what the fleet delivered, and `abandoned` has been an outcome all along.
+    """
+
+    def stale_empty_worker(self) -> dict:
+        record = self.worker("research the options")
+        backdate(dispatch.dispatches_dir(), record["id"],
+                 dispatch.EMPTY_BRANCH_STALE_HOURS + 1)
+        return record
+
+    def test_an_abandoned_empty_branch_closes_as_abandoned(self):
+        record = self.stale_empty_worker()
+
+        dispatch.reconcile()
+
+        self.assertEqual(self.stored(record["id"])["outcome"], "abandoned",
+                         "nothing landed; the record may not say it did")
+        self.assertFalse(Path(record["workdir"]).exists(), "the slot still goes back")
+
+    def test_the_sweep_reports_it_as_abandoned_rather_than_landed(self):
+        record = self.stale_empty_worker()
+
+        report = dispatch.reconcile()
+
+        self.assertEqual(report["abandoned"], [record["id"]])
+        self.assertEqual(report["landed"], [], "the report says what the record says")
+
+    def test_an_abandoned_worker_is_not_a_sweep_that_needs_answering(self):
+        """The slot is back and nothing is left on the branch, so the wake is green."""
+        self.stale_empty_worker()
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            code = dispatch.main(["dispatch.py", "reconcile"])
+        self.assertEqual(code, 0, printed.getvalue())
+
+    def test_a_run_whose_last_member_abandoned_is_finished(self):
+        """Nothing of the run is left anywhere, which is what the list means."""
+        first = dispatch.open_dispatch("part one", run_id="r1")
+        second = dispatch.open_dispatch("part two", run_id="r1")
+        dispatch.close_dispatch(first["id"], "landed", "merged")
+        self.assertEqual(dispatch.finished_runs(), [],
+                         "one member is still out; the run is not finished")
+        dispatch.close_dispatch(second["id"], "abandoned", "the worker went away")
+        self.assertEqual(dispatch.finished_runs(), ["r1"])
+
+    def test_a_run_with_a_failed_member_is_not_finished(self):
+        first = dispatch.open_dispatch("part one", run_id="r2")
+        second = dispatch.open_dispatch("part two", run_id="r2")
+        dispatch.close_dispatch(first["id"], "landed", "merged")
+        dispatch.close_dispatch(second["id"], "failed", "the gate never passed")
+        self.assertEqual(dispatch.finished_runs(), [],
+                         "a failed member leaves work to account for")
 
 
 if __name__ == "__main__":

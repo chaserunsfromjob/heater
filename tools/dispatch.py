@@ -25,19 +25,19 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import jsonstore
+import reviewloop
 import store
 import worktrees
 # Re-exported, not re-implemented: worktrees answers the same question on the
 # route reclaim takes, and it cannot import this module back.
 from heartbeats import STALE_MINUTES, beats, someone_working_in  # noqa: F401
+# `reviewloop` is there for the same reason: `store`'s query counts the changes
+# that landed and cannot import this module back, so when a review has ended is
+# decided below both of them. The rule it ends on is re-exported, not restated.
+from reviewloop import ROUNDS_TO_END_REVIEW  # noqa: F401
 
 OUTCOMES = ("landed", "pushed", "escalated", "failed", "abandoned")
 REPO = jsonstore.REPO
-
-# Review ends when this many consecutive rounds pass finding only wording, which
-# is `skills/adversarial-review/SKILL.md`'s rule and not a number picked here.
-# One wording-only pass is the second-to-last step of the loop, not its end.
-ROUNDS_TO_END_REVIEW = 2
 
 # How long a branch with no commits on it is left alone. A checkout that has
 # produced nothing is a worker that has not finished its first commit far more
@@ -138,39 +138,20 @@ class NotReadyToLand(RuntimeError):
 def rounds_for(change: str) -> list[dict[str, Any]]:
     """Every recorded round for this change, oldest first.
 
-    Ordered by round number and then by when it was recorded, so two rounds both
-    called "round 6" settle on the one that arrived last rather than on whichever
-    the filesystem happened to list first.
+    Ordered by `reviewloop`, so the rounds this module lands on and the rounds
+    the query counts as landed arrive in one order rather than two.
     """
-    return sorted((r for r in jsonstore.load(store.reviews_dir())
-                   if r.get("change") == change),
-                  key=lambda r: (r.get("round", 0), r.get("created", "")))
-
-
-def settled(round_record: dict[str, Any]) -> bool:
-    """True when this round is a pass with nothing substantive left outstanding.
-
-    `bin/store.py review` already refuses to record a pass with substantive
-    findings. This refuses to act on one anyway: the store is a directory of
-    files, and a file can arrive by some route other than that command.
-    """
-    if round_record.get("verdict") != "pass":
-        return False
-    return not round_record.get("findings") or bool(round_record.get("wording_only"))
+    return reviewloop.ordered([r for r in jsonstore.load(store.reviews_dir())
+                               if r.get("change") == change])
 
 
 def reviewed(change: str) -> bool:
     """True when the review loop has ended for this change.
 
-    The latest round decides, never the best one on record: a pass from round 4
-    says nothing about a change that rounds 5, 6 and 7 failed. And one pass is
-    not the end of the loop — review ends on two consecutive rounds that find
-    only wording, so the last two rounds must both be settled passes.
+    `reviewloop.ended` is what decides, so nothing lands on a reading of the
+    rounds that the figures in a report would disagree with.
     """
-    rounds = rounds_for(change)
-    if len(rounds) < ROUNDS_TO_END_REVIEW:
-        return False
-    return all(settled(r) for r in rounds[-ROUNDS_TO_END_REVIEW:])
+    return reviewloop.ended(rounds_for(change))
 
 
 def review_note(change: str) -> str:
@@ -338,8 +319,9 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
     Nothing is deleted until its commits are reachable from the trunk. Work is
     never refused for being loose; it is committed on its own branch first.
     """
-    report: dict[str, Any] = {"at": jsonstore.now(), "landed": [], "held": [],
-                              "awaiting_review": [], "needs_fix": [], "runs_finished": []}
+    report: dict[str, Any] = {"at": jsonstore.now(), "landed": [], "abandoned": [],
+                              "held": [], "awaiting_review": [], "needs_fix": [],
+                              "left_behind": [], "runs_finished": []}
     leases = {l["id"]: l for l in jsonstore.load(worktrees.leases_dir())}
 
     candidates = [d for d in live()
@@ -350,7 +332,26 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
     for record in candidates:
         lease = leases.get(record.get("lease_id", ""))
         if lease is None or lease.get("released_at"):
-            close_dispatch(record["id"], "landed", "no checkout to consolidate")
+            # The slot has already gone back, so there is no branch to merge and
+            # no checkout to protect, and the review store decides nothing here.
+            # Whether anything landed is still git's to say: a slot handed back
+            # by hand or by `reclaim` frees the checkout without merging, so the
+            # branch can be sitting there with every commit the worker made.
+            # Where the record stood in its review is written down either way: a
+            # close that says nothing about review reads exactly like one that
+            # was reviewed, and the note is the only place this can be checked
+            # from afterwards.
+            if (why := left_behind(lease)):
+                # Not abandoned: the work exists, and nobody called it off. It
+                # is simply not in the trunk, so it is somebody's to finish.
+                close_dispatch(record["id"], "failed",
+                               f"no checkout to consolidate, but {why}; "
+                               f"{review_state(record['id'])}")
+                report["left_behind"].append({"dispatch": record["id"],
+                                              "branch": lease.get("branch", ""), "why": why})
+                continue
+            close_dispatch(record["id"], "landed",
+                           f"no checkout to consolidate; {review_state(record['id'])}")
             report["landed"].append(record["id"])
             continue
 
@@ -403,10 +404,14 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
             if (why := held_in_flight(record, lease, state)):
                 report["held"].append({"dispatch": record["id"], "branch": branch, "why": why})
                 continue
+            # Closed as abandoned, not landed: the worker went away without
+            # committing anything, so counting it among what the fleet landed
+            # puts work in every figure that nobody ever did.
             finish(record, lease, branch, repo, trunk,
                    f"{branch} {state}, and nothing has run in the checkout for over "
-                   f"{EMPTY_BRANCH_STALE_HOURS}h")
-            report["landed"].append(record["id"])
+                   f"{EMPTY_BRANCH_STALE_HOURS}h",
+                   outcome="abandoned")
+            report["abandoned"].append(record["id"])
             continue
 
         if worktrees.landed(lease, trunk):
@@ -420,7 +425,13 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
                 report["held"].append({"dispatch": record["id"], "branch": branch,
                                        "why": why})
                 continue
-            finish(record, lease, branch, repo, trunk, "already in the trunk")
+            # Not refused for having no review of its own: these commits were
+            # merged by an earlier sweep that was review-gated, or by hand, and
+            # refusing here would strand the slot rather than protect anything.
+            # The note says which review state it rested on, so the close can be
+            # checked afterwards instead of taken on trust.
+            finish(record, lease, branch, repo, trunk,
+                   f"already in the trunk; {review_state(record['id'])}")
             report["landed"].append(record["id"])
             continue
 
@@ -468,6 +479,39 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
 NEVER_COMMITTED = "has no commits of its own yet"
 BASE_UNRECORDED = ("has no commits the trunk lacks and no record of the commit "
                    "it was cut from")
+
+
+def left_behind(lease: dict[str, Any] | None) -> str:
+    """Why this released slot's commits are not in the trunk, or "" when they are.
+
+    A slot going back says the checkout is gone. It says nothing about where the
+    commits went: `reclaim` and a release by hand both free the checkout without
+    merging anything, and the branch stays in the project with all of the
+    worker's commits on it. Reading the released slot as a landing records work
+    the trunk never received and, because landing is a clean outcome, lets the
+    wake read green over it.
+
+    Asked of the branch in the project itself, because the checkout is gone by
+    the time this is asked. A branch that cannot be found or cannot be compared
+    is reported rather than assumed landed: the whole point here is to stop
+    guessing that work arrived.
+    """
+    if lease is None:
+        # No slot was ever taken, so there is no branch and nothing to leave.
+        return ""
+    repo, branch = Path(lease.get("repo", "")), lease.get("branch", "")
+    trunk = lease.get("base_branch") or "main"
+    if not branch or not repo.exists():
+        return f"whether its work reached {trunk} cannot be checked: {repo} is not there"
+    code, tip = worktrees.git(repo, "rev-parse", "--verify", f"{branch}^{{commit}}")
+    if code != 0:
+        return f"{branch} is no longer in {repo}, so what it held cannot be checked"
+    code, output = worktrees.git(repo, "merge-base", "--is-ancestor", tip.strip(), trunk)
+    if code == 0:
+        return ""
+    if code == 1:
+        return f"{branch} still holds commits {trunk} does not"
+    return f"{branch} could not be compared with {trunk}: {output}"
 
 
 def empty_branch(lease: dict[str, Any], trunk: str) -> str:
@@ -544,24 +588,40 @@ def trunk_state(repo: Path, trunk: str) -> str:
 
 
 def finish(record: dict[str, Any], lease: dict[str, Any], branch: str,
-           repo: Path, trunk: str, why: str) -> None:
-    """Clean up one worker, and only once its work is provably in the trunk."""
+           repo: Path, trunk: str, why: str, outcome: str = "landed") -> None:
+    """Clean up one worker, and only once its work is provably in the trunk.
+
+    The cleanup is the same whatever the dispatch is closed as; what the record
+    says happened is not. A branch nobody committed on is cleaned up too, and
+    closing that as `landed` is the record claiming work that never existed.
+    """
     if not worktrees.landed(lease, trunk):
         raise RuntimeError(f"refusing to clean up {branch}: its commits are not in {trunk}")
     worktrees.release(lease["id"], "consolidated")
     worktrees.git(repo, "branch", "-d", branch)
-    close_dispatch(record["id"], "landed", why)
+    close_dispatch(record["id"], outcome, why)
+
+
+# What a run's member can be closed as and still leave nothing behind: its work
+# is in the trunk, or there was never any work to put there.
+RUN_MEMBER_FINISHED = ("landed", "abandoned")
 
 
 def finished_runs() -> list[str]:
-    """Runs whose every worker has landed, so nothing of theirs is left anywhere."""
+    """Runs whose every worker landed or abandoned, so nothing of theirs is left.
+
+    A member that abandoned an empty branch finishes the run as surely as one
+    that landed: its branch, its checkout and its slot are all gone and it had
+    no commits to put anywhere. A member closed as failed, escalated or pushed
+    still has work to account for, so its run is not on this list.
+    """
     everything = jsonstore.load(dispatches_dir())
     runs: dict[str, list[dict[str, Any]]] = {}
     for record in everything:
         if record.get("run_id"):
             runs.setdefault(record["run_id"], []).append(record)
     return [run for run, members in runs.items()
-            if all(m.get("outcome") == "landed" for m in members)]
+            if all(m.get("outcome") in RUN_MEMBER_FINISHED for m in members)]
 
 
 def live() -> list[dict[str, Any]]:
@@ -578,9 +638,35 @@ def age_minutes(record: dict[str, Any]) -> float | None:
     return (datetime.now(timezone.utc) - started).total_seconds() / 60
 
 
+# Report keys a sweep can fill and still have finished cleanly: work merged,
+# a worker that went away leaving nothing, runs wholly consolidated, and a live
+# worker whose review has not ended. That last one is the ordinary state of the
+# fleet — every worker is unreviewed for most of its life — so counting it as
+# something to answer would make every wake with anybody working read red.
+RECONCILE_CLEAN = ("landed", "abandoned", "awaiting_review", "runs_finished")
+
+# What the summary already says in words, so the catch-all below does not repeat
+# the two entries `render_reconcile` prints one by one.
+RECONCILE_RENDERED = ("held", "needs_fix")
+
+
+def reconcile_unclean(result: dict[str, Any]) -> list[str]:
+    """Which report keys carry work this sweep could not finish.
+
+    Read as everything not known to be clean, never as a list of the bad keys.
+    The sweep gains ways of saying it could not finish — commits left on a
+    branch, commits it could not check — and each one has to reach the stoker's
+    wake on the day it is added rather than the day somebody remembers to extend
+    the exit code. A key nobody taught this about is not finished until it is.
+    """
+    return [key for key, entries in result.items()
+            if isinstance(entries, list) and entries and key not in RECONCILE_CLEAN]
+
+
 def render_reconcile(result: dict[str, Any]) -> str:
     lines = [f"reconcile as of {result['at']}",
              f"  landed           {len(result['landed'])}",
+             f"  abandoned        {len(result['abandoned'])}",
              f"  awaiting review  {len(result['awaiting_review'])}",
              f"  needs a fixer    {len(result['needs_fix'])}",
              f"  held             {len(result['held'])}"]
@@ -588,6 +674,20 @@ def render_reconcile(result: dict[str, Any]) -> str:
         lines.append(f"    {entry['branch']}: {entry['why']}")
     for entry in result["held"]:
         lines.append(f"    {entry['dispatch']}: {entry['why']}")
+    rest = [k for k in reconcile_unclean(result) if k not in RECONCILE_RENDERED]
+    if rest:
+        # Named rather than counted: this is the sweep saying something this
+        # function was never taught to print, and an exit of 1 with nothing on
+        # screen to explain it is the failure being fixed, one step along.
+        lines.append(f"  not finished: {', '.join(rest)}")
+        for key in rest:
+            for entry in result[key]:
+                # Whatever the entry says of itself. A branch left holding
+                # commits has to be named on screen, or the line says work was
+                # left somewhere without saying where.
+                if isinstance(entry, dict):
+                    lines.append(f"    {entry.get('branch') or entry.get('dispatch', '?')}: "
+                                 f"{entry.get('why', '')}")
     if result["runs_finished"]:
         lines.append(f"  runs fully consolidated: {', '.join(result['runs_finished'])}")
     return "\n".join(lines)
@@ -670,7 +770,12 @@ def main(argv: list[str]) -> int:
                            require_review=not args.skip_review, gate=args.gate,
                            reason=args.reason)
         print(render_reconcile(result))
-        return 1 if (result["held"] or result["needs_fix"]) else 0
+        # The exit code is read off the report rather than off a pair of keys
+        # named here: the stoker wakes on this number, and a sweep that prints
+        # work it could not finish and then says green leaves that work for
+        # whoever happens to read the text, which at four in the morning is
+        # nobody.
+        return 1 if reconcile_unclean(result) else 0
     elif args.action == "list":
         print(render(live()))
     elif args.action == "land":
