@@ -1,6 +1,6 @@
 # Handover
 
-<!-- handover-commit: PENDING -->
+<!-- handover-commit: 06ef593 -->
 
 Written on `main`, 2026-09-17 about 17:40Z, on the Mac, at 34% context, with
 one reviewer out. Verify with `bin/handover.py`. A snapshot, not a log;
