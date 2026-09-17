@@ -1,0 +1,18 @@
+{
+  "id": "20b9ff39b519",
+  "created": "2026-09-17T03:28:16.918717+00:00",
+  "task": "Make every session push its own unpushed work on waking, so the operator is never asked to type a git command. In hooks/session_start.py (and bin/bearings.py's report), for the fleet repository and every project checkout the fleet knows (bin/dispatch.py's leases and worktrees, plus the project's main checkout), find local branches with commits not on origin (git for-each-ref with upstream tracking; branches with no upstream count too) and push them with git push -u origin <branch>; print one line per branch pushed; never force-push, never delete, never touch main except a plain push of unpushed commits. The trigger case: on the PC, branch worker/7eead182560d in C:\\Users\\chase\\.heater\\worktrees\\pokerbot\\dickreuter has commits that never reached GitHub, and origin's copy is plain main; the next PC session must push it without the operator doing anything. Make the paths portable (pathlib, no hard-coded /Users). Add a unit test with a temporary git repository and a bare origin proving an unpushed branch gets pushed and a pushed one is left alone. Run bash bin/gate.sh and quote it. Reason in the commit message: the operator's words of 2026-09-17, 'i created this system so i didnt have to work too hard to communicate to it'. Push the branch (git push -u origin <branch>). Report branch and what the gate returned.",
+  "project": "heater",
+  "done_when": "session_start pushes unpushed local branches in the fleet repo and every known project checkout, prints one line per push, never forces or deletes; unit test with a temp repo and bare origin passes; bin/gate.sh exit 0; branch pushed.",
+  "task_id": "",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/heater",
+  "workdir": "/Users/chasethompson/.heater/worktrees/heater/21ff69684a3f",
+  "lease_id": "21ff69684a3f",
+  "branch": "worker/20b9ff39b519",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

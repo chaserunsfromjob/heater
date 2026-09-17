@@ -1,0 +1,17 @@
+{
+  "id": "2da9a64938d4",
+  "created": "2026-09-17T03:28:16.811412+00:00",
+  "kind": "finding",
+  "urgency": "high",
+  "project": "heater",
+  "path": "OPINIONS.md",
+  "origin": "",
+  "summary": "OPERATOR DECISION 2026-09-17, verbatim: 'i really dont like all this going back and forth and having to type in the terminal and everything. i created this system so i didnt have to work too hard to communicate to it. i would be willing to give the system and claude full access to my computer or any permissions it would need so that i dont have to do all of this menial labor'. Consequences: (1) the operator is never asked to type a command; anything a session can do, it does, and anything another machine must do is queued for that machine's next wake; (2) permissions.defaultMode set to bypassPermissions in ~/.claude/settings.json (the fleet guard hook still checks every command); (3) session start pushes any local branch not on origin (task dispatched); (4) record in OPINIONS.md beside the pace decision.",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T03:28:16.851651+00:00",
+    "score": 84,
+    "task_id": "a948f1d5cba7"
+  }
+}
