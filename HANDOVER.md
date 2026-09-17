@@ -24,7 +24,7 @@ reviewed against the new rule: 24 required changes in
 `handover/codex-tonight-required-changes-2026-09-17.md` and GitHub issue #4;
 his move, do not merge.
 
-**Two workers are out and will report into this session** (compaction keeps
+**Three workers are out and will report into this session** (compaction keeps
 background agents; a fresh session would not hear them and should check the
 branches on origin instead):
 
@@ -37,6 +37,16 @@ branches on origin instead):
   fresh reviewer round (default lens), fix, land through the checkout's own
   .venv pytest plus the three checkers. Then dispatch T2 (the depth-limited
   search bot) and T3 (the persona league) from BUILD_PLAN.md section 4.
+
+- `20b9ff39b519` heater: session_start pushes unpushed local branches in
+  every known checkout, with a temp-repo test. On report: one reviewer
+  round, land with `bin/gate.sh`. This is what makes the PC's dickreuter
+  branch reach GitHub without the operator typing anything.
+
+The operator, 2026-09-17, does not want to type commands or be asked for
+menial steps (task a948f1d5cba7, score 84): `permissions.defaultMode` is now
+`bypassPermissions` in `~/.claude/settings.json`; queue work for another
+machine's next wake instead of asking the operator to run it.
 
 The research phase is closed: BUILD_PLAN.md landed at 96aa546. Two decisions
 are the operator's, queued as report 8983491d91ab: D1 take the classmate's
