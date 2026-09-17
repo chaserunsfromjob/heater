@@ -32,12 +32,12 @@ None of that is repeated here.
 
 ## Where things stand
 
-pokerbot main is at 88ffff1: T1 the table (PR #11), T2 the first bot (PR #15) and T3 the scoreboard (PR #16) all landed tonight. The MORNING REPORT is queued (d9e05d4e4a29, 05:43Z): deliver it, do not write another.
+pokerbot main is at 6c40f4f: T1 the table (PR #11), T2 the first bot (PR #15), T3 the scoreboard (PR #16) and the Stage 2 measurement (PR #17) all landed tonight. The MORNING REPORT is queued (d9e05d4e4a29, 05:43Z): deliver it, do not write another.
 Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-One agent is out (9d68697caeb0 fixer 1); each report needs one action. Compaction keeps them;
+No agent is out. Every change dispatched tonight has landed; reconcile at 06:37Z reported nothing open.; each report needs one action. Compaction keeps them;
 a fresh session must read the branches on origin instead.
 
 - `8edc0ce3e009` T2 the first bot: LANDED 3a54ce2 (PR #15) on a round-2
@@ -84,29 +84,23 @@ a fresh session must read the branches on origin instead.
   owns the 30-minute silence rule; reclaim and autosave both ask it. Tasks
   b3b71f0512ac, d80c47c137ae done; 999e3bf36821 filed (kept live worker
   shows as a bare id in awaiting_review).
-- `9d68697caeb0` Stage 2 first measurement, PR #17, tip f1182c3, worktree
-  pokerbot/41aac718851b. DONE: the search bot on the 52-cell scoreboard at
-  500 hands a cell (23 min; 1,000 would take over an hour). Verdict ACCEPT
-  vs always_call, +2368 bb/100 [+2028, +2692]. The bot's own table: beats 7
-  of 13 (fold/call/raise/coin-flip/calling_station/maniac/tilter), LOSES
-  to nit and tag (the two disciplined personas) at most sizes, too close
-  to call vs never_bluffs, fit_or_fold, lag, sizing_tell. Caveat in the
-  README: caricature opponents and a call-everything reference arm, so the
-  size of the number says how bad they are, not how good the bot is.
-  Also: baselines.py deleted, arena on personas.py, evidence unchanged.
-  Commit 0066098 on the branch is internally broken (baselines deleted
-  early); tip is green. Round 1 FAIL (measurement reproduced cell-exact;
-  the results file did not flag its halved sample size; README mixed the
-  paired headline with the bot's own table). FIXER round 1 out. On its
-  report: land by `gh pr merge 17 --squash --delete-branch` (squash because
-  0066098 does not import), then `bin/dispatch.py close 9d68697caeb0
-  --outcome landed --note ...`, pull and push pokerbot main; tasks
-  d077f18909a7, 6805b01c7bd2 done then. Carry the
-  verdict and the two losses to the operator in the next report: the next
-  Stage 2 work is beating nit and tag, which is what BUILD_PLAN.md's
-  opponent model is for.
+- `9d68697caeb0` Stage 2 first measurement: LANDED 6c40f4f (PR #17,
+  squash-merged because one intermediate commit did not import). The
+  scoreboard header now prints a deviation line whenever `--hands` differs
+  from the pre-registered 1,000. Result, in the README and in
+  research/results/stage2_search_vs_personas.txt: ACCEPT vs always_call
+  (+2368 bb/100 [+2028, +2692]); the bot beats 7 of 13, LOSES to nit and
+  tag, too close to call vs 4. The morning report (queue d9e05d4e4a29) was
+  amended at 06:45Z to carry this. Tasks d077f18909a7, 6805b01c7bd2 done.
 
-D1/D2 remain the operator's.
+Next work, in order, when the usage band allows (weekly was 81% at 06:30Z
+with four days left: two agents at most, top of list only): (1) Stage 2
+proper: the bot loses to nit and tag; BUILD_PLAN.md Stage 3/4 (the notebook
+and the opponent model) is what addresses that, and the persona league is
+the measurement; (2) heater task 3259f1e2808e / 917775c34006 (reconcile
+closes 'already in trunk' / 'no checkout' without the review store; store
+query counts any pass as landed); (3) d67cffad749a (jsonstore.REPO resolves
+to the worktree; widen to the stores). D1/D2 remain the operator's.
 
 ## Traps
 
@@ -140,5 +134,5 @@ D1/D2 remain the operator's.
 
 ## Cost
 
-Session about $290 by `~/.heater/context.json`; 55 review rounds over 21
+Session about $295 by `~/.heater/context.json`; 55 review rounds over 21
 changes today; no round carries a dollar figure.
