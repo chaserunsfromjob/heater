@@ -127,8 +127,9 @@ still running is stopped, and `bin/debrief.py --hours 5 --queue` writes the
 operator one plain account of what the five hours bought — what each agent was
 sent to do, what came back, what the checks found, what is unfinished, and what
 it cost where a round recorded a cost — and puts it in the queue. Where no round
-recorded one, the account says so rather than implying the window was free. Run
-it without `--queue` to read it first.
+recorded one, the account says so rather than implying the window was free.
+Where a brief cannot be put into plain words, the account says that outright
+rather than guessing at the job. Run it without `--queue` to read it first.
 
 The reading only exists on a Pro or Max subscription, and only once an
 interactive session has had a reply back from the model. With an API key, or
