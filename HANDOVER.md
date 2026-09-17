@@ -33,7 +33,7 @@ Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-Four agents are out (T2 fixer 1, T3 fixer 1, reconcile fixer 3, taper reviewer 7); each report needs one action. Compaction keeps them;
+Four agents are out (T2 fixer 1, T3 fixer 1, reconcile reviewer 3, taper fixer 7); each report needs one action. Compaction keeps them;
 a fresh session must read the branches on origin instead.
 
 - `8edc0ce3e009` T2 the first bot, PR #15, tip d1bf741, worktree
@@ -81,8 +81,10 @@ a fresh session must read the branches on origin instead.
   opinion 14), tip 1d175b8, worktree heater/03a2b608f262. Seven rounds; the
   taper half was sound from round 4 and the status-line writer is verified
   against Claude Code 2.1.274; fixer 6 applied the four debrief-page
-  findings plus tasks 001bbe019ca8 and 06e6e60bc3f7 (539 tests). REVIEWER
-  round 7 (confirming, told to land on wording-only) is out. On pass:
+  findings plus tasks 001bbe019ca8 and 06e6e60bc3f7 (539 tests). Round 7
+  FAIL on three page regressions and a merge conflict with main (README,
+  tools/bearings.py); FIXER round 7 is out, told it is the last: the
+  stoker lands on round 8 if only wording remains. On pass:
   `bin/dispatch.py land c79a35661f9c --gate "bash bin/gate.sh"`, push,
   delete handover/findings-c79a35661f9c-* in the landing commit (or right
   after), delete the branch; tasks 32cbdf129bdf, ab4ea92fcb09,
