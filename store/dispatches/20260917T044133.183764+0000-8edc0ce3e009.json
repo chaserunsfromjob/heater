@@ -1,0 +1,18 @@
+{
+  "id": "8edc0ce3e009",
+  "created": "2026-09-17T04:41:33.183764+00:00",
+  "task": "Build task T2 of BUILD_PLAN.md: the first bot, a depth-limited search over the engine's own tree per DECISION_LAYER_SEARCH.md, with the equity-versus-pot-odds rule beside it as a logged check, measured against three trivial opponents",
+  "project": "pokerbot",
+  "done_when": "1,000 complete hands at six seats with zero invariant failures, no decision over 250 ms, and a win rate against uniform-random whose 95% interval excludes zero; bash bin/gate.sh passed; branch pushed, draft PR",
+  "task_id": "",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/732f0d699fca",
+  "lease_id": "732f0d699fca",
+  "branch": "worker/8edc0ce3e009",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

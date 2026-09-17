@@ -1,0 +1,17 @@
+{
+  "id": "71f2cb94caf9",
+  "created": "2026-09-17T04:41:10.966068+00:00",
+  "change": "70884871cf3e",
+  "project": "pokerbot",
+  "round": 2,
+  "lens": "default",
+  "verdict": "pass",
+  "findings": 1,
+  "wording_only": true,
+  "files": 15,
+  "insertions": 1822,
+  "deletions": 8,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "Confirming round: all seven round-1 fixes real and non-vacuous; one wording finding in the stoker's own fold-in line (EVALUATION_STRATEGY.md:1713), applied by the session at 51711ce; gate passed 143/1 skipped"
+}

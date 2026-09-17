@@ -1,0 +1,13 @@
+{
+  "id": "4ecb51776067",
+  "created": "2026-09-17T04:41:33.353996+00:00",
+  "project": "pokerbot",
+  "repo": "/Users/chasethompson/pokerbot",
+  "branch": "worker/1fd3a6ebe936",
+  "dispatch_id": "1fd3a6ebe936",
+  "base_sha": "7b1545cdce6f47cbdde78d9dd258949922ff4598",
+  "base_branch": "main",
+  "path": "/Users/chasethompson/.heater/worktrees/pokerbot/4ecb51776067",
+  "released_at": null,
+  "released_how": ""
+}

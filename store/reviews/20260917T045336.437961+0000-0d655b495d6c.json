@@ -1,0 +1,17 @@
+{
+  "id": "0d655b495d6c",
+  "created": "2026-09-17T04:53:36.437961+00:00",
+  "change": "ecc208e2d0d6",
+  "project": "heater",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 4,
+  "wording_only": false,
+  "files": 4,
+  "insertions": 554,
+  "deletions": 30,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "Production code proved right by mutation (all three defects held). Fail on three inert tests (tie-break, change filter, already-in-trunk path each survive mutation) and the 24h/30min reclaim rule unrecorded in README step 7."
+}

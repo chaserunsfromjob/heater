@@ -1,0 +1,18 @@
+{
+  "id": "1fd3a6ebe936",
+  "created": "2026-09-17T04:41:33.337930+00:00",
+  "task": "Build task T3 of BUILD_PLAN.md: the scoreboard, EVALUATION_STRATEGY.md section 3.7 Tiers 1 and 2: four calibration agents, nine behavioural personas with per-session drawn parameters and a development/held-back split, paired deals, bootstrap intervals, and the section 3.5 decision rule with table-size weights",
+  "project": "pokerbot",
+  "done_when": "one command produces a report of big blinds per hundred hands with an interval for every persona at seats 2, 6, 8 and 9; always_fold's measured result matches the closed-form blinds figure; the rule rejects a bot deliberately made worse; bash bin/gate.sh passed; branch pushed, draft PR",
+  "task_id": "",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/4ecb51776067",
+  "lease_id": "4ecb51776067",
+  "branch": "worker/1fd3a6ebe936",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}
