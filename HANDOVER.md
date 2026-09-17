@@ -1,9 +1,9 @@
 # Handover
 
-<!-- handover-commit: 06ef593 -->
+<!-- handover-commit: PENDING -->
 
-Written on `main`, 2026-09-17 about 17:40Z, on the Mac, at 34% context, with
-one reviewer out. Verify with `bin/handover.py`. A snapshot, not a log;
+Written on `main`, 2026-09-17 about 17:50Z, on the Mac, at 35% context, the
+operator clearing the session with one reviewer still out. Verify with `bin/handover.py`. A snapshot, not a log;
 rewrite, do not append.
 
 Read `README.md` for what is built, `OPINIONS.md` for the operator's
@@ -16,12 +16,19 @@ the commit messages for why. None of that is repeated here.
 - `e6dfe622fa6f` heater, the one-round rule for document-only changes
   (branch worker/e6dfe622fa6f @ bbf5ae9, checkout
   `~/.heater/worktrees/heater/dc76881cb2a5`, dispatch OPEN so `land` works).
-  Reviewer round 1 (dispatch 347bdc7cae6a) is out, reading in that same
-  checkout. Code change: two consecutive wording-only rounds. On pass:
-  record with `bin/store.py review`, close 347bdc7cae6a, dispatch round 2 the
-  same way (no new lease; see Traps); on two passes `bin/dispatch.py land
-  e6dfe622fa6f --gate "bash bin/gate.sh"`, then `git push origin main`.
-  On fail: fixer in the same checkout, then a fresh round 1.
+  Reviewer round 1 (dispatch 347bdc7cae6a) was OUT when the operator
+  cleared this session, so its report is LOST: no round 1 is recorded in
+  the store for e6dfe622fa6f. First: `bin/dispatch.py close 347bdc7cae6a
+  --outcome abandoned`, then dispatch round 1 afresh, the reviewer reading
+  in that same checkout (no new lease; see Traps). Code change: two
+  consecutive wording-only rounds. On pass: record with `bin/store.py
+  review`, close the reviewer's dispatch, dispatch round 2 the same way; on
+  two passes `bin/dispatch.py land e6dfe622fa6f --gate "bash bin/gate.sh"`,
+  then `git push origin main`. On fail: fixer in the same checkout, then a
+  fresh round 1. The worker's own report: tests written first (4 errors),
+  then 74/74; full suite 670 OK; gate exit 0; it filed that `reconcile`
+  still applies two rounds to documents (task at 50) and that opinion 13
+  still says two (task at 47).
 - Nothing else is out. Every pokerbot slot is released; `bin/worktrees.py
   list` should show only dc76881cb2a5.
 
@@ -109,6 +116,13 @@ the Monday reset (11 points left this week; the operator was told this).
   noreply identity; the PC still needs the two lines (README says them).
 - The operator's app and mirroring method are still unnamed; they said it
   does not matter yet.
+- The operator narrowed dickreuter at 17:48Z: "dont base the whole project
+  off of it"; it is context for screen capture only. Task f2ff0c6cbe23 is
+  rescored to 30 and reduced to checking that CLAUDE.md says just that.
+  Never describe the project as based on dickreuter.
+- The operator's order of jobs for the next session: (1) the GTO Wizard
+  answer key above, (2) finish landing e6dfe622fa6f, (3) nothing new until
+  the Monday reset.
 - The reviewer for the plan update ran with the safety classifier down; its
   four fact findings were each re-verified by the stoker before applying.
 
