@@ -2,7 +2,7 @@
 
 <!-- handover-commit: e613c99 -->
 
-Written on `main`, 2026-09-17 about 05:05Z, on the Mac, at 30% context with
+Written on `main`, 2026-09-17 about 05:05Z, on the Mac, at 34% context with
 four agents out. Verify with `bin/handover.py`. A snapshot, not a log;
 rewrite, do not append.
 
@@ -33,7 +33,7 @@ Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-Four agents are out (T2 fixer, T3 reviewer, reconcile fixer 3, taper fixer 6); each report needs one action. Compaction keeps them;
+Four agents are out (T2 fixer 1, T3 fixer 1, reconcile fixer 3, taper reviewer 7); each report needs one action. Compaction keeps them;
 a fresh session must read the branches on origin instead.
 
 - `8edc0ce3e009` T2 the first bot, PR #15, tip d1bf741, worktree
@@ -50,11 +50,19 @@ a fresh session must read the branches on origin instead.
   always_call/uniform_random and shim arena.py to it; delete baselines.py
   (reviewer's recommendation; the two differ in signature, not behaviour).
 - `1fd3a6ebe936` T3 the scoreboard, PR #16, tip 7469d54, worktree
-  pokerbot/4ecb51776067. Built: personas, split, paired deals, bootstrap,
-  section 3.5 rule; 219 tests. REVIEWER round 1 out. Same landing path.
-  T2 and T3 do not touch each other's files; T3's always_fold/always_call/
-  uniform_random duplicate T2's baselines.py: reconcile at the second
-  landing (keep one, task 6805b01c7bd2 covers the __init__ docstring).
+  pokerbot/4ecb51776067. Built; closed form, rule rejection, pairing and
+  engine-only hand strength confirmed; full 52-cell run works (204 s).
+  Round 1 FAIL, ten findings (store 92b454e6fb34): arena ships inside
+  pokerbot/ against EVALUATION_STRATEGY.md sections 3.1/3.3 (fixer told to
+  amend the document and add an import-graph guard, not move modules);
+  169-class ranking at 120 rollouts is noise and its test cannot fail;
+  one-sided p-value stars a zero difference; header weights differ from
+  decide()'s; NOT RUN reason truncated; config rollouts unread; bot arm gets
+  no memory calls; bot RNG carries across cells; rescaling undocumented.
+  FIXER round 1 out. Then a confirming round; land; at the second of T2/T3
+  to land, keep personas.py as the one home for the three trivial agents
+  and shim arena.py to it (signature (hand, seat) -> Action); delete
+  baselines.py.
 - `20b9ff39b519` heater auto-push in bearings: LANDED 3b26e74 on a round-5
   clean pass (five rounds). Every bearings read now pushes unpushed local
   branches in every known checkout; HEATER_AUTOPUSH=0 turns it off; it
@@ -70,12 +78,17 @@ a fresh session must read the branches on origin instead.
   f16c56933d8a, dc8e3ac0bd7f, f0b91b86f69f done then. Pre-existing sibling
   filed as task b3b71f0512ac (worktrees.reclaim has no heartbeat check).
 - `c79a35661f9c` heater usage taper (bands, pacing line, debrief page,
-  opinion 14), tip 6020302, worktree heater/03a2b608f262. Six rounds; the
-  taper half is sound and the status-line writer was verified against
-  Claude Code 2.1.274; every remaining fail is the debrief page. FIXER round
-  6 is out with findings F1-F4 plus tasks 001bbe019ca8 and 06e6e60bc3f7
-  folded in. Then round 7; land; delete handover/findings-c79a35661f9c-*
-  in the landing commit; tasks 32cbdf129bdf, ab4ea92fcb09 done then.
+  opinion 14), tip 1d175b8, worktree heater/03a2b608f262. Seven rounds; the
+  taper half was sound from round 4 and the status-line writer is verified
+  against Claude Code 2.1.274; fixer 6 applied the four debrief-page
+  findings plus tasks 001bbe019ca8 and 06e6e60bc3f7 (539 tests). REVIEWER
+  round 7 (confirming, told to land on wording-only) is out. On pass:
+  `bin/dispatch.py land c79a35661f9c --gate "bash bin/gate.sh"`, push,
+  delete handover/findings-c79a35661f9c-* in the landing commit (or right
+  after), delete the branch; tasks 32cbdf129bdf, ab4ea92fcb09,
+  001bbe019ca8, 06e6e60bc3f7 done then. Then ~/.heater/usage.json appears on
+  the next status-line render and bearings shows the five-hour figure and
+  the pacing line: pace agents by it.
 
 Nothing else is dispatched. Next after these land: the morning report; then
 Stage 2 of BUILD_PLAN.md (run T2's bot through T3's scoreboard, which is
@@ -110,5 +123,5 @@ the first real measurement of the plan), and D1/D2 remain the operator's.
 
 ## Cost
 
-Session about $210 by `~/.heater/context.json`; 55 review rounds over 21
+Session about $215 by `~/.heater/context.json`; 55 review rounds over 21
 changes today; no round carries a dollar figure.
