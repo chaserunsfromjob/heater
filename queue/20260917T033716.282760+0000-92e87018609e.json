@@ -8,5 +8,9 @@
   "origin": "",
   "summary": "skills/bearings/SKILL.md section table and README.md's bin/bearings.py line do not mention the new Pushed section or that bearings now pushes unpushed branches",
   "delivered_at": null,
-  "resolution": null
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-17T05:10:41.320210+00:00",
+    "reason": "done on the branch before landing: SKILL.md Pushed row and README lines landed with 20b9ff39b519 at 3b26e74"
+  }
 }
