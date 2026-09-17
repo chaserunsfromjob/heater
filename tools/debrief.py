@@ -80,6 +80,13 @@ JARGON_WORDS = (
     (re.compile(r"\brepo\b"), "project"),
     (re.compile(r"\b(and|onto|into|from|with|against|to)\s+(?:main|trunk)\b"),
      r"\1 the shared copy"),
+    # To vendor something is to bring a copy of somebody else's project into
+    # yours. Only the verb is swapped: a vendor who sells things is a different
+    # word, and it is never the word a brief opens an order with.
+    (re.compile(r"^Vendor\b"), "Bring"),
+    (re.compile(r"\b(to|and|then|please)\s+vendor\b"), r"\1 bring"),
+    (re.compile(r"\bvendoring\b"), "bringing in"),
+    (re.compile(r"\bvendored\b"), "brought in"),
 )
 
 # A word a brief shouts, which is how it points back at a file it has already
@@ -103,6 +110,20 @@ CODE_SHAPE = re.compile(
     r"|(?<![\w.\-/])[\w\-]+/[\w\-]*[._][\w\-]*"          # half of it code-shaped
     r"|\s--\w"                                           # a flag: --check
 )
+
+# The fleet's own words for its machinery. They are not identifiers, so no swap
+# above catches them, and they are not English the reader has met: a brief that
+# says the tests pass "in a clean worktree" but fail "in the main checkout with
+# a different context-usage reading" is four unexplained terms in one line. The
+# page explains "checkout" once, where it says how many are set aside; anywhere
+# else the word is machinery, so the sentence carrying it is passed over.
+FLEET_JARGON = re.compile(
+    r"(?i:\b(?:worktrees?|checkouts?|stubs?|stubbed|stubbing|monkeypatch\w*"
+    r"|context-usage|statusline|autopush)\b)")
+
+# Everything a sentence is passed over for, in one pattern, so that what is
+# rejected in a brief is rejected in what finishing it would look like too.
+MACHINERY = re.compile(CODE_SHAPE.pattern + r"|" + FLEET_JARGON.pattern)
 
 # Where a reader would draw breath. Used both to drop a whole clause and to stop
 # before the limit, so that nothing ever ends in the middle of one.
@@ -132,6 +153,51 @@ SUBORDINATE = re.compile(
 # file name has a full stop inside it.
 META_CLAUSE = re.compile(r"^(?:this is\s+)?[^.]{0,120}?\bnot\b[^.]{0,60}?\bcode\b", re.I)
 
+# The verbs a brief gives an order in. A brief carries more than the job: the
+# background that led to it, the diagnosis that found the fault, the reasoning
+# and the housekeeping. Taking whichever sentence happened to survive the
+# machinery told the operator that an agent had been sent to notice "We have no
+# testing strategy yet". Only a sentence that orders the work, or one that says
+# what the operator wanted, is the job, and without grammar the only way to
+# know an order is to know the verb it is given in. Every verb the briefs in
+# the store open a clause with is here; one that is not is passed over.
+WORK_VERBS = frozenset("""
+add adapt adopt apply audit begin bring build call carry change check choose
+clean close collect compare conclude confirm connect continue cover create cut
+delete deliver describe design dispatch document draft drop end ensure explain
+extend file fill find finish fix follow gather give go hold implement install
+judge keep land leave list load look lower make measure merge move name note
+open pick port print produce prove pull push put raise rank rate read record
+remove rename render repeat replace report research resolve restore rewrite
+run save say send set show sort split start stop store survey sweep switch
+take teach tell test tidy trim turn update use vendor verify weigh wire work
+wrap write
+""".split())
+
+# An order that has been put off to the end of the sentence, and an order that
+# says what not to do. A sentence opening with what not to do is the fence
+# around the job, never the job.
+ORDER_LEAD = re.compile(r"^(?:also|then|first|next|finally|now|please|start by"
+                        r"|begin by|instead)\s+", re.I)
+NOT_AN_ORDER = re.compile(r"^(?:do not|don't|never|no)\b", re.I)
+
+# A brief that says what was wanted rather than ordering it. "The operator
+# wants more concurrent workers per project" is the job, said the way the
+# person who asked for it said it.
+WANTED = re.compile(r"\b(?:the operator|operator|we|i|they)\s+"
+                    r"(?:wants?|wanted|asked|needs?|needed|would like)\b", re.I)
+
+# Words that carry no information of their own once a swap has taken the
+# machinery out. "Done when a file in the project passes" is made of nothing
+# else: it was on the live page for a job that raised the limit on working
+# copies, and it told the reader nothing that job did.
+SAID_NOTHING = frozenset("""
+a an the and or of in on at to it its this that these those there here is are
+was were be been being do does did done when while all any both each every no
+not with for from by so still again now up out same result
+pass passes passed passing run runs ran running work works working
+""".split())
+
 # What each ending means, said the way it would be said out loud.
 OUTCOME_WORDS = {
     "landed": "finished, and the work is now part of the project",
@@ -154,9 +220,9 @@ AGENT_FALLBACK = "to carry out a piece of work"
 
 # What is said where the brief cannot be said at all. An honest line beats a
 # line of machinery, and beats an invented summary of a brief nobody read.
-NOT_RECORDED = "no task was recorded"
-DOES_NOT_TRANSLATE = ("what this one was about was written for another agent "
-                      "and does not translate into plain words")
+NOT_RECORDED = "No task was recorded for this one."
+DOES_NOT_TRANSLATE = ("What this one was about was written for another agent "
+                      "and does not translate into plain words.")
 
 # What each note in the queue is, by what it is for, said of one and of several.
 KIND_WORDS = {
@@ -268,7 +334,7 @@ def _plainly(text: str) -> str:
 
 
 def _is_machinery(fragment: str) -> bool:
-    return bool(CODE_SHAPE.search(fragment)
+    return bool(MACHINERY.search(fragment)
                 or any(pattern.search(fragment) for pattern, _ in PLAIN_WORDS))
 
 
@@ -312,25 +378,53 @@ def _without_where_to_work(text: str) -> str:
     return "".join(kept) if kept else ""
 
 
+def _list_runs(pieces: list[tuple[str, str]]) -> list[list[tuple[str, str]]]:
+    """The clauses, with the items of one marked list gathered into one piece.
+
+    "(a) no-limit betting, and (b) two to nine players" is one thing the brief
+    said. Keeping the first item and dropping the second left the account
+    promising a list after a colon and then showing one line of it, so a list
+    now stands or falls whole.
+    """
+    runs: list[list[tuple[str, str]]] = []
+    for piece in pieces:
+        opening = re.sub(r"^(?:and|or)\s+", "", piece[0].strip(), flags=re.I)
+        if LIST_MARKER.match(opening) and runs and LIST_MARKER.search(runs[-1][-1][0]):
+            runs[-1].append(piece)
+        else:
+            runs.append([piece])
+    return runs
+
+
 def _readable(text: str, limit: int) -> str:
     """As much of the sentence as reads cleanly: whole clauses, ended properly.
 
     Stops before the first clause that carries machinery and before the clause
     that would cross the limit, so the account never ends in the middle of one.
-    Empty when even the first clause fails, which is the caller's signal to try
-    the next sentence.
+    A list is allowed to run half as long again over the limit rather than lose
+    half its items; a list longer than that goes, and the clause that promised
+    it goes with it, because "engines that natively support." says nothing on
+    its own. Empty when even the first clause fails, which is the caller's
+    signal to try the next sentence.
     """
-    residue = CODE_SHAPE.search(text)
-    ceiling = min(limit, residue.start() if residue else len(text))
-    pieces = _clauses(text)
-    kept, at = [], 0
-    for body, separator in pieces:
-        if at + len(body) > ceiling:
+    residue = MACHINERY.search(text)
+    cut = residue.start() if residue else len(text)
+    ceiling = min(limit, cut)
+    runs = _list_runs(_clauses(text))
+    kept, at, lost_a_list = [], 0, False
+    for run in runs:
+        body = "".join(part + separator for part, separator in run)
+        room = min(cut, ceiling + limit // 2) if len(run) > 1 else ceiling
+        if at + len(body) - len(run[-1][1]) > room:
+            lost_a_list = len(run) > 1
             break
-        kept.append(body + separator)
-        at += len(body) + len(separator)
+        kept.append(body)
+        at += len(body)
 
-    if len(kept) < len(pieces):
+    while lost_a_list and kept and kept[-1].rstrip().endswith(":"):
+        kept.pop()
+
+    if len(kept) < len(runs):
         for index in range(len(kept) - 1, 0, -1):
             if SUBORDINATE.match(kept[index].strip()):
                 kept = kept[:index]
@@ -343,31 +437,76 @@ def _readable(text: str, limit: int) -> str:
 
 
 def _in_plain_words(sentence: str, limit: int) -> str:
-    """One sentence of a brief, or nothing when it cannot be said plainly."""
-    return _readable(_plainly(_without_where_to_work(_without_asides(sentence))), limit)
+    """One sentence of a brief, or nothing when it cannot be said plainly.
+
+    Where it will not fit, the asides go first: an aside is beside the point by
+    construction, and one long enough to carry the opening clause past the limit
+    on its own threw away a live entry's "The operator wants more concurrent
+    workers per project" and left the account quoting the housekeeping below it.
+    """
+    plain = _without_where_to_work(_without_asides(sentence))
+    return (_readable(_plainly(plain), limit)
+            or _readable(_plainly(_without_where_to_work(ASIDE.sub("", sentence))), limit))
+
+
+def _says_the_work(sentence: str) -> bool:
+    """Whether this sentence of a brief is the job rather than its surroundings.
+
+    A brief is written in four registers: the order, the background that led to
+    it, the diagnosis that found the fault, and the housekeeping at the end.
+    Only the first is what an agent was sent to do. Two of eighteen live entries
+    read "The operator has confirmed firm requirements..." and "We have no
+    testing strategy yet...", which is the background answering for the job.
+    A sentence counts as the order when one of its clauses opens with a verb a
+    brief gives orders in, or when it says what the operator wanted. A sentence
+    that opens by saying what not to do is the fence around the job, not the job.
+    """
+    if NOT_AN_ORDER.match(sentence.strip()):
+        return False
+    if WANTED.search(sentence):
+        return True
+    for body, _ in _clauses(sentence):
+        opening = ORDER_LEAD.sub("", body.strip().lstrip("(*-\u2013\u2014 "))
+        if (first := re.match(r"[a-z']+", opening, re.I)) and first.group(0).lower() in WORK_VERBS:
+            return True
+    return False
+
+
+def _says_something(said: str) -> bool:
+    """Whether a rendering has content of its own, or only what a swap put there.
+
+    "bin/gate.sh passes" becomes "a file in the project passes", which is a swap
+    and a verb and nothing the reader did not already know. Said of a job that
+    raised the limit on working copies, it named none of that. A list of file
+    names goes the same way from the other end: nine of them in a row become the
+    same phrase nine times, which is a list the reader cannot act on either.
+    """
+    left = said
+    for _, plain in PLAIN_WORDS:
+        if left.count(plain) > 2:
+            return False
+        left = left.replace(plain, " ")
+    return any(word not in SAID_NOTHING for word in re.findall(r"[a-z']+", left.lower()))
 
 
 def _describe(record: dict[str, Any], limit: int = 220) -> str:
     """What the job was, in the brief's own words with the machinery taken out.
 
-    The first sentence of a brief often says what kind of work it is rather than
-    what the work was, and several briefs can say that in identical words, so a
-    clause like that is passed over for the sentence that says what was wanted.
-    That sentence is the brief. What comes after it is the reasoning, the
-    diagnosis and the housekeeping, so reaching further down the brief buys a
-    line that says an agent was spent on tidying a comment. Where that sentence
-    is machinery all the way down, what finishing would look like is tried
-    instead, and where that fails too the account says so rather than printing
-    something the reader cannot read.
+    Every sentence of the brief is offered, and the ones that are its
+    surroundings rather than its order are passed over, because the order is as
+    often the fourth sentence as the first. Where no sentence of the brief can
+    be said plainly, what finishing would look like is tried instead -- but only
+    where that says something of its own, since a line built out of swaps tells
+    the reader nothing. Where that fails too the account says so, which is worth
+    more than a sentence the reader cannot read.
     """
     for sentence in _sentences(record.get("task", "")):
-        if META_CLAUSE.match(sentence):
+        if META_CLAUSE.match(sentence) or not _says_the_work(sentence):
             continue
-        if (said := _in_plain_words(sentence, limit)):
+        if (said := _in_plain_words(sentence, limit)) and _says_something(said):
             return said
-        break
     for sentence in _sentences(record.get("done_when", "")):
-        if (said := _in_plain_words(sentence, limit)):
+        if (said := _in_plain_words(sentence, limit)) and _says_something(said):
             return _upper(f"done when {said[:1].lower() + said[1:]}")
     return NOT_RECORDED if not (record.get("task") or "").strip() else DOES_NOT_TRANSLATE
 
@@ -465,21 +604,24 @@ def _same_work(record: dict[str, Any]) -> str:
 def _repeats(jobs: list[dict[str, Any]]) -> str:
     """Whether some of these entries are work already listed further up.
 
-    Four of nineteen entries on one live page were a brief sent out a second
-    time, and a count that does not say so reads as more separate work than
-    there was. Counted on the briefs as they were written down, never on the
-    entries, because an entry says only as much of its brief as reads plainly
-    and two different jobs can come out of that saying the same thing.
+    Four of nineteen jobs on one live page were a brief sent out a second time,
+    and a count that does not say so reads as more separate work than there was.
+    It is said of the jobs rather than of the entries, because the reader who
+    counts the entries that read alike finds a pair the count left out: an entry
+    says only as much of its brief as reads plainly, so two different jobs can
+    come out of it saying the same thing. Counted on the briefs as they were
+    written down for the same reason.
     """
     written = [key for key in (_same_work(record) for record in jobs) if key]
     again = len(written) - len(set(written))
     if not again:
         return ""
-    subject = ("One of the entries below describes work already listed above it"
+    subject = ("One of the jobs below was the same brief sent out a second time"
                if again == 1 else
-               f"{again} of the entries below describe work already listed above them")
-    return (f"{subject}: the same brief was sent out more than once, so this window "
-            f"covers {len(jobs) - again} separate pieces of work, not {len(jobs)}.")
+               f"{again} of the jobs below were the same brief sent out a second time")
+    separate = _count(len(jobs) - again, "separate piece of work",
+                      "separate pieces of work")
+    return f"{subject}, so this window covers {separate}, not {len(jobs)}."
 
 
 def _note_lines(notes: list[dict[str, Any]]) -> list[str]:

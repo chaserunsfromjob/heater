@@ -52,13 +52,18 @@ class UsageCase(unittest.TestCase):
                 os.environ[key] = value
         self.tmp.cleanup()
 
-    def at(self, seven=None, five=None, age_hours=0.0, resets_in_days=None):
+    def at(self, seven=None, five=None, age_hours=0.0, resets_in_days=None,
+           five_resets_in_hours=None):
         """Write a reading straight to the snapshot, as the status line would."""
         recorded = datetime.now(timezone.utc) - timedelta(hours=age_hours)
         reading = {"recorded_at": recorded.isoformat(timespec="seconds"),
                    "five_hour": None, "seven_day": None}
         if five is not None:
-            reading["five_hour"] = {"used_percentage": five, "resets_at": None}
+            short = None
+            if five_resets_in_hours is not None:
+                short = (datetime.now(timezone.utc)
+                         + timedelta(hours=five_resets_in_hours)).timestamp()
+            reading["five_hour"] = {"used_percentage": five, "resets_at": short}
         if seven is not None:
             resets = None
             if resets_in_days is not None:
@@ -323,6 +328,48 @@ class TestBearings(UsageCase):
         meaning = usage.ALLOWS[usage.NOTHING_NEW]
         self.assertIn("Stop every agent", meaning)
         self.assertIn("bin/debrief.py", meaning)
+
+    def test_it_says_when_the_window_is_being_spent_faster_than_it_passes(self):
+        """Opinion 14: as many agents as the window will carry, spread across it.
+
+        Four fifths of the usage gone with two fifths of the time gone is a
+        burst, and a burst hits the wall with hours of the window left.
+        """
+        self.at(seven=10, five=80, five_resets_in_hours=3)
+        line = next(l for l in usage.lines() if "pacing" in l)
+        self.assertIn("80% of the 5-hour window spent", line)
+        self.assertIn("40% of its time gone", line)
+        self.assertIn("ahead of an even spread", line)
+        self.assertIn("send out fewer agents", line)
+
+    def test_it_says_when_the_window_has_room_for_more_agents(self):
+        self.at(seven=10, five=20, five_resets_in_hours=3)
+        line = next(l for l in usage.lines() if "pacing" in l)
+        self.assertIn("behind an even spread", line)
+        self.assertIn("more agents can be out", line)
+
+    def test_pacing_is_one_line_and_says_nothing_without_a_reset_time(self):
+        """A percentage with no clock beside it cannot be paced against."""
+        self.at(seven=10, five=20)
+        self.assertEqual(usage.pace(), "")
+        self.assertEqual(len([l for l in usage.lines() if "pacing" in l]), 0)
+        self.at(seven=10, five=20, five_resets_in_hours=3)
+        self.assertEqual(len([l for l in usage.lines() if "pacing" in l]), 1)
+
+    def test_a_figure_is_never_rounded_up_into_a_barrier_it_has_not_reached(self):
+        """"95% used" beside a band that is not the stop band reads as a stop
+        nobody acted on."""
+        self.at(seven=42, five=94.99)
+        text = "\n".join(usage.lines())
+        self.assertIn("94.9% used", text)
+        self.assertNotIn("95% used", text)
+        self.assertEqual(usage.band(), usage.REVIEWS_AND_LANDINGS_ONLY)
+        self.assertIn("5-hour 94.9%", usage.wake_line())
+
+    def test_one_minute_is_not_said_as_one_minutes(self):
+        self.at(seven=42, five=18, age_hours=1.4 / 60)
+        self.assertIn("read 1 minute ago", "\n".join(usage.lines()))
+        self.assertNotIn("1 minutes", "\n".join(usage.lines()))
 
     def test_the_plain_words_come_before_the_name_of_the_band(self):
         self.at(seven=96, five=0)

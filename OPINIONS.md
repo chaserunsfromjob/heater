@@ -188,9 +188,21 @@ reviewer round.
 > agents and just get a full debrief of what they have accomplished over the 5
 > hours in plain english"
 
-The third quote is the whole of what can be sourced on where the barriers
-belong: "a little bit low" is the operator's verdict on barriers lower than
-these, which is why these sit where they do.
+> "just to be clear, the research element or step one of those four up above
+> should be done by the time the usage gets to 100% on this five hour session"
+
+> "I want to run agents exactly as many as I can in order to use the entire
+> five-hour limit after five hours of usage. And I want to basically streamline
+> the most important tasks. So however many agents I can have, running for the
+> full five hours without using up all my usage should be running and doing the
+> tasks that I deem most important or that you deem most important and you have
+> discretion on that. But yeah, keep the tasks important that these agents are
+> doing."
+
+"a little bit low" is the whole of what can be sourced on the barriers the
+operator did not name: it was their verdict on barriers lower than these, which
+is why these sit where they do. The one barrier they did name is the five-hour
+stop, at 95%.
 
 The weekly window is the one that matters. Running it dry stops everything until
 it resets, and the five-hour window only refills a few hours later, so weekly
@@ -219,6 +231,18 @@ outright rather than pretending to a figure nothing measured.
 The barriers themselves sit high, because cutting work off early wastes the plan
 just as surely as running out does. The five-hour stop is the figure the operator
 named outright: 95%, level with the weekly stop.
+
+The window is there to be spent, and spent evenly. As many agents as the five
+hours will carry should be out, across the whole of the five hours, on the work
+that matters most — a burst that spends the window in its first hour and then
+stops dead wastes it as surely as leaving it unspent does. So beside the bands,
+`bin/bearings.py` says in one line whether the usage is running ahead of the
+clock or behind it, and the stoker holds a steady number of agents out on that.
+
+Research the rest of the plan waits on finishes inside the window it started in.
+The four surveys named in the 2026-09-16 words — engines, bots, solvers,
+exploitation — did land inside that window, and the words stand as the standing
+instruction for the next four.
 
 This does not loosen opinion 11. There is still no standing cap on how many
 workers may be out. The taper is a cap the usage number sets, not one I set in

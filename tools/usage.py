@@ -34,10 +34,18 @@ than no paraphrase at all.
 Weekly leads, because the weekly window is the one that runs out. The tightest
 band stops the fleet: every agent still running is stopped there rather than
 left to finish, and the operator is sent an account of what the whole window
-bought (`bin/debrief.py`). Opinion 13 carries the operator's words for that.
+bought (`bin/debrief.py`). Opinion 14 carries the operator's words for that.
 
 OPEN is not a licence to ignore the number: the percentages are printed at every
 band so that judgment about what is worth spending can tighten as they climb.
+
+Pacing
+------
+Beside the bands, `pace()` says in one line whether the five-hour window is
+being spent faster than it is passing. The bands stop a burst only once it has
+already happened; the pacing line is what lets the stoker keep a steady number
+of agents out for the whole window instead. Opinion 14 carries the operator's
+words for that.
 
 Every threshold moves with an environment variable, named for its band and its
 window: HEATER_TAPER_NOTHING_NEW_SEVEN_DAY, HEATER_TAPER_TOP_OF_LIST_FIVE_HOUR,
@@ -52,6 +60,7 @@ never written would be a fleet halt caused by the guard against one.
 from __future__ import annotations
 
 import json
+import math
 import os
 from datetime import datetime, timezone
 from pathlib import Path
@@ -65,7 +74,7 @@ OPEN = "OPEN"
 # --- the constants block --------------------------------------------------
 # One entry per band, tightest first: (seven-day %, five-hour %, env prefix).
 # Crossing either percentage puts the fleet in that band. The five-hour stop sits
-# at 95, level with the weekly one, because opinion 13 quotes the operator naming
+# at 95, level with the weekly one, because opinion 14 quotes the operator naming
 # that figure as where the agents stop and the debrief is written.
 THRESHOLDS: tuple[tuple[str, float, float, str], ...] = (
     (NOTHING_NEW, 95.0, 95.0, "HEATER_TAPER_NOTHING_NEW"),
@@ -99,6 +108,9 @@ ALLOWS = {
 }
 
 SECONDS_PER_DAY = 86400.0
+
+# How long the short window runs, used only to work out how much of it has gone.
+FIVE_HOUR_WINDOW = 5.0
 
 
 # --- where the reading lives ----------------------------------------------
@@ -264,13 +276,26 @@ def stale(reading: dict[str, Any] | None = None, now: datetime | None = None) ->
 # --- saying it ------------------------------------------------------------
 
 def _age_words(age: float | None) -> str:
+    """How long ago the reading was taken, said the way a person says it."""
     if age is None:
         return "age unknown"
     if age * 60 < 1:
         return "read just now"
     if age < 1:
-        return f"read {age * 60:.0f} minutes ago"
+        minutes = round(age * 60)
+        return f"read {minutes} minute{'' if minutes == 1 else 's'} ago"
     return f"read {age:.1f} hours ago"
+
+
+def _used_words(value: float) -> str:
+    """A percentage that never rounds up into a barrier it has not reached.
+
+    94.99 printed as "95% used" sits beside a band that is not the stop band and
+    reads as a contradiction, or worse as a stop nobody acted on. The figure is
+    cut short rather than rounded, so it only ever says less than is spent.
+    """
+    floored = math.floor(value * 10) / 10
+    return f"{floored:g}%"
 
 
 def _clock(when: datetime | None) -> str:
@@ -293,6 +318,30 @@ def _time_left(days: float | None) -> str:
     return ", about a day left" if round(days) == 1 else f", about {days:.0f} days left"
 
 
+def pace(reading: dict[str, Any] | None = None, now: datetime | None = None) -> str:
+    """Whether the short window is being spent faster or slower than it passes.
+
+    Opinion 14 asks for as many agents as the five hours will carry, spread
+    across the whole five hours. A burst spends the window in its first hour and
+    then everything stops, which is what happened at 03:45Z on 2026-09-17. Usage
+    and time are both said as shares of the same window, so the two are directly
+    comparable: spent ahead of the clock means fewer agents out, behind it means
+    the window can carry more. Empty when the reading does not say when the
+    window resets, because there is then no clock to compare against.
+    """
+    reading = read() if reading is None else reading
+    used, when = percentage(reading, "five_hour"), resets_at(reading, "five_hour")
+    if used is None or when is None:
+        return ""
+    left = (when - (now or datetime.now(timezone.utc))).total_seconds() / 3600
+    gone = min(FIVE_HOUR_WINDOW, max(0.0, FIVE_HOUR_WINDOW - left)) / FIVE_HOUR_WINDOW * 100
+    verdict = ("ahead of an even spread across the five hours, so send out fewer agents"
+               if used > gone else
+               "behind an even spread across the five hours, so more agents can be out")
+    return (f"  pacing: {_used_words(used)} of the 5-hour window spent and "
+            f"{_used_words(gone)} of its time gone — {verdict}")
+
+
 def _window_line(reading: dict[str, Any], window: str, label: str, tail: str = "") -> str:
     """One window, or a plain sentence saying why it carries no figure.
 
@@ -304,7 +353,7 @@ def _window_line(reading: dict[str, Any], window: str, label: str, tail: str = "
     if used is None:
         return (f"  {label}: no figure given, which is what arrives once that window has "
                 "reset; treat it as freshly reset with nothing used")
-    return f"  {label}: {used:.0f}% used{_clock(resets_at(reading, window))}{tail}"
+    return f"  {label}: {_used_words(used)} used{_clock(resets_at(reading, window))}{tail}"
 
 
 def lines(reading: dict[str, Any] | None = None, now: datetime | None = None) -> list[str]:
@@ -332,6 +381,8 @@ def lines(reading: dict[str, Any] | None = None, now: datetime | None = None) ->
         f"  what may be started now: {allows(current)} "
         f"({_age_words(age)}; that state is called the {current} band)",
     ]
+    if (pacing := pace(reading, now)):
+        out.insert(2, pacing)
     if stale(reading, now):
         out.append(f"  {_age_words(age)} — older than {STALE_HOURS:.0f} hours, "
                    "so treat it as a guess until it refreshes" if age is not None else
@@ -348,7 +399,7 @@ def wake_line(reading: dict[str, Any] | None = None) -> str:
         return ""
     seven, five = percentage(reading, "seven_day"), percentage(reading, "five_hour")
     figures = ", ".join(part for part in (
-        f"weekly {seven:.0f}%" if seven is not None else "",
-        f"5-hour {five:.0f}%" if five is not None else "",
+        f"weekly {_used_words(seven)}" if seven is not None else "",
+        f"5-hour {_used_words(five)}" if five is not None else "",
     ) if part)
     return f"Usage band {current} ({figures}). {allows(current)}"

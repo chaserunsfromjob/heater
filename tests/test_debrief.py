@@ -94,13 +94,13 @@ class TestAFullWindow(DebriefCase):
         """The fixture the finding asked for: two jobs, one round of checking."""
         first = self.job("Vendor the poker solver so it builds without the network",
                          minutes_ago=200, outcome="landed", closed_minutes_ago=90,
-                         note="merged into main")
+                         note="merged into main")  # "vendor" is said as "bring"
         self.job("Build the usage taper against the plan's two windows", minutes_ago=90)
         self.check(first["id"], round_number=1, verdict="fail", findings=3, cost=0.42)
 
         text = debrief.write(hours=5)
 
-        self.assertIn("Vendor the poker solver", text)
+        self.assertIn("Bring the poker solver", text)
         self.assertIn("Build the usage taper", text)
         self.assertIn("Checked over once", text)
         self.assertIn("3 things", text)
@@ -133,8 +133,8 @@ class TestAFullWindow(DebriefCase):
 
     def test_a_job_still_out_from_before_the_window_is_still_named(self):
         """It is about to be stopped, so leaving it out would hide the stop."""
-        self.job("Long-running research sweep", minutes_ago=600)
-        self.assertIn("Long-running research sweep", debrief.write(hours=5))
+        self.job("Sweep the long-running research", minutes_ago=600)
+        self.assertIn("Sweep the long-running research", debrief.write(hours=5))
 
     def test_work_finished_before_the_window_is_left_out(self):
         self.job("Something from yesterday", minutes_ago=2000,
@@ -194,9 +194,11 @@ class TestAFullWindow(DebriefCase):
             self.job("Survey the engines", minutes_ago=30)
         self.job("Something else", minutes_ago=20)
         text = " ".join(debrief.write(hours=5).split())
-        self.assertIn("One of the entries below describes work already listed "
-                      "above it: the same brief was sent out more than once, so "
-                      "this window covers 2 separate pieces of work, not 3", text)
+        self.assertIn("One of the jobs below was the same brief sent out a second "
+                      "time, so this window covers 2 separate pieces of work, "
+                      "not 3", text)
+        self.assertNotIn("of the entries below", text,
+                         "the reader counting entries that read alike finds more")
 
     def test_two_briefs_that_only_differ_in_machinery_read_as_one_repeat(self):
         """The live pair differed only in which checkout the second was sent to."""
@@ -205,8 +207,8 @@ class TestAFullWindow(DebriefCase):
                  "checkout /Users/someone/.heater/worktrees/pokerbot/4c952047cdd3.",
                  minutes_ago=30)
         text = " ".join(debrief.write(hours=5).split())
-        self.assertIn("One of the entries below describes work already listed "
-                      "above it", text)
+        self.assertIn("One of the jobs below was the same brief sent out a "
+                      "second time", text)
 
     def test_a_brief_full_of_machinery_is_said_in_plain_words(self):
         """One fixture with all three: an absolute path, a branch name, a file name."""
@@ -277,33 +279,103 @@ class TestAFullWindow(DebriefCase):
         self.assertIn("Resolve the merge conflict in pokerbot.", text)
         self.assertNotIn("a folder on this machine", text)
 
-    def test_an_incidental_later_sentence_is_not_taken_for_the_work(self):
-        """The live entry read "Update the constant's comment if it references
-        the old number": housekeeping, printed as though it were the job."""
-        self.job("Raise tools/worktrees.py's MAX_SLOTS constant from 3 to 6. "
-                 "Confirm that by reading tests/test_worktrees.py and anywhere "
-                 "else MAX_SLOTS is relied on. Update the constant's comment if "
-                 "it references the old number.",
-                 done_when="six working copies can be open at once")
-        text = " ".join(debrief.write(hours=5).split())
-        self.assertNotIn("Update the constant's comment", text)
-        self.assertIn("Done when six working copies can be open at once", text)
+    def test_the_background_a_brief_opens_with_is_not_taken_for_the_work(self):
+        """Dispatch 984aa6810a05, word for word out of the store.
 
-    def test_a_note_on_how_the_fault_was_found_is_not_taken_for_the_work(self):
-        """The live entry read "Confirmed: the module passes 20/20 ...": the
-        diagnosis, printed as though it were what the agent was sent to do."""
-        self.job("tests/test_queue_and_stop.py's TestStopHook reads live session "
-                 "state instead of stubbing it. Confirmed: the module passes "
-                 "20/20 in a clean worktree and fails 7/20 in the main checkout, "
-                 "with byte-identical code. This makes the gate an unreliable "
-                 "landing signal.",
-                 done_when="the tests give the same answer wherever they are run")
+        Two of eighteen live entries said what the operator had confirmed or
+        what the project did not have yet. The order is the fourth sentence,
+        and the page has to keep reading to reach it.
+        """
+        self.job("Research and design-writing, not code. The operator has confirmed "
+                 "firm requirements: the bot must handle every table size from 2 to "
+                 "9 players and use true no-limit bet sizing (continuous raise "
+                 "amounts, not fixed increments). Our existing "
+                 "OPPONENT_MODEL_DESIGN.md (do not edit it -- it's mid-review on a "
+                 "different in-progress task; read it for context only) was written "
+                 "mostly assuming a fixed-ish table size. Research and write a NEW "
+                 "file, TABLE_SIZE_AND_SIZING_NOTES.md, covering: how player "
+                 "statistics and exploitative adjustments should change with table "
+                 "size.")
         text = " ".join(debrief.write(hours=5).split())
-        self.assertNotIn("Confirmed", text)
-        self.assertNotIn("20/20", text)
-        self.assertNotIn("unreliable landing signal", text)
-        self.assertIn("Done when the tests give the same answer wherever they "
-                      "are run", text)
+        self.assertIn("Research and write a new file", text)
+        self.assertIn("how player statistics and exploitative adjustments should "
+                      "change with table size", text)
+        self.assertNotIn("The operator has confirmed", text)
+        self.assertNotIn("Our existing", text)
+
+    def test_a_list_keeps_both_its_items_or_shows_neither(self):
+        """Dispatch 7f09949cb56f, word for word out of the store.
+
+        The page promised a list after a colon and then showed one item of it,
+        because the second ran past the length the account cuts at.
+        """
+        self.job("Research task, not code. Survey real open-source poker "
+                 "engines/bots (beyond fedden/poker_ai, which we already know "
+                 "defaults to a 20-card short deck and fixed-limit betting) that "
+                 "natively support: (a) standard 52-card no-limit hold'em with real "
+                 "continuous bet sizing (not fixed raise amounts), and (b) a "
+                 "VARIABLE number of players per hand from 2 up to 9 (heads-up "
+                 "through full-ring), not a hardcoded table size.")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("a variable number of players per hand from 2 up to 9", text,
+                      "half a list after a colon is worse than no list")
+        self.assertIn("standard 52-card no-limit hold'em", text)
+
+    def test_the_brief_of_the_job_that_raised_the_limit_says_what_was_wanted(self):
+        """Dispatch ca03e4463c49, word for word out of the store.
+
+        The page said "Done when a file in the project passes" -- a swap and a
+        verb, which is nothing -- and before that it said an agent had been
+        spent on a comment. What the operator wanted is in the brief's second
+        sentence, in the operator's own words.
+        """
+        self.job("Raise tools/worktrees.py's MAX_SLOTS constant from 3 to 6. The "
+                 "operator wants more concurrent workers per project (was hitting "
+                 "the cap running research/coding/testing streams in parallel on "
+                 "the pokerbot project) and considers 3 an arbitrary default "
+                 "rather than a load-bearing limit -- confirm that's true by "
+                 "reading the surrounding code and existing tests before changing "
+                 "it (check tests/test_worktrees.py and anywhere else MAX_SLOTS is "
+                 "referenced or relied on for a specific value). Update the "
+                 "constant's comment if it references the old number. Do not "
+                 "change any other behavior.",
+                 done_when="bin/gate.sh passes; MAX_SLOTS is 6; no test hard-codes "
+                           "an assumption that breaks at the new value (if one "
+                           "does, fix that test's assumption, not the feature)")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("The operator wants more concurrent workers per project and "
+                      "considers 3 an arbitrary default rather than a load-bearing "
+                      "limit", text)
+        self.assertNotIn("Update the constant's comment", text)
+        self.assertNotIn("a file in the project passes", text)
+        self.assertNotIn("MAX_SLOTS", text)
+
+    def test_the_brief_of_the_job_that_stubbed_the_tests_says_so_honestly(self):
+        """Dispatch 3ea2c1c2c6b7, word for word out of the store.
+
+        Every sentence of it is either the diagnosis or machinery, and what
+        finishing looks like is four unexplained fleet words in a row, so the
+        honest line is the only true thing the page can say about it.
+        """
+        self.job("tests/test_queue_and_stop.py's TestStopHook and TestStopFailsOpen "
+                 "read live session/repo state instead of stubbing it: "
+                 "context.state(None) reads the actual current context-usage "
+                 "reading. Confirmed: the module passes 20/20 in a clean worktree "
+                 "and fails 7/20 in the main checkout right now, with "
+                 "byte-identical code. This makes bin/gate.sh an unreliable "
+                 "landing signal. Fix by making these tests stub/monkeypatch "
+                 "context.state, handover.in_flight, and handover.problems to "
+                 "fixed, deterministic values for each test case.",
+                 done_when="bin/gate.sh passes with the same result regardless of "
+                           "whether it's run from a clean worktree or from a dirty "
+                           "checkout with a different context-usage reading; "
+                           "tests/test_queue_and_stop.py no longer reads live "
+                           "session/repo state for its assertions")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("written for another agent and does not translate", text)
+        for leak in ("Confirmed", "20/20", "worktree", "dirty checkout",
+                     "monkeypatch", "context-usage", "unreliable landing signal"):
+            self.assertNotIn(leak, text, f"{leak} means nothing to the reader")
 
     def test_a_project_name_a_repository_and_a_branch_are_all_said_plainly(self):
         """Three shapes the live page still leaked, in one fixture."""
@@ -423,7 +495,7 @@ class TestAFullWindow(DebriefCase):
         self.job("Vendor the solver into this repo (e.g. under vendor/) so it "
                  "builds without the network. The rest does not matter.")
         text = " ".join(debrief.write(hours=5).split())
-        self.assertIn("Vendor the solver into this project so it builds without "
+        self.assertIn("Bring the solver into this project so it builds without "
                       "the network.", text)
         self.assertNotIn("vendor/", text)
         self.assertNotIn("The rest does not matter", text)
@@ -443,12 +515,12 @@ class TestAnEmptyWindow(DebriefCase):
 
 class TestFilingIt(DebriefCase):
     def test_the_queue_flag_files_it_as_a_report(self):
-        self.job("Anything at all")
+        self.job("Write the handover")
         item = debrief.file_it(debrief.write(hours=5))
         waiting = queue.pending()
         self.assertEqual([i["id"] for i in waiting], [item["id"]])
         self.assertEqual(waiting[0]["kind"], "report")
-        self.assertIn("Anything at all", waiting[0]["summary"])
+        self.assertIn("Write the handover", waiting[0]["summary"])
 
 
 class TestTheEntryPoint(DebriefCase):
