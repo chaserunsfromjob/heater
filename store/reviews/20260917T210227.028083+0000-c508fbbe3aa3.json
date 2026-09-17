@@ -1,0 +1,17 @@
+{
+  "id": "c508fbbe3aa3",
+  "created": "2026-09-17T21:02:27.028083+00:00",
+  "change": "e6dfe622fa6f",
+  "project": "heater",
+  "round": 5,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 2,
+  "wording_only": false,
+  "files": 10,
+  "insertions": 741,
+  "deletions": 99,
+  "cost_usd": null,
+  "duration_s": 150.0,
+  "note": "Round 5 at 6d3f0ad: FAIL on two substantive: F1 reconcile's already-in-trunk route computes needed from an always-empty diff so a document merged by hand with its checkout standing is never stamped (reproduced with a probe: landed but query counts 0); F2 land's no-lease branch calls stamp_document_only with the strict count, dead code. Suite 696 OK, gate 0. 12 tool calls, 2.5 min."
+}
