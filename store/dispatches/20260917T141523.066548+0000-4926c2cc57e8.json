@@ -1,0 +1,18 @@
+{
+  "id": "4926c2cc57e8",
+  "created": "2026-09-17T14:15:23.066548+00:00",
+  "task": "Fixer 2 on worker/0a62853153e4 (bench blinds): allow-list betting_abstraction with a behavioral test, add the memory figures, name the heads-up reversal in the Conditions row",
+  "project": "pokerbot",
+  "done_when": "R2-F1 to R2-F3 applied, suite green, gate exit 0, pushed",
+  "task_id": "815aea61d060",
+  "agent": "fixer",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/92946e514665",
+  "lease_id": "92946e514665",
+  "branch": "worker/4926c2cc57e8",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

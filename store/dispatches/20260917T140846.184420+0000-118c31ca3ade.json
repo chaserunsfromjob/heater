@@ -12,7 +12,7 @@
   "branch": "worker/118c31ca3ade",
   "run_id": "",
   "part": "",
-  "closed_at": null,
-  "outcome": null,
-  "note": ""
+  "closed_at": "2026-09-17T14:15:22.999371+00:00",
+  "outcome": "failed",
+  "note": "Round 2 fail on R2-F1 (unchecked betting_abstraction); findings in handover/findings-0a62853153e4-bench-r2.md; fixer dispatched [slot held: 9c3c39856258 still holds work on worker/118c31ca3ade that exists nowhere else; land it or push it before releasing the slot]"
 }

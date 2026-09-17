@@ -1,0 +1,17 @@
+{
+  "id": "ba1b6b3a3b57",
+  "created": "2026-09-17T14:15:22.931577+00:00",
+  "change": "0a62853153e4",
+  "project": "pokerbot",
+  "round": 2,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 3,
+  "wording_only": false,
+  "files": 7,
+  "insertions": 194,
+  "deletions": 21,
+  "cost_usd": null,
+  "duration_s": 840.0,
+  "note": "F1-F4 from round 1 resolved as asked. FAIL on R2-F1: betting_abstraction is interpolated unchecked, so a value carrying a comma (e.g. 'fcpa,blind=100 50,firstPlayer=2 1 1 1') loads the reversed game with no error, while the docstring and the signature test claim no such route exists; resolve with an allow-list (fchpa, fcpa, fullgame) raising ValueError and a behavioral test. R2-F2: the 'memory' half of the changes-nothing claim had no number; reviewer measured peak RSS 3000 random hands old vs new: 2 seats 22.2 vs 22.1 MiB, 6 seats 22.1 vs 22.1 MiB. R2-F3 wording: Conditions row names only the blind reversal, not the heads-up order. Gate 346 passed 1 skipped exit 0. 17 tool calls, about 14 min."
+}
