@@ -1,9 +1,10 @@
 # Handover
 
-<!-- handover-commit: bd5db6f -->
+<!-- handover-commit: 2747349 -->
 
-Written at `bd5db6f` on `main`, 2026-09-17 about 02:10Z, on the Mac. Verify
-with `bin/handover.py`. A snapshot, not a log; rewrite it, do not append.
+Written at `2747349` on `main`, 2026-09-17 about 03:15Z, on the Mac, at 30%
+context with three workers still out. Verify with `bin/handover.py`. A
+snapshot, not a log; rewrite it, do not append.
 
 Read `README.md` for what is built, `OPINIONS.md` for the operator's
 positions, `rules/` for the rules, `handover/findings-pokerbot-pending.md`
@@ -12,80 +13,90 @@ why. None of that is repeated here.
 
 ## Where things stand
 
-Nothing is running. The operator stopped every agent on 2026-09-16 at
-03:38Z, took a debrief (`handover/debrief-2026-09-16.md`), then worked a
-full day from a PC session that landed three of the four surveys, the
-design fix, the table-size notes and the licence/GitHub/OpenSpiel change on
-pokerbot main. Both repositories are pushed and the Mac is caught up with
-GitHub as of this commit.
+pokerbot main is at `e744a9d` on GitHub, up from `b5924bf` this session.
+Landed today, in order: the evaluation strategy; the forefront rule rewritten
+in the operator's words (CLAUDE.md now has "What may be coded" and "What may
+not be coded"); LLM_POKER_FAILURE_MODES.md; ACTION_TRANSLATION.md; the engine
+survey ENGINE_ALTERNATIVES.md; a sweep of the old rule's wording out of nine
+documents; DECISION_LAYER_SEARCH.md. The classmate's branch codex/tonight was
+reviewed against the new rule: 24 required changes in
+`handover/codex-tonight-required-changes-2026-09-17.md` and GitHub issue #4;
+his move, do not merge.
 
-The operator has now said **go**, in this exact order, and then to keep
-going without asking:
+**Three workers are out and will report into this session** (compaction
+keeps background agents; a fresh session would not hear them, so if this note
+is read by a fresh session, check the branches on origin instead):
 
-1. **One worker rewrites the forefront rule in pokerbot/CLAUDE.md** in the
-   operator's own words (task `a75654d078dc`, score 80, verbatim quote
-   inside): an AI assistant may write the code that makes poker decisions;
-   no model call may sit in the live decision path; decision code is
-   ordinary testable code. Keep "hours on one laptop" (the operator had
-   read it as a usage limit; the stoker explained it is a compute budget
-   and they did not repeal it). Fold in "PC may push whenever" and the
-   licence answer ("just use the code; private later"). Reason in the
-   commit, never in the rule.
-2. **One research worker writes a short note on what makes language models
-   bad at poker**, naming the specific failure modes, so the rule can say
-   "these stay out of the decision code". Cite real sources. Small
-   document, one review round expected.
-3. **A fresh reviewer judges the classmate's branch `codex/tonight`**
-   (ten commits, ~5,000 lines of Python plus 75,000 lines of generated
-   JSON; read-only assessment in
-   `handover/codex-tonight-assessment-2026-09-17.md`) against the rule from
-   step 1. His CLAUDE.md rewrite is NOT accepted as written; the operator's
-   words replace it. He must open a pull request; no PR exists. The
-   assessment judged his betting-rules bug fix sound.
-4. Then the engine survey's Mac-only re-measurements
-   (`findings-7f09949cb56f-engine-r2-remaining.md`), then the reconciliation
-   brief in the pending file, now shorter: the action-chooser question is
-   answered.
+- `baed4c5203a7` DECISION_LAYER_BLUEPRINT.md, branch worker/baed4c5203a7,
+  pre-computed strategy options with timed CFR runs. On report: one reviewer
+  round, then land on small findings applied by the session.
+- `6c3c2652b22d` OPPONENT_BASELINE.md, branch worker/6c3c2652b22d, PR #8.
+  Written; its reviewer is running. Answer: observe first; PRIOR_STRENGTH
+  22-31 not 50; crossover about 30 observed hands; the IRC archive is
+  1995-2001 fixed-limit, the 2009 one is HandHQ. Land on the reviewer's
+  report if findings are small.
+- `c91832fe9882` BUILD_PLAN.md, branch worker/c91832fe9882: the
+  reconciliation written as ordered build stages, a short "Decisions still
+  yours" list, and the first three tasks to dispatch. On report: one reviewer
+  round, land, then send the operator the plain-words page and the decisions
+  through the queue, and dispatch the first task.
 
-Also in flight from the PC session, reports lost with its context:
-evaluation strategy fixer 7 (branch tip 6d800f9 on origin) and the
-dickreuter assessment fixer 1 (worker/7eead182560d). Brief the next round of
-each from its findings file plus a fresh read of the branch tip; do not
-assume the fixer finished.
+Then: the taper change `c79a35661f9c` (heater, branch tip on origin; findings
+r3-r5 beside this file) has waited two days; brief its next fixer from a fresh
+read of the branch tip. The dickreuter assessment `7eead182560d` exists only
+on the PC (task at 52); nothing can be done from the Mac.
+
+## Operator decisions this session (verbatim in the task list, scores 80-82)
+
+- "we dont need perfection here, just something that we know is beating real
+  players": research documents land within two review rounds; the session
+  applies small findings itself and lands with `--skip-review`, recording
+  why in the store note. Applied all day; not yet in OPINIONS.md or
+  rules/global.md (task 30372a82869a).
+- "you just need to know what types of things you are allowed to code and
+  not allowed to code": the rule is two lists, done.
+- Around eight agents on research at once: the operator asked for it; the
+  laptop ran at load 4-7 and every measurement records its load.
+- Context resets itself at 35%: `autoCompactWindow: 350000` is set in
+  `~/.claude/settings.json` (backup beside it). Write this file at 30%
+  without being asked; never ask the operator to type `/clear`.
 
 ## Traps found this session
 
-- The PC session lands by hand and does not close dispatch records; three
-  landed changes still showed as "out" here until closed at `bd5db6f`.
-  After any PC day: `git pull` both repositories, `git pull --ff-only` in
-  each Mac worktree, then check `bin/dispatch.py list` against pokerbot
-  main before believing it.
-- `bin/dispatch.py land` does not push pokerbot main; push it by hand every
-  time until the tooling task lands. GitHub is the single source of truth
-  for pokerbot now; every pokerbot brief starts with pull, push the branch,
-  open a draft pull request, and ends with push.
-- The two-round landing rule is still not coded (task at 75). Never run
-  reconcile while an open dispatch has a pass recorded and is unlanded.
-  The operator's cap is also in force: a change at eight or more rounds
-  lands on the next wording-only round.
-- The operator found round numbers, commit ids and file names "gibberish".
-  Report one line per document: its name, what it is about, and whether it
-  is being checked, being fixed, or done. Nothing else.
-- The fleet's guard was registered twice (project and personal settings);
-  the personal copy was removed 2026-09-16 at the operator's request.
-  Every command is still checked once by the project copy.
-- Branch protection on pokerbot main requires a pull request; the owner's
-  account bypasses it, so the stoker's push of main still works. The
-  classmate (RohitV11, uses ChatGPT/Codex, unlimited usage) has write
-  access.
-- The engine fixer stopped on 2026-09-16 was waiting on a paired play
-  session; its edits were autosaved and the PC then pushed further text
-  fixes (6720c8a). Only the three Mac-only measurements remain.
-- No live usage number exists yet (taper task). The operator's account is
-  the limited one; the classmate's is not.
+- **Never close a dispatch as `pushed` before it lands.** Closing releases
+  the worktree, so the reviewer has nowhere to stand and `land` then refuses
+  ("already closed"). Leave it open; `land` closes it. Recovered once by
+  re-pushing the branch from a hand-made worktree and merging by hand.
+- **Never chain `git push --delete <branch>` after `land` in one command.**
+  When land refused, the delete still ran and closed PR #2; the branch had to
+  be re-pushed and the PR reopened. Delete only after
+  `git branch -r --contains <tip> | grep origin/main` says it is merged.
+- `bin/store.py review` refuses `--verdict pass` with findings > 0 unless
+  `--wording-only`; record such a round as fail and say in the note that the
+  reviewer passed it with edits.
+- pokerbot has no gate script and no pytest in system python; the venv with
+  pytest moves as worktrees are removed. The search-note worktree's own
+  `.venv` (now gone) had it last. Task 79e6cd271cff adds a gate; until then
+  the land gate is `./.venv/bin/python -m pytest tests -q -p no:cacheprovider`
+  plus the three `tools/check_*_numbers.py` checkers, run in the worker's
+  checkout, and a worker may have to `pip install pytest treys` there.
+- `python3 -m unittest discover -s tests` runs zero tests and exits 0 in
+  pokerbot; never use it as proof.
+- A findings file can be staler than the branch: the engine survey's
+  "remaining" note sent a fixer to re-measure work already committed. Read
+  the branch tip before briefing from a findings file.
+- `bin/inbox.py check --summary` needs an argument; workers cannot file a
+  finding themselves (no `file` subcommand), so they hand it back in the
+  report and the stoker runs `bin/queue.py add`.
+- `gh pr create --draft` refuses an empty branch; workers commit a
+  placeholder first. The GitHub rule says the worker marks the PR ready; the
+  briefs keep it draft until review (task 33364d7ca3e1 at 40 says which).
+- `tools/style_lint.py` is for rule files; research notes fail it by design
+  (11-127 problems each). Not a gate for them.
 
 ## Cost
 
-This Mac session: about $64 by `~/.heater/context.json` at the debrief, more
-since; 68 review rounds in the day to 2026-09-16, none with a dollar figure.
-The cost hole is still open.
+Session so far: about $83 by `~/.heater/context.json`; 36 review rounds over
+14 changes today, median 1.5 rounds per change under the pace decision; no
+round carries a dollar figure (the cost hole is still open, task dropped past
+the cap today and worth re-filing).
