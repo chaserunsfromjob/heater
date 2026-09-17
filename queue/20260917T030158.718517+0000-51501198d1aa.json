@@ -1,0 +1,17 @@
+{
+  "id": "51501198d1aa",
+  "created": "2026-09-17T03:01:58.718517+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "RESOURCES_BOTS.md",
+  "origin": "",
+  "summary": "RESOURCES_BOTS.md:998 still lists 'a ruling on the forefront rule' as an open item, and :1088-1096 quotes ENGINE_ALTERNATIVES.md's withdrawn carve-out demand; both need restating against the landed rule when the reconciliation reads the bots survey",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T03:01:58.753353+00:00",
+    "score": 45,
+    "task_id": "0b3aba108a51"
+  }
+}

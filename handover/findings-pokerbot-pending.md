@@ -38,6 +38,10 @@ that stage is applied by the session and landed.
   applied by the session; recommendation: fchpa menu with randomised
   pseudo-harmonic mapping in pot fractions).
 
+- 7f09949cb56f ENGINE_ALTERNATIVES.md engine survey — 3e02af3 (three rounds;
+  round 3's rewrite of the forefront passages landed on the fixer's report).
+- 3b2131f2f81c stale forefront-reference sweep — 1b83bf7 (automated checks).
+
 ## Still open
 
 - 7eead182560d RESOURCES_DICKREUTER.md (worker/7eead182560d @ b0c5b4a):
@@ -51,13 +55,6 @@ that stage is applied by the session and landed.
   the operator delegated ("add that in if you think its good") —
   dickreuter's architecture as the template and its capture layer as the
   eyes; OpenSpiel makes the decisions — as a separate small change.
-- 7f09949cb56f engine survey (worker/7f09949cb56f @ 6720c8a, pushed): text
-  findings done; F1-F3 are MAC-ONLY re-measurements (see
-  findings-7f09949cb56f-engine-r2-remaining.md). No round 3 until a Mac
-  fixer closes them. Also owed there: criterion (e) for a public GPL-3.0
-  repository, as the other surveys now have; and RESOURCES_SOLVERS.md
-  :99-100 cites ENGINE_ALTERNATIVES.md:418-428 in origin's 52bd81d
-  numbering — re-point at that landing.
 - codex/tonight (Rohit): reviewed against the new rule 2026-09-17; 24 required
   changes in codex-tonight-required-changes-2026-09-17.md and GitHub issue #4.
   His move. Do not merge.

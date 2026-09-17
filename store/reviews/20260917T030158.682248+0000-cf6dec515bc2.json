@@ -1,0 +1,17 @@
+{
+  "id": "cf6dec515bc2",
+  "created": "2026-09-17T03:01:58.682248+00:00",
+  "change": "f541eb44075b",
+  "project": "pokerbot",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 7,
+  "wording_only": false,
+  "files": 7,
+  "insertions": 1350,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 410.0,
+  "note": "Fresh reviewer at 5e22305: measurement half sound (segfault reproduced, four upstream line numbers verified, every headline figure matches raw). F1 substantive: the note describes the OLD forefront rule (branch 23 commits behind; :27-37, :191-195, :234, :238, :241-246, :254) and derives option 1's (c) rating and one reason for preferring search from a prohibition trunk now permits. F2 ACTION_TRANSLATION.md (on main) not cited; 'unbuilt' at :253 stale; measured fcpa vs recommended fchpa. F3 raw headers omit argv; 5 vs 6 decisions. F4 'none overshoots' vs raw max 0.258/2.004 s. F5 0.877 comparator unsourced. F6 Tier 1 conditional. F7 no numbers checker (polish). Fixer dispatched; lands on its report under the pace decision. Cost 18 tool calls ~75k tokens."
+}
