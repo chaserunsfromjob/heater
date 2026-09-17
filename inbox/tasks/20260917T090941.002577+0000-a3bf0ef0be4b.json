@@ -1,0 +1,10 @@
+{
+  "id": "a3bf0ef0be4b",
+  "created": "2026-09-17T09:09:41.002577+00:00",
+  "score": 43,
+  "title": "OPPONENT_MODEL_DESIGN.md section 4.2 limp/open_raise denominator cells still read as if a walk hands out those opportunities",
+  "source_finding": "3affb081c0fe",
+  "project": "pokerbot",
+  "path": "OPPONENT_MODEL_DESIGN.md",
+  "done_at": null
+}

@@ -1,0 +1,17 @@
+{
+  "id": "e68216640207",
+  "created": "2026-09-17T09:07:51.446792+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "pokerbot/notebook.py",
+  "origin": "",
+  "summary": "A walk still records an afq opportunity at street=preflop for each folder; section 4.7 row 2 read strictly ('increments hands_dealt only') would remove it, but afq is a per-street stat, not one of section 4.2's preflop stats, so the fixer left it as the ruling named only preflop denominators",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T09:09:40.954903+00:00",
+    "score": 42,
+    "task_id": "a05c620494b2"
+  }
+}

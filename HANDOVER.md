@@ -37,37 +37,21 @@ Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-One agent is out: the FIXER (round 2) for `b68dd506e0ee`, Stage 3 the
-notebook, PR #22, tip 188b384, worktree pokerbot/2b7e5f5ce175. Built in
-well under the planned 12-18 h: 2,781 lines, 58 tests (333 on the
-branch), section 4.5's worked report reproduced character for character.
-Round 1 FAIL (store 66b3f41c69ca): worked example reproduces byte for
-byte; PRIOR_STRENGTH per tier judged right; the walk was counted as a vpip
-opportunity against section 4.7's named row (settled by the stoker: follow
-4.7; escalation 241e2f235c94 resolved in the queue, not for the operator);
-wsd counted net>0 not payouts>0; dead population cuts contradict section
-2.5; single-name pool made shrinkage a no-op. Fixer 1 applied all four
-(8234cd0, 339 tests); round 2 confirmed them by mutation and failed on
-recording: OPPONENT_MODEL_DESIGN.md still states the losing walk reading
-and Table C's vpip 1.00, and the override's scope was the fixer's call.
-Stoker RULED (store f2675922a7ad): row 2 read strictly, no preflop stat
-gets an opportunity on a walk, so vpip and pfr share a denominator. FIXER
-round 2 out (doc lines :684/:734/:1508/:1875, pfr under the guard, a walk
-in the IRC fixture); told it is the last: land on its report with
-`--skip-review --reason` and `bash bin/gate.sh`, then mark PR #22 ready.
-Everything dispatched before it has landed; reconcile at 08:00Z reported
-nothing open. pokerbot main is at c5ed759: CLAUDE.md has a
-"Firm requirements" section (2-9 players, true no-limit, exploitative play
-keyed to the named player), and every document now quotes the current goal
-line (PRs #19, #20, #21). heater main is at 895c954 or later.
+No agent is out. Every change dispatched tonight has landed; reconcile at
+09:10Z reported nothing open. pokerbot main is at 69286e6: Stage 3, the
+notebook, landed (PR #22; two rounds; the walk ruled to give no preflop
+stat an opportunity, recorded in OPPONENT_MODEL_DESIGN.md 4.7 row 2 with
+escalation 241e2f235c94 as the authority; 339 tests). The morning report
+(queue d9e05d4e4a29) was amended again at 09:10Z to say so.
 
-Next work when the band allows (weekly 82% at 07:45Z, four days left): read
-`bin/inbox.py tasks` and take the top actionable one. The top item, the
-dickreuter PC push, cannot be done from the Mac. Below it are fleet
-reporting-texture tasks (41-48) and one-line document staleness (36); none
-is worth the weekly budget tonight. Stage 3 is out; Stage 4 (the bot that
-plays the person) follows it and is what addresses the losses to nit and
-tag; brief it from BUILD_PLAN.md once Stage 3 lands.
+Next real pokerbot work: BUILD_PLAN.md Stage 4, the bot that plays the
+person (wire the notebook's buckets and flags into the search's
+continuation strategies per OPPONENT_MODEL_DESIGN.md 4.4 and
+DECISION_LAYER_SEARCH.md's "how the opponent model enters"); the arena
+must supply seat-to-name maps (HandRecord carries no names). Brief it from
+those documents; then re-run the scoreboard (Stage 2's report is the
+baseline: loses to nit and tag). Weekly usage was 82% at 07:45Z with four
+days left: one worker at a time, top of list only.
 
 - `6e3f3af1ef5c` heater sweep/store truthfulness: LANDED 87f9569 (round 1
   fail, round 2 pass, two wording items by the session). The sweep's exit
@@ -156,5 +140,5 @@ to the worktree; widen to the stores). D1/D2 remain the operator's.
 
 ## Cost
 
-Session about $345 by `~/.heater/context.json`; 55 review rounds over 21
+Session about $355 by `~/.heater/context.json`; 55 review rounds over 21
 changes today; no round carries a dollar figure.
