@@ -1,0 +1,17 @@
+{
+  "id": "00ccb8f00847",
+  "created": "2026-09-17T06:28:28.918230+00:00",
+  "change": "9d68697caeb0",
+  "project": "pokerbot",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 7,
+  "wording_only": false,
+  "files": 10,
+  "insertions": 403,
+  "deletions": 110,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "Measurement reproduced cell-exact; evidence file unchanged at 1,000 hands; shim adds no decision logic. F1 run used 500 hands vs pre-registered 1000 and the results file's header does not flag it (wider intervals ease the per-persona block); F2 commit 0066098 does not import (squash at merge); F3 README mixes the paired headline with the bot's own table without saying so (tag: loses money yet +904 vs always_call); F4 overstates the seven wins (raw intervals, best-of-52); F5-F7 wording."
+}
