@@ -30,6 +30,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
 import dispatch  # noqa: E402
+import heartbeats  # noqa: E402
 import jsonstore  # noqa: E402
 import store  # noqa: E402
 import worktrees  # noqa: E402
@@ -377,6 +378,22 @@ class TestReclaim(WorktreeCase):
         self.assertEqual([k["lease"] for k in kept], [held["id"]])
         self.assertIn("tool call", kept[0]["why"])
 
+    def test_says_why_it_kept_a_slot_holding_unpushed_work(self):
+        """A kept slot is reported whichever reason kept it.
+
+        Work that exists nowhere else holds a slot past its age, and that is the
+        reason an operator most needs said out loud: the pool is short by one
+        until somebody pushes that branch. Staying silent prints "nothing to
+        reclaim" over a slot reclaim deliberately refused to take.
+        """
+        held = worktrees.lease(self.repo, "api", "worker/one")
+        (Path(held["path"]) / "wip.txt").write_text("half finished\n")
+        kept: list[dict] = []
+        with mock.patch.object(worktrees, "STALE_MINUTES", -1):
+            self.assertEqual(worktrees.reclaim("api", held=kept), [])
+        self.assertEqual([k["lease"] for k in kept], [held["id"]])
+        self.assertIn("exists nowhere else", kept[0]["why"])
+
     def test_a_beat_from_another_checkout_does_not_keep_the_slot(self):
         held = worktrees.lease(self.repo, "api", "worker/one")
         self.beat(self.repo)
@@ -388,7 +405,7 @@ class TestReclaim(WorktreeCase):
         """The guard is the heartbeat, so silence still reclaims: otherwise no
         slot would ever come back."""
         held = worktrees.lease(self.repo, "api", "worker/one")
-        self.beat(Path(held["path"]), minutes_ago=dispatch.STALE_MINUTES + 1)
+        self.beat(Path(held["path"]), minutes_ago=heartbeats.STALE_MINUTES + 1)
         with mock.patch.object(worktrees, "STALE_MINUTES", -1):
             self.assertEqual(len(worktrees.reclaim("api")), 1)
         self.assertEqual(worktrees.active("api"), [])

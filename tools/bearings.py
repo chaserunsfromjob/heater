@@ -24,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import deploy
 import dispatch
+import heartbeats
 import inbox
 import jsonstore
 import queue
@@ -35,9 +36,10 @@ import worktrees
 REPO = jsonstore.REPO
 
 # A worker whose last tool call is older than this is quiet enough to look at.
-# Taken from dispatch rather than set again here: the sweep deletes a silent
-# worker's checkout on this number, so what it means has to be one decision.
-STALE_MINUTES = dispatch.STALE_MINUTES
+# Read from heartbeats, which owns it, rather than set again here: the sweep
+# deletes a silent worker's checkout on this number, so what it means has to be
+# one decision.
+STALE_MINUTES = heartbeats.STALE_MINUTES
 TOP_TASKS = 3
 
 

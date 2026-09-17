@@ -289,7 +289,16 @@ def reclaim(project: str = "", *, held: list[dict[str, Any]] | None = None) -> l
             taken.append(release(record["id"], "worktree gone", force=True))
             continue
         age = age_minutes(record)
-        if age is None or age <= STALE_MINUTES or work_at_risk(record):
+        if age is None or age <= STALE_MINUTES:
+            continue
+        if work_at_risk(record):
+            # Kept, and said out loud: this slot is out of the pool until
+            # somebody pushes that branch, which is not "nothing to reclaim".
+            if held is not None:
+                held.append({"lease": record["id"], "project": record.get("project", ""),
+                             "path": str(path),
+                             "why": (f"held {age:.0f}m, but {record['branch']} holds "
+                                     f"work that exists nowhere else")})
             continue
         if heartbeats.someone_working_in(path):
             if held is not None:

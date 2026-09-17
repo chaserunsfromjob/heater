@@ -377,8 +377,19 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
         # a checkout is removed, with git and the gate run in between.
         working = still_in_use(path, f"{branch} is checked out")
         if working and not (require_review and reviewed(record["id"])):
-            report["held"].append({"dispatch": record["id"], "branch": branch,
-                                   "why": working})
+            if require_review:
+                # Where every worker spends most of its life, so it is reported
+                # the way it was before autosave moved below this guard: waiting
+                # on a review, not holding the sweep up. Calling it held exits
+                # non-zero on every wake with anybody still out, and buries the
+                # holds that do need an answer among the ones that do not.
+                report["awaiting_review"].append(record["id"])
+            else:
+                # `--skip-review` has nothing else that asks whether the worker
+                # has finished, so a live checkout is a hold here, as it was
+                # further down before autosave moved.
+                report["held"].append({"dispatch": record["id"], "branch": branch,
+                                       "why": working})
             continue
 
         # Loose work becomes a commit first, so a branch still standing on the

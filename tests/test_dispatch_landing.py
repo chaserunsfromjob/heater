@@ -374,13 +374,14 @@ class TestAnEmptyBranchIsNotLanded(GitCase):
         self.assertIn(record["id"], report["landed"])
         self.assertFalse(Path(record["workdir"]).exists())
 
-    def test_an_old_empty_branch_with_a_live_heartbeat_is_held(self):
+    def test_an_old_empty_branch_with_a_live_heartbeat_is_kept(self):
         record = self.worker("research the options")
         backdate(dispatch.dispatches_dir(), record["id"],
                  dispatch.EMPTY_BRANCH_STALE_HOURS + 1)
         self.beat(Path(record["workdir"]))
         report = dispatch.reconcile()
-        self.assertTrue([h for h in report["held"] if h["dispatch"] == record["id"]])
+        self.assertIn(record["id"], report["awaiting_review"])
+        self.assertNotIn(record["id"], report["landed"])
         self.assertTrue(Path(record["workdir"]).exists(),
                         "a worker whose tool calls are still returning is alive")
 
@@ -459,7 +460,7 @@ class TestAnEmptyBranchIsNotLanded(GitCase):
         self.assertFalse(Path(record["workdir"]).exists(),
                          "its slot goes back once the trunk provably has the work")
 
-    def test_a_live_worker_that_caught_up_with_a_moved_trunk_is_held(self):
+    def test_a_live_worker_that_caught_up_with_a_moved_trunk_is_kept(self):
         """A branch reaches the trunk two ways, and only one of them is finished.
 
         A worker that runs `git merge main` before its first commit leaves a
@@ -477,9 +478,9 @@ class TestAnEmptyBranchIsNotLanded(GitCase):
 
         report = dispatch.reconcile()
 
-        held = [h for h in report["held"] if h["dispatch"] == record["id"]]
-        self.assertEqual(len(held), 1, "a worker still making tool calls is not finished")
-        self.assertIn("tool call", held[0]["why"])
+        self.assertIn(record["id"], report["awaiting_review"],
+                      "a worker still making tool calls is not finished")
+        self.assertNotIn(record["id"], report["landed"])
         self.assertTrue(Path(record["workdir"]).exists(),
                         "a running worker's checkout must survive the sweep")
         self.assertEqual([d["id"] for d in dispatch.live()], [record["id"]],
@@ -570,10 +571,28 @@ class TestTheSweepDoesNotCommitALiveWorkersFiles(GitCase):
 
         self.assertIn("half_written.py", self.dirty(record),
                       "the sweep may not commit a file the worker is still writing")
-        held = [h for h in report["held"] if h["dispatch"] == record["id"]]
-        self.assertEqual(len(held), 1, "a worker still making tool calls is not finished")
-        self.assertIn("tool call", held[0]["why"])
+        self.assertIn(record["id"], report["awaiting_review"],
+                      "a worker nobody has reviewed yet is awaiting review, not held")
         self.assertEqual([d["id"] for d in dispatch.live()], [record["id"]])
+
+    def test_a_live_unreviewed_worker_does_not_hold_the_sweep(self):
+        """Holding back autosave may not turn a normal wake into a failed one.
+
+        Every worker still out is unreviewed for most of its life. Reporting one
+        as held makes `reconcile` exit non-zero on every wake with anybody
+        working, which is the ordinary state of the fleet, and hides the real
+        holds among them.
+        """
+        record = self.worker()
+        self.work(record)
+        (Path(record["workdir"]) / "half_written.py").write_text("def half(\n")
+        self.beat(Path(record["workdir"]))
+
+        report = dispatch.reconcile()
+
+        self.assertEqual(report["held"], [],
+                         "a live unreviewed worker is not something to hold the sweep on")
+        self.assertEqual(report["needs_fix"], [])
 
     def test_a_reviewed_checkouts_loose_files_are_saved_even_with_a_worker_in_it(self):
         """The one route that takes a live checkout still commits its loose work.
