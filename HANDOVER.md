@@ -1,6 +1,6 @@
 # Handover
 
-<!-- handover-commit: 9d6c5c0 -->
+<!-- handover-commit: 27c444e -->
 
 Written on `main`, 2026-09-17 about 03:25Z, on the Mac, at 33% context
 with two workers still out. Verify with `bin/handover.py`. A
@@ -29,8 +29,10 @@ background agents; a fresh session would not hear them and should check the
 branches on origin instead):
 
 - `baed4c5203a7` DECISION_LAYER_BLUEPRINT.md, branch worker/baed4c5203a7,
-  pre-computed strategy options with timed CFR runs. On report: one reviewer
-  round, then land on small findings applied by the session.
+  PR #5: written (recommends external-sampling MCCFR if a blueprint is ever
+  built; six players can be solved but not graded on this laptop). Its
+  REVIEWER is running; on its report apply small edits and land with
+  `--skip-review` (gate: the three checkers).
 - `70884871cf3e` build task T1, branch worker/70884871cf3e: the OpenSpiel
   adapter for 2-9 seats (fchpa menu) plus invariants I1-I7 as aborting tests,
   determinism test, per-seat NOT RUN table. This is CODE: on report, one
