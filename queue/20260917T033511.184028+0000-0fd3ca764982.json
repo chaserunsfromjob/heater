@@ -7,7 +7,7 @@
   "path": "",
   "origin": "",
   "summary": "pokerbot: open_spiel is absent from requirements-vendor.txt though universal_poker is now the chosen engine; every worker installs it by hand (pokerbot/requirements-vendor.txt, README.md setup section)",
-  "delivered_at": null,
+  "delivered_at": "2026-09-17T03:37:02.754123+00:00",
   "resolution": {
     "action": "dismissed",
     "at": "2026-09-17T03:36:43.771998+00:00",
