@@ -1,0 +1,17 @@
+{
+  "id": "c859764b92a4",
+  "created": "2026-09-17T03:22:29.771485+00:00",
+  "change": "c91832fe9882",
+  "project": "pokerbot",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 7,
+  "wording_only": false,
+  "files": 1,
+  "insertions": 252,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 300.0,
+  "note": "Fresh reviewer at 578893d: six citations verified in substance, nothing settled reopened, stage 1's done-when a real measurement, merge clean, 68 passed. F1 substantive: D2 (archive vs observe-first) is settled by OPPONENT_BASELINE.md on main and the plan recommends the opposite; delete the block, cite \u00a75 in stage 3. F2 two DECISION_LAYER_SEARCH.md line cites wrong (:594\u2192:637, :285\u2192:322). F3 table-size weights 0.50/0.30/0.20 attributed to the operator; they are the evaluation strategy's design choice. F4 Hook A :953\u2192:969. F5 five terms unglossed on the plain-words page. F6 CLAUDE.md Plan item 1 still says the reconciliation is 'still to come'. F7 stage 1 gated on D1; add trivial opponents as fallback. Fixer dispatched with exact text; lands on its report under the pace decision. Cost 16 tool calls."
+}
