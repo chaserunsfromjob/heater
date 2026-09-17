@@ -65,8 +65,8 @@ bin/dispatch.py reconcile --gate "<the project's gate command>"
 Run this at the end of every wake and after any worker reports. It sweeps every
 finished worker into the trunk and clears up behind them: merge the branch,
 delete the branch, remove the checkout, free the slot, close the dispatch. When
-every worker in a run has landed, the run is reported finished and nothing of it
-is left anywhere.
+every worker in a run has landed — or abandoned a branch it never committed on
+— the run is reported finished and nothing of it is left anywhere.
 
 It works out what to do by reading git rather than by trusting a flag, so it is
 safe to run at any time and safe to run again after one is interrupted.
@@ -78,9 +78,19 @@ What it does with each case, without asking:
 | Work left uncommitted | Committed on the worker's own branch first. Loose work is the easiest to lose and the least worth refusing over. |
 | The trunk moved while the worker was out | The trunk is merged into the worker's branch, then the landing is retried. |
 | A real conflict | The branch, its checkout and its slot are all kept, and it is reported as needing a fixer. Dispatch one. |
-| Nothing was done | The slot and branch are cleared away. |
+| Nothing was done | The slot and branch are cleared away and the dispatch closes as `abandoned`. Nothing landed, so nothing may be counted as landed. |
 | Not yet reviewed | Left alone and reported. Record the round; nothing lands unreviewed. |
 | The trunk is dirty | Everything is held. The operator has uncommitted work there and mixing it in is not a call to make for them. |
+
+The sweep exits 0 only when it finished everything it found. Work left for
+somebody to answer — held, needing a fixer, or anything else it reports that is
+not a landing, an abandoned empty branch or a worker still awaiting review —
+exits 1, so a wake that reads the exit code alone still sees it.
+
+Where the commits were already in the trunk, or the checkout was already gone,
+there is nothing to merge and the dispatch is closed on the spot. The note says
+which review state it was closed on, so the close can be checked afterwards
+rather than taken on trust.
 
 Nothing is deleted until its commits are provably reachable from the trunk. That
 check is the invariant the whole sweep rests on, and `finish` raises rather than

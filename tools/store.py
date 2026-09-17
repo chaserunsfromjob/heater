@@ -24,6 +24,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import jsonstore
+import reviewloop
 
 LENSES = ("default", "failure-mode", "environment")
 VERDICTS = ("pass", "fail")
@@ -98,7 +99,12 @@ def query(days: int | None = None, project: str = "") -> dict[str, Any]:
 
     counts = [len(v) for v in per_change.values()]
     costs = [r["cost_usd"] for r in rounds if isinstance(r.get("cost_usd"), (int, float))]
-    landed = [c for c, rs in per_change.items() if any(r["verdict"] == "pass" for r in rs)]
+    # Landed means the review loop ended, which is the judgement `dispatch` lands
+    # on, asked of the same module. Counting a change landed because some round
+    # of it once passed is the stale-pass reading: rounds 5, 6 and 7 can fail
+    # after a round-4 pass, and the sweep will rightly refuse to land any of it
+    # while this figure says eleven changes went out.
+    landed = [c for c, rs in per_change.items() if reviewloop.ended(rs)]
     first_time = [c for c, rs in per_change.items()
                   if len(rs) == 1 and rs[0]["verdict"] == "pass"]
 
