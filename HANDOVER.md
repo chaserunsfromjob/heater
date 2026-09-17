@@ -37,16 +37,17 @@ Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-No agent is out. Every change dispatched tonight has landed; reconcile at
-07:25Z reported nothing open. The last was `39abff43a4ee` (Table C re-pinned
-from the measured baseline, PR #18, d986bfe; checker now 705 figures).
+One agent is out: `25aa0c5c14e2` heater worker (worktree
+heater/68b5f1d9f5aa) on tasks d67cffad749a (writes from a worker checkout
+must reach the canonical fleet repo; a tools/fleetrepo.py lookup) and
+bc471f09618e (a refused release must not read as landed). On report: one
+reviewer round, fixer, land with `bash bin/gate.sh`. Everything dispatched
+before it has landed; reconcile at 07:25Z reported nothing open. The last
+was `39abff43a4ee` (Table C re-pinned, PR #18, d986bfe).
 
 pokerbot main is at d986bfe. Next work when the band allows (weekly 81% at
-07:20Z, four days left; the five-hour window resets 09:10Z): the list's top
-is d67cffad749a (jsonstore.REPO resolves to the worktree: findings and
-store records written from a worker checkout land in a stale copy) and
-bc471f09618e (close_dispatch with a refused release still reads landed).
-Both are fleet safety and fit one heater worker.
+07:20Z, four days left; the five-hour window resets 09:10Z): after
+25aa0c5c14e2 lands, read `bin/inbox.py tasks` and take the top one only.
 
 - `6e3f3af1ef5c` heater sweep/store truthfulness: LANDED 87f9569 (round 1
   fail, round 2 pass, two wording items by the session). The sweep's exit

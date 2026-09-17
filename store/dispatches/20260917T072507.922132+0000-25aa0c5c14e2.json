@@ -1,0 +1,18 @@
+{
+  "id": "25aa0c5c14e2",
+  "created": "2026-09-17T07:25:07.922132+00:00",
+  "task": "Two record-integrity defects: (d67cffad749a) a worker in a leased checkout of the fleet repo writes queue/ findings and store/ records into that checkout's own copy because jsonstore.REPO / heater_hook.REPO resolve to the worktree; every write must go to the canonical fleet repository; (bc471f09618e) close_dispatch with a refused release appends '[slot held: ...]' to the note but still reports the dispatch as landed and the sweep exits 0",
+  "project": "heater",
+  "done_when": "failing test first for each; from a worktree, bin/queue.py add and the store writers land in the canonical repo; a dispatch closed with a held slot is not reported landed and the sweep exits 1; HEATER_AUTOPUSH=0 bash bin/gate.sh passed; branch pushed",
+  "task_id": "d67cffad749a",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/heater",
+  "workdir": "/Users/chasethompson/.heater/worktrees/heater/68b5f1d9f5aa",
+  "lease_id": "68b5f1d9f5aa",
+  "branch": "worker/25aa0c5c14e2",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}
