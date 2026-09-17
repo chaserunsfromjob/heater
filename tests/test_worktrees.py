@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
 import dispatch  # noqa: E402
+import jsonstore  # noqa: E402
 import store  # noqa: E402
 import worktrees  # noqa: E402
 
@@ -289,6 +290,28 @@ class TestReleasing(WorktreeCase):
         run("git", "commit", "-qm", "work", cwd=path)
         with self.assertRaises(RuntimeError):
             worktrees.release(held["id"])
+
+    def test_closing_a_dispatch_keeps_a_slot_that_still_holds_work(self):
+        """The mass close at the stop band must never cost an agent its work.
+
+        The page the operator reads at the stop band promises that stopping now
+        "leaves their work where it stands", and the stoker stops every agent
+        with one close each. Closing gives the slot back, so the refusal that
+        protects unpushed work is what keeps that promise.
+        """
+        record = dispatch.open_dispatch("fix auth", project="api", repo=str(self.repo))
+        half_finished = Path(record["workdir"]) / "wip.txt"
+        half_finished.write_text("half finished\n")
+
+        closed = dispatch.close_dispatch(record["id"], "abandoned")
+
+        self.assertTrue(half_finished.exists(), "the work must still be there")
+        lease = next(l for l in jsonstore.load(worktrees.leases_dir())
+                     if l["id"] == record["lease_id"])
+        self.assertFalse(lease.get("released_at"), "the slot must still be held")
+        self.assertIn("slot held", closed["note"])
+        self.assertIn(record["branch"], closed["note"],
+                      "the note must say which copy of the work is being kept")
 
     def test_force_releases_anyway(self):
         held = worktrees.lease(self.repo, "api", "worker/one")

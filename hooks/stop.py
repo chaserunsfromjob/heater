@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 import context  # noqa: E402
 import handover  # noqa: E402
 import queue  # noqa: E402
+import usage  # noqa: E402
 from heater_hook import keep_going, log, now, role, run, say, stop  # noqa: E402
 
 
@@ -101,9 +102,22 @@ def handle(payload: dict[str, Any]) -> dict[str, Any]:
     if not waiting:
         return stop()
 
+    # Everything that can raise runs before the items are stamped as delivered.
+    # `run` swallows an exception and exits 0, so an unreadable usage file after
+    # the stamp would lose the wake: the items would be marked as though the
+    # stoker had been told, and nothing would ever tell it. Reading first costs
+    # at worst a repeated wake, which is harmless.
+    #
+    # The band leads the message, because it decides how much of what follows may
+    # be acted on. Silent while the band is OPEN, so an ordinary wake is unchanged.
+    reading = usage.read()
+    taper = usage.wake_line(reading)
+    current = usage.band(reading)
+    summary = queue.summarise(waiting)
+
     queue.mark_delivered(waiting)
-    log("wake", {"items": [i["id"] for i in waiting]})
-    return keep_going(queue.summarise(waiting))
+    log("wake", {"items": [i["id"] for i in waiting], "band": current})
+    return keep_going(f"{taper}\n\n{summary}" if taper else summary)
 
 
 if __name__ == "__main__":

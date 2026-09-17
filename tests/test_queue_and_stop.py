@@ -8,6 +8,8 @@ for something already delivered.
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import os
 import subprocess
@@ -119,6 +121,36 @@ class TestQueue(QueueCase):
         self.assertIn("token expiry call", text)
         self.assertIn("stale TODO", text)
         self.assertIn("2 item(s)", text)
+
+    def test_a_page_long_item_is_listed_as_its_first_line_and_where_to_read_it(self):
+        """The debrief files a whole page; a list that prints it is not a list."""
+        item = queue.add("report", "What the agents did in the last 5 hours\n\n"
+                                   "18 jobs went out.\nOne is still running.")
+        text = queue.summarise(queue.pending())
+        self.assertIn("What the agents did in the last 5 hours", text)
+        self.assertNotIn("18 jobs went out", text)
+        self.assertIn("3 more lines", text)
+        self.assertIn(f"bin/queue.py show {item['id']}", text)
+
+    def test_a_one_line_item_is_listed_whole_with_no_pointer(self):
+        queue.add("finding", "stale TODO in the parser")
+        text = queue.summarise(queue.pending())
+        self.assertIn("stale TODO in the parser", text)
+        self.assertNotIn("more lines", text)
+
+    def test_show_prints_the_whole_item(self):
+        item = queue.add("report", "first line\nsecond line\nthird line")
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            code = queue.main(["queue.py", "show", item["id"]])
+        self.assertEqual(code, 0)
+        self.assertIn("third line", printed.getvalue())
+
+    def test_show_of_an_unknown_id_says_so_rather_than_printing_nothing(self):
+        complaint = io.StringIO()
+        with contextlib.redirect_stderr(complaint):
+            self.assertEqual(queue.main(["queue.py", "show", "nosuchitem"]), 1)
+        self.assertIn("nosuchitem", complaint.getvalue())
 
 
 class TestStopHook(QueueCase):

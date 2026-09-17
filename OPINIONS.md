@@ -170,6 +170,84 @@ stoker applies small findings itself and lands with `bin/dispatch.py land
 --skip-review` recording why in the store note, and code still gets a fresh
 reviewer round.
 
+## 14. Taper as the limits approach
+
+> "as we get closer to both running out of 5 hour usage and weekly usage, i want
+> to implement running less agents and using less usage more and more as we
+> approach the limit. therefore, as we get closer, we should cut agents that are
+> working on things that are not as important, and prioritize more important
+> tasks at your discretion"
+
+> "lets get it into my system about tapering off the usage as we get closer. you
+> can use /usage or whatever you need to to see how close we are but the weekly
+> usage is definitely more important so lets start with that"
+
+> "a little bit low"
+
+> "by the time we get to 95% usage in the 5 hour period i want to stop running
+> agents and just get a full debrief of what they have accomplished over the 5
+> hours in plain english"
+
+> "just to be clear, the research element or step one of those four up above
+> should be done by the time the usage gets to 100% on this five hour session"
+
+> "I want to run agents exactly as many as I can in order to use the entire
+> five-hour limit after five hours of usage. And I want to basically streamline
+> the most important tasks. So however many agents I can have, running for the
+> full five hours without using up all my usage should be running and doing the
+> tasks that I deem most important or that you deem most important and you have
+> discretion on that. But yeah, keep the tasks important that these agents are
+> doing."
+
+"a little bit low" is the whole of what can be sourced on the barriers the
+operator did not name: it was their verdict on barriers lower than these, which
+is why these sit where they do. The one barrier they did name is the five-hour
+stop, at 95%.
+
+The weekly window is the one that matters. Running it dry stops everything until
+it resets, and the five-hour window only refills a few hours later, so weekly
+comes first and the five-hour one is a brake on a burst.
+
+This is a taper, not a cliff. I don't want the fleet running flat out and then
+stopping dead. I want it narrowing: as the number climbs, fewer agents out, and
+the ones still out on the things that matter most. Well below the barriers, the
+stoker should already be leaning toward the more important work by its own
+judgment — that is what the percentages are printed for.
+
+Narrowing means cutting, not waiting. As each barrier is crossed the stoker
+stops the agents working on the least important things rather than letting them
+run to their own finish — "cut agents that are working on things that are not as
+important" is the instruction, and a taper that merely declines to start
+anything new is not one.
+
+At 95% of the five-hour window the fleet stops outright. Every agent still
+running is stopped, not allowed to finish, and the operator is sent one
+plain-English account of what those five hours bought: what each agent was sent
+to do, what came back, what the checks found, what is still unfinished, and what
+it cost where a round recorded a cost. Where none did, the account says that
+outright rather than pretending to a figure nothing measured.
+`bin/debrief.py` writes that account and the queue carries it.
+
+The barriers themselves sit high, because cutting work off early wastes the plan
+just as surely as running out does. The five-hour stop is the figure the operator
+named outright: 95%, level with the weekly stop.
+
+The window is there to be spent, and spent evenly. As many agents as the five
+hours will carry should be out, across the whole of the five hours, on the work
+that matters most — a burst that spends the window in its first hour and then
+stops dead wastes it as surely as leaving it unspent does. So beside the bands,
+`bin/bearings.py` says in one line whether the usage is running ahead of the
+clock or behind it, and the stoker holds a steady number of agents out on that.
+
+Research the rest of the plan waits on finishes inside the window it started in.
+The four surveys named in the 2026-09-16 words — engines, bots, solvers,
+exploitation — did land inside that window, and the words stand as the standing
+instruction for the next four.
+
+This does not loosen opinion 11. There is still no standing cap on how many
+workers may be out. The taper is a cap the usage number sets, not one I set in
+advance, and it lifts on its own when the window resets.
+
 ---
 
 ## Scope of this build

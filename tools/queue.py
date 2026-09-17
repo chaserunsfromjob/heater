@@ -8,6 +8,7 @@ Swap it for something with real queries when the volume earns that.
     bin/queue.py add --kind escalation --summary "..." --project heater
     bin/queue.py list
     bin/queue.py list --all
+    bin/queue.py show <id>
 """
 
 from __future__ import annotations
@@ -93,14 +94,37 @@ def mark_delivered(items: list[dict[str, Any]]) -> None:
         write(item)
 
 
+def head(item: dict[str, Any]) -> str:
+    """One line for a list, whatever the item's own length.
+
+    A whole page can arrive in a summary -- the debrief files one -- and a list
+    that pastes it in is no longer a list, so everything after the first line is
+    counted and pointed at instead of printed.
+    """
+    written = (item.get("summary") or "").splitlines()
+    if len(written) <= 1:
+        return written[0] if written else ""
+    rest = len(written) - 1
+    return (f"{written[0]} ({rest} more line{'' if rest == 1 else 's'}; "
+            f"bin/queue.py show {item['id']})")
+
+
 def summarise(items: list[dict[str, Any]]) -> str:
     lines = [f"{len(items)} item(s) waiting in the fleet queue:"]
     for item in items:
         where = f" {item['project']}" if item.get("project") else ""
         at = f" ({item['path']})" if item.get("path") else ""
-        lines.append(f"- [{item['urgency']}] {item['kind']}{where}: {item['summary']}{at} #{item['id']}")
+        lines.append(f"- [{item['urgency']}] {item['kind']}{where}: {head(item)}{at} #{item['id']}")
     lines.append("Judge each item, then act. Dismiss with a recorded reason or promote it onto the task list.")
     return "\n".join(lines)
+
+
+def show(item: dict[str, Any]) -> str:
+    """The whole item, for when the list's one line is not enough."""
+    where = f"\nproject: {item['project']}" if item.get("project") else ""
+    at = f"\npath: {item['path']}" if item.get("path") else ""
+    return (f"{item['id']}  [{item['urgency']}] {item['kind']}"
+            f"\nfiled: {item.get('created', '')}{where}{at}\n\n{item.get('summary', '')}")
 
 
 def main(argv: list[str]) -> int:
@@ -117,12 +141,23 @@ def main(argv: list[str]) -> int:
     lister = sub.add_parser("list", help="show waiting items")
     lister.add_argument("--all", action="store_true", help="include already-delivered items")
 
+    reader = sub.add_parser("show", help="print one item in full, however long it is")
+    reader.add_argument("item_id")
+
     args = parser.parse_args(argv[1:])
 
     if args.command == "add":
         item = add(args.kind, args.summary, project=args.project,
                    path=args.path, urgency=args.urgency)
         print(f"queued {item['id']} -> {item_path(item)}")
+        return 0
+
+    if args.command == "show":
+        item = find(args.item_id)
+        if item is None:
+            print(f"queue: no item {args.item_id}", file=sys.stderr)
+            return 1
+        print(show(item))
         return 0
 
     items = load_all() if args.all else pending()

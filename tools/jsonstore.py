@@ -47,18 +47,27 @@ def write(directory: Path, record: dict[str, Any]) -> Path:
     return target
 
 
-def load(directory: Path) -> list[dict[str, Any]]:
+def load(directory: Path, skipped: list[Path] | None = None) -> list[dict[str, Any]]:
     """Every readable record, oldest first. A corrupt or partial file is skipped.
 
     One unreadable file must not hide the rest: the store is evidence, and
     evidence that vanishes when a single write went wrong is worse than none.
+
+    Skipping in silence is the other half of that, and the worse half: a page
+    that counts what it read and says so is off by however many files would not
+    parse. A caller that has to own up to the gap passes a list, and every file
+    dropped here is appended to it.
     """
     records = []
     for path in sorted(directory.glob("*.json")):
         try:
             parsed = json.loads(path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
+            if skipped is not None:
+                skipped.append(path)
             continue
         if isinstance(parsed, dict) and parsed.get("id"):
             records.append(parsed)
+        elif skipped is not None:
+            skipped.append(path)
     return records

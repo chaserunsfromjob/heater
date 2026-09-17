@@ -29,6 +29,7 @@ import jsonstore
 import queue
 import store
 import unpushed
+import usage
 import worktrees
 
 REPO = jsonstore.REPO
@@ -46,6 +47,23 @@ def git(*args: str) -> str:
     except (subprocess.SubprocessError, OSError):
         return ""
     return done.stdout.strip() if done.returncode == 0 else ""
+
+
+def plan_usage() -> tuple[list[str], bool]:
+    """How much of the plan is spent, and what that leaves room to start.
+
+    First, because it bounds everything below it: there is no point ranking
+    tasks before knowing how many may be started at all.
+
+    An old reading is not by itself something to act on: the status line
+    refreshes it on the first reply of the next session, so every morning would
+    otherwise open with an alarm that clears itself. It is printed with its age
+    and a warning to treat it as a guess instead. Only a reading that does not
+    exist, or one that says the fleet must stop, raises the flag.
+    """
+    reading = usage.read()
+    needs = usage.band(reading) == usage.NOTHING_NEW or usage.missing(reading)
+    return usage.lines(reading), needs
 
 
 def fleet() -> tuple[list[str], bool]:
@@ -138,6 +156,7 @@ def section(title: str, lines: list[str]) -> str:
 def report() -> tuple[str, bool]:
     blocks, attention = [], False
     for title, (lines, needs) in (
+        ("Plan usage", plan_usage()),
         ("Fleet", fleet()),
         ("Dispatches out", out()),
         ("Heartbeats", heartbeats()),

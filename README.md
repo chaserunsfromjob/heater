@@ -23,7 +23,8 @@ from that.
 | `hooks/session_start.py` | Loads the right role's rules from an environment marker, and reports machine drift. |
 | `hooks/post_tool_use.py` | A heartbeat, so a watcher can tell a quiet worker from a dead one. |
 | `hooks/session_end.py` | Records how a session ended and what fleet state it left unsynced. |
-| `hooks/statusline.py` | The status line. Records the exact context window size, which the transcript does not carry. |
+| `hooks/statusline.py` | The status line. Records the exact context window size and the plan's usage windows, neither of which the transcript carries. |
+| `tools/usage.py` | How much of the plan is spent, and how much that still allows the stoker to start. |
 | `hooks/pre_compact.py` | Backstop. Marks a session whose memory was summarised before a handover. |
 | `roles/stoker.md` | The stoker's own rules. Loaded for any session opened in this repository, and by `HEATER_ROLE=stoker` anywhere else. |
 | `roles/worker.md` | Standing instructions wrapped around every dispatched brief. |
@@ -57,6 +58,7 @@ bin/bearings.py          # where everything stands, in one read. exit 1 means so
                          # it also pushes any branch that lives on this machine only,
                          # on every machine and including `main`; HEATER_AUTOPUSH=0 turns
                          # that off, HEATER_AUTOPUSH_DEADLINE bounds how long it may take
+bin/debrief.py --hours 5 # what the agents did, in plain English. add --queue to send it
 bin/dispatch.py open --task "..." --done-when "..."   # record a dispatch, print the brief
 bin/dispatch.py run --task "..." --repo <path> --workers 2   # several workers, one task
 bin/dispatch.py reconcile --gate "..."   # consolidate everything finished, then clean up
@@ -82,6 +84,74 @@ whatever else the operator has configured there.
 Every hook fails open. A hook that raises, gets malformed input, or cannot reach
 the queue exits 0 and changes nothing, because a guard that blocks every tool
 call is a fleet halt.
+
+## Tapering as the plan's limits approach
+
+A Claude.ai subscription meters two clocks. One covers the last five hours and
+refills several times a day. The other covers the last seven days, and when it
+runs out everything stops until it resets. The seven-day one is the one that
+hurts, so it is the one the fleet steers by.
+
+Claude Code tells the status line how full both clocks are, and tells nothing
+else. `hooks/statusline.py` writes that reading to `~/.heater/usage.json` on
+every render that carries the figures. A render without them — an API key rather
+than a subscription, or a first render before any reply has come back — leaves
+the previous reading exactly as it was rather than erasing it, so what is known
+is never overwritten with nothing:
+
+```json
+{"five_hour": {"used_percentage": 18.0, "resets_at": 1789560000},
+ "seven_day": {"used_percentage": 42.0, "resets_at": 1789824000},
+ "recorded_at": "2026-09-15T21:30:00+00:00"}
+```
+
+`resets_at` is a moment in time written the way computers write it — the number
+of seconds since the start of 1970. `bin/bearings.py` prints it as a date, and
+prints how many days of the week are left, so nobody has to read the number.
+
+From those two percentages `bin/bearings.py` works out how much the fleet may
+start right now, and prints it as one word. That word is called a **band**.
+`tools/usage.py` holds the four of them and the percentages that trigger each.
+The word appears at the top of every `bin/bearings.py` run, and at the top of
+every wake message once it is anything other than `OPEN`. Bearings exits 1 — its
+way of saying "something needs your attention" — when the word is `NOTHING_NEW`,
+or when no reading exists at all. An old reading is printed with its age and a
+warning to treat it as a guess, but it is not by itself something to act on:
+every reading goes stale overnight and the next session's first reply refreshes
+it, so raising the flag for age alone would mean an alarm every morning.
+
+`NOTHING_NEW` is a full stop, not a slow-down. Once either clock crosses the
+percentage `tools/usage.py` holds for that band — the band `bin/bearings.py`
+prints, so the figure never has to be quoted from memory — every agent
+still running is stopped, and `bin/debrief.py --hours 5 --queue` writes the
+operator one plain account of what the five hours bought — what each agent was
+sent to do, what came back, what the checks found, what is unfinished, and what
+it cost where a round recorded a cost — and puts it in the queue. Where no round
+recorded one, the account says so rather than implying the window was free.
+Where a brief cannot be put into plain words, the account says that outright
+rather than guessing at the job. Run it without `--queue` to read it first.
+
+The reading only exists on a Pro or Max subscription, and only once an
+interactive session has had a reply back from the model. With an API key, or
+before the first reply, there is no reading and bearings says so instead of
+guessing.
+
+To move a threshold, set the matching environment variable to a percentage. The
+name is the band, then the window:
+
+| Variable | Moves |
+| --- | --- |
+| `HEATER_TAPER_NOTHING_NEW_SEVEN_DAY` | The `NOTHING_NEW` band's weekly percentage |
+| `HEATER_TAPER_NOTHING_NEW_FIVE_HOUR` | The `NOTHING_NEW` band's five-hour percentage |
+| `HEATER_TAPER_REVIEWS_ONLY_SEVEN_DAY` | The `REVIEWS_AND_LANDINGS_ONLY` band's weekly percentage |
+| `HEATER_TAPER_REVIEWS_ONLY_FIVE_HOUR` | The `REVIEWS_AND_LANDINGS_ONLY` band's five-hour percentage |
+| `HEATER_TAPER_TOP_OF_LIST_SEVEN_DAY` | The `TOP_OF_LIST_ONLY` band's weekly percentage |
+| `HEATER_TAPER_TOP_OF_LIST_FIVE_HOUR` | The `TOP_OF_LIST_ONLY` band's five-hour percentage |
+| `HEATER_TAPER_TOP_OF_LIST_AGENTS` | How many agents `TOP_OF_LIST_ONLY` leaves out at once — a count, not a percentage |
+
+What each band allows is written once, in `tools/usage.py`, and printed by
+`bin/bearings.py`. Anything that is not a number is ignored, and the built-in
+figure is used.
 
 ## Build order
 
