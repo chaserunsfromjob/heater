@@ -1,0 +1,10 @@
+{
+  "id": "f7058f74399e",
+  "created": "2026-09-17T08:29:39.880979+00:00",
+  "score": 44,
+  "title": "pokerbot/__init__.py imports .table so importing the notebook pulls in pyspiel; section 4.1 wants the counter engine-free",
+  "source_finding": "37ea6a3d69e8",
+  "project": "pokerbot",
+  "path": "pokerbot/__init__.py",
+  "done_at": null
+}

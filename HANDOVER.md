@@ -37,12 +37,16 @@ Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-One agent is out: `b68dd506e0ee` pokerbot worker (worktree
-pokerbot/2b7e5f5ce175), BUILD_PLAN.md Stage 3, the notebook (opponent
-profiles: count every named player's actions, shrink with s = 50, print
-section 4.5's report; a 12-18 hour build). On report: one fresh reviewer
-round (default lens; code), fixer, confirming round, land with `bash
-bin/gate.sh`. If the worker is cut off, resume it from its branch tip.
+One agent is out: the REVIEWER (round 1) for `b68dd506e0ee`, Stage 3 the
+notebook, PR #22, tip 188b384, worktree pokerbot/2b7e5f5ce175. Built in
+well under the planned 12-18 h: 2,781 lines, 58 tests (333 on the
+branch), section 4.5's worked report reproduced character for character.
+Two readings to settle at landing: PRIOR_STRENGTH per tier (50/25/15, as
+section 4.3's table says) and the walk counting as a vpip opportunity
+(Table C's reading against section 4.7's row; escalation 241e2f235c94 in
+the queue, a design judgement the stoker may settle if the reviewer's
+reading is clear). On the report: fixer, confirming round, land with
+`bash bin/gate.sh`.
 Everything dispatched before it has landed; reconcile at 08:00Z reported
 nothing open. pokerbot main is at c5ed759: CLAUDE.md has a
 "Firm requirements" section (2-9 players, true no-limit, exploitative play

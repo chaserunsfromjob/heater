@@ -1,0 +1,12 @@
+{
+  "id": "241e2f235c94",
+  "created": "2026-09-17T08:17:34.902771+00:00",
+  "kind": "escalation",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "OPPONENT_MODEL_DESIGN.md",
+  "origin": "",
+  "summary": "OPPONENT_MODEL_DESIGN.md section 4.7's walk row ('no vpip opportunity for anyone') contradicts section 4.2/Table C ('opponent was dealt in', one per hand by definition) and section 4.5's worked example (vpip n=412=hands dealt). Stage 3's notebook implements the Table C and 4.5 reading, because two load-bearing places state it and the worked example's arithmetic breaks under the other; a walk therefore increments hands_dealt and vpip's denominator but nothing positional or postflop. Which reading is the design's needs a decision, and it moves every vpip number.",
+  "delivered_at": null,
+  "resolution": null
+}

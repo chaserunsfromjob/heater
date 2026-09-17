@@ -1,0 +1,17 @@
+{
+  "id": "37ea6a3d69e8",
+  "created": "2026-09-17T08:26:58.323207+00:00",
+  "kind": "finding",
+  "urgency": "low",
+  "project": "pokerbot",
+  "path": "pokerbot/__init__.py",
+  "origin": "",
+  "summary": "pokerbot/__init__.py imports .table, so 'from pokerbot import notebook' pulls in pyspiel even though notebook.py needs no engine; OPPONENT_MODEL_DESIGN.md section 4.1 wants classify.py and below unit-testable with no engine dependency. Not fixed: outside dispatch b68dd506e0ee's brief.",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T08:29:39.882893+00:00",
+    "score": 44,
+    "task_id": "f7058f74399e"
+  }
+}
