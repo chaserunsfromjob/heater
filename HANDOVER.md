@@ -1,6 +1,6 @@
 # Handover
 
-<!-- handover-commit: 062357b -->
+<!-- handover-commit: 673e40e -->
 
 Written on `main`, 2026-09-17 about 04:30Z, on the Mac, just after a
 compaction at 39% (the summary was machine-made; this file was rewritten
