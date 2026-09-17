@@ -1,0 +1,12 @@
+{
+  "id": "5ff93dccc2a2",
+  "created": "2026-09-17T18:29:30.436460+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "BUILD_PLAN.md",
+  "origin": "",
+  "summary": "OPERATOR DECISION, 2026-09-17, verbatim: 'we should get gto solutions for 50bb, 100bb, 150bb, 200bb, 250bb. and then our own solver should adapt for any in between those.' and 'this should be no limit holdem by the way'. So: the GTO Wizard preflop answer key (research/results/theory_agreement/) is taken at five stack depths, 50/100/150/200/250bb, No-Limit Hold'em cash, for the scoreboard's seat counts; and the Stage 4 solved preflop baseline must be solved at (at least) those five depths and interpolate for any depth between them. Record in BUILD_PLAN.md Stage 4 and size the solve accordingly",
+  "delivered_at": "2026-09-17T19:36:51.899905+00:00",
+  "resolution": null
+}
