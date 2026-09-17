@@ -1,0 +1,17 @@
+{
+  "id": "b42eefab7d11",
+  "created": "2026-09-17T07:11:16.297681+00:00",
+  "change": "6e3f3af1ef5c",
+  "project": "heater",
+  "round": 2,
+  "lens": "default",
+  "verdict": "pass",
+  "findings": 2,
+  "wording_only": true,
+  "files": 8,
+  "insertions": 664,
+  "deletions": 62,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "Deciding round: both round-1 gaps closed and mutation-proved; live landed figure 5 agrees with dispatch.reviewed exactly; two wording items applied by the session."
+}
