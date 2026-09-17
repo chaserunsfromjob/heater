@@ -27,6 +27,13 @@ that stage is applied by the session and landed.
   applied and landed under the cap; 234 checks pinned; three wording
   observations recorded in the fix commit, not applied).
 
+## LANDED 2026-09-17 (Mac session, under the pace decision)
+
+- 972241b6f99a forefront rule rewritten in the operator's words — 2d411f3
+  (two rounds; the leftover stale references are the sweep task 90c430775d15).
+- bc7299f59f85 LLM_POKER_FAILURE_MODES.md — f959aad (one round, three
+  one-sentence fixes applied by the session).
+
 ## Still open
 
 - 7eead182560d RESOURCES_DICKREUTER.md (worker/7eead182560d @ b0c5b4a):
@@ -47,8 +54,9 @@ that stage is applied by the session and landed.
   repository, as the other surveys now have; and RESOURCES_SOLVERS.md
   :99-100 cites ENGINE_ALTERNATIVES.md:418-428 in origin's 52bd81d
   numbering — re-point at that landing.
-- codex/tonight (Rohit): assessed, untouched, WAITS ON THE OPERATOR — see
-  codex-tonight-assessment-2026-09-17.md. Do not merge.
+- codex/tonight (Rohit): reviewed against the new rule 2026-09-17; 24 required
+  changes in codex-tonight-required-changes-2026-09-17.md and GitHub issue #4.
+  His move. Do not merge.
 
 ## After the surveys: the reconciliation (not yet dispatched)
 

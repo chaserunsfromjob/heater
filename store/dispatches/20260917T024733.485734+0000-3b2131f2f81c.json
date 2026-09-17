@@ -1,0 +1,18 @@
+{
+  "id": "3b2131f2f81c",
+  "created": "2026-09-17T02:47:33.485734+00:00",
+  "task": "Mechanical sweep, no design calls. The forefront rule in CLAUDE.md was rewritten and landed on main (2d411f3): an AI assistant may write the decision code; no model call in the live decision path; no stored model output as decision content; rules and hand evaluation from the engine. Some documents still assert the OLD rule (a 'carve-out' the operator had to grant before our code could choose an action) or cite CLAUDE.md by line number, and the line numbers have moved. Sweep every such passage: run `grep -nE 'carve-out|CLAUDE\\.md:[0-9]+|Reserved to the engine|two-column' *.md README.md tests tools` and fix each hit so it states the new rule and cites CLAUDE.md by section name ('The forefront rule', 'What may be coded', 'What may not be coded', 'Compute budget'), never by line. Known hits: RESOURCES_SOLVERS.md :137-138, :145, :150, :995, :1067, :1094, :1101, :1108, :1127, :1129, :1142; RESOURCES_BOTS.md :943, :1021, :1092, :1096, :1108 (:910 is already correct new text, match it); REFERENCE_NOTES.md :306, :409; and any of OPPONENT_MODEL_DESIGN.md :47-59, :402-409, :642, :833, :960, :1402-1422, :1707, TABLE_SIZE_AND_SIZING_NOTES.md :53, :665, :1124, RESOURCES_EXPLOITATION.md :618, :782, :1193, :1275, README.md :58 that still do. In TABLE_SIZE_AND_SIZING_NOTES.md's Sources, move the pseudo-harmonic formula, Ganzfried-Sandholm 2013 and Pluribus's abstraction from memory-cited to retrieved (verified on branch worker/5a58d580c339, ACTION_TRANSLATION.md). In tools/check_design_numbers.py near :1547 replace the 'len(quotes) >= 3' floor with a comparison to the exact expected count. CHANGE NO NUMBER anywhere; both checkers (python3 tools/check_design_numbers.py, python3 tools/check_table_size_numbers.py) and pytest (/Users/chasethompson/.heater/worktrees/pokerbot/92e2a2c459ef/.venv/bin/python -m pytest tests -q -p no:cacheprovider) must stay green; quote the results. GitHub first: git fetch origin; git merge origin/main; commit; git push -u origin <branch>; gh pr create --draft titled 'Sweep stale forefront-rule references'; end with a push. Keep it to one commit. Run bin/inbox.py check --summary from /Users/chasethompson/heater before filing a finding. Report branch, PR URL, and the number of lines changed per file.",
+  "project": "pokerbot",
+  "done_when": "grep for carve-out, CLAUDE.md:<digits>, 'Reserved to the engine' and 'two-column' returns no stale hit on the branch; every citation of CLAUDE.md is by section name; no number changed; both checkers and pytest green; one commit pushed; draft PR open.",
+  "task_id": "90c430775d15",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/792ab9ee327d",
+  "lease_id": "792ab9ee327d",
+  "branch": "worker/3b2131f2f81c",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}
