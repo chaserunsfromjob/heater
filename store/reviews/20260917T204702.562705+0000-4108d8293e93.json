@@ -1,0 +1,17 @@
+{
+  "id": "4108d8293e93",
+  "created": "2026-09-17T20:47:02.562705+00:00",
+  "change": "e6dfe622fa6f",
+  "project": "heater",
+  "round": 4,
+  "lens": "default",
+  "verdict": "pass",
+  "findings": 4,
+  "wording_only": true,
+  "files": 10,
+  "insertions": 739,
+  "deletions": 99,
+  "cost_usd": null,
+  "duration_s": 540.0,
+  "note": "Round 4 at 8ea33f3: PASS, four wording findings (rules/global.md bullets name land only; skill says --document-only is how the store learns while README and code say landing stamps it; skill claims both lists everywhere while the no-checkout close reads committed paths only; dispatch.rounds_needed ignores record and shares a name with reviewloop.rounds_needed). Suite 696 OK, gate exit 0. 15 tool calls, 9 minutes."
+}
