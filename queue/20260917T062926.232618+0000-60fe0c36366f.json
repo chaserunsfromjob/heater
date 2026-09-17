@@ -1,0 +1,12 @@
+{
+  "id": "60fe0c36366f",
+  "created": "2026-09-17T06:29:26.232618+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "tools/dispatch.py",
+  "origin": "",
+  "summary": "reconcile's report: a live worker kept on the early heartbeat guard appears in awaiting_review as a bare id, so the report cannot say it was kept because the checkout is live (or that its branch is empty / already in trunk); carrying a why needs a dict entry and every reader of report['awaiting_review'] updated (bearings). Reporting shape, record in skills/dispatch first.",
+  "delivered_at": null,
+  "resolution": null
+}
