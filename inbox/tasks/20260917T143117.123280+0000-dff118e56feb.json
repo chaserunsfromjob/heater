@@ -1,0 +1,10 @@
+{
+  "id": "dff118e56feb",
+  "created": "2026-09-17T14:31:17.123280+00:00",
+  "score": 44,
+  "title": "work_at_risk judges 'pushed' against origin/<lease branch>, so a lease whose checkout was put on another branch reads as holding unique work even when its HEAD is on origin or in main; reconcile then reports left_behind and refuses release without --force. Judge against HEAD: contained by trunk, or by any origin ref",
+  "source_finding": "0bd5cdd79205",
+  "project": "heater",
+  "path": "tools/worktrees.py",
+  "done_at": null
+}

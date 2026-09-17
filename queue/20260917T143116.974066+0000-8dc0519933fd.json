@@ -1,0 +1,17 @@
+{
+  "id": "8dc0519933fd",
+  "created": "2026-09-17T14:31:16.974066+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "tools/dispatch.py",
+  "origin": "",
+  "summary": "No supported way to lease a checkout ON an existing branch for a reviewer or fixer: the stoker had to git checkout -B the worker's branch inside each new lease, which made every lease a git worktree of the same branch. Then worktrees.autosave, run by reconcile and bearings, saw each stale tree as uncommitted work and committed it onto the shared branch (six alternating 'Autosave uncommitted work' commits on worker/0a62853153e4, bce4558..7afd3ca, reverting and restoring fixer commits), and bearings' auto-push pushed them. Net content was unchanged only by luck of ordering. Add --branch to dispatch open (checkout of that branch, ref shared deliberately or a detached HEAD), and make autosave refuse a worktree whose HEAD is not the lease's own branch",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T14:31:17.035758+00:00",
+    "score": 58,
+    "task_id": "f642286f63f2"
+  }
+}
