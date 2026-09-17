@@ -1,0 +1,17 @@
+{
+  "id": "548e5cdfe607",
+  "created": "2026-09-17T15:56:56.342283+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "BUILD_PLAN.md",
+  "origin": "",
+  "summary": "OPERATOR DECISION, 2026-09-17, on the decision layer: after the stoker set out why depth-limited search with per-opponent continuation strategies was chosen over a lookup blueprint and over the engine's own tree search, the operator said verbatim: 'okay if you think that is best then that is what we will go with.' Also verbatim, same day: 'we just keep building the thinking process first and then we will get to the actual interfacing later.' Record both in BUILD_PLAN.md beside the Stage 1 decision-layer citation, so the search is the operator's settled choice and Stage 6 waits behind Stages 4 and 5 by the operator's order. Same worker as the D2 record (task 65f90b96b980); one small BUILD_PLAN.md change",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T15:56:56.396687+00:00",
+    "score": 54,
+    "task_id": "249040d4164d"
+  }
+}

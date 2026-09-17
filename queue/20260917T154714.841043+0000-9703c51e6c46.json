@@ -7,7 +7,7 @@
   "path": "pokerbot/search.py",
   "origin": "",
   "summary": "Build Stage 4 of BUILD_PLAN.md, the bot that plays the person: wire the notebook's buckets and flags into the search's continuation strategies per OPPONENT_MODEL_DESIGN.md 4.4 and DECISION_LAYER_SEARCH.md 'how the opponent model enters'; the arena must supply seat-to-name maps (HandRecord carries no names); then re-run the scoreboard against the Stage 2 baseline (loses to nit and tag). Next real pokerbot work per HANDOVER.md; not on the list until now",
-  "delivered_at": null,
+  "delivered_at": "2026-09-17T15:47:31.241820+00:00",
   "resolution": {
     "action": "promoted",
     "at": "2026-09-17T15:47:14.898857+00:00",
