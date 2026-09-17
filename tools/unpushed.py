@@ -350,15 +350,16 @@ def sweep(paths: list[Path] | None = None) -> list[dict[str, Any]]:
     expires = time.monotonic() + limit if limit > 0 else None
     missed_reason = (f"not reached inside the {limit:g}s sweep "
                      f"deadline ({DEADLINE_ENV})")
-    # Which bound actually stopped the push: the sweep's, or, when the sweep has
-    # no bound, the one on a single push. Naming the wrong one sends whoever
-    # reads it to change a setting that was not in play.
-    cut_short_reason = (
-        f"the push did not finish inside the {limit:g}s sweep deadline "
-        f"({DEADLINE_ENV}); it will be tried again on the next bearings read"
-        if limit > 0 else
-        f"the push did not finish inside {PUSH_TIMEOUT}s; it will be tried "
-        "again on the next bearings read")
+    # Which bound actually stopped the push: the sweep's, or the one on a single
+    # push. A push is handed the smaller of the two, so the sweep's deadline is
+    # what cut it short only when what was left of the sweep was the smaller
+    # number, whatever the deadline was set to. Naming the wrong one sends
+    # whoever reads it to change a setting that was not in play.
+    def cut_short_reason(allowed: float) -> str:
+        bound = (f"the {limit:g}s sweep deadline ({DEADLINE_ENV})"
+                 if allowed < PUSH_TIMEOUT else f"{PUSH_TIMEOUT:g}s")
+        return (f"the push did not finish inside {bound}; it will be tried "
+                "again on the next bearings read")
 
     def out_of_time() -> bool:
         return expires is not None and time.monotonic() >= expires
@@ -383,9 +384,10 @@ def sweep(paths: list[Path] | None = None) -> list[dict[str, Any]]:
                 results += [{"path": str(path), "branch": missed, "status": "skipped",
                              "detail": missed_reason} for missed in branches[position:]]
                 break
-            outcome, detail = push(path, branch, timeout=budget(expires, PUSH_TIMEOUT))
+            allowed = budget(expires, PUSH_TIMEOUT)
+            outcome, detail = push(path, branch, timeout=allowed)
             if outcome == "timeout":
-                outcome, detail = "skipped", cut_short_reason
+                outcome, detail = "skipped", cut_short_reason(allowed)
             results.append({"path": str(path), "branch": branch,
                             "status": outcome, "detail": detail})
     return results

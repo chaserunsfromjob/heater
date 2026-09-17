@@ -437,6 +437,29 @@ class TestDeadline(SweepCase):
         self.assertNotIn("timed out after", said)
         self.assertFalse(attention, "a push that ran out of time is news, not a decision")
 
+    def test_a_push_its_own_timeout_cut_short_does_not_blame_the_deadline(self):
+        """Name the bound that actually stopped it, not the one that was set.
+
+        A push is given the smaller of its own timeout and what is left of the
+        sweep. With a generous sweep deadline the smaller one is the push's own,
+        so a reason naming the deadline sends the operator to change a setting
+        that was never in play.
+        """
+        self.branch("worker/slow-push")
+        self.commit("p.txt", "a push origin will sit on")
+        self.stall_pushes(5)
+        self.env(unpushed.DEADLINE_ENV, "30")
+        self.addCleanup(setattr, unpushed, "PUSH_TIMEOUT", unpushed.PUSH_TIMEOUT)
+        unpushed.PUSH_TIMEOUT = 2
+
+        results = unpushed.sweep([self.repo])
+
+        self.assertEqual(self.statuses(results), {("worker/slow-push", "skipped")})
+        detail = results[0]["detail"]
+        self.assertNotIn(unpushed.DEADLINE_ENV, detail,
+                         "the sweep deadline had 30s left and stopped nothing")
+        self.assertIn("2s", detail, "the bound that did stop it is the one to name")
+
     def test_a_probe_the_deadline_cuts_short_is_not_called_offline(self):
         """The remote answered nothing because it was not given time to."""
         self.assertEqual(unpushed.git(self.repo, "ls-remote", "--heads", "origin",
