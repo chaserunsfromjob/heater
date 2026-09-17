@@ -226,8 +226,11 @@ def changed_paths(path: Path, trunk: str) -> list[str]:
     return both
 
 
-def rounds_needed(record: dict[str, Any] | None, lease: dict[str, Any] | None = None) -> int:
+def rounds_needed(lease: dict[str, Any] | None) -> int:
     """How many wording-only passes this change takes, from what it changed.
+
+    Shares its name with `reviewloop.rounds_needed`, which answers the same
+    question one level down, from a list of paths rather than from a lease.
 
     What a branch touched is git's to say, not the brief's: a brief can call a
     change a document and still carry a rewrite of the guard.
@@ -239,11 +242,7 @@ def rounds_needed(record: dict[str, Any] | None, lease: dict[str, Any] | None = 
     lease was made in a checkout somebody else shares, whose HEAD is wherever it
     was last left, and there is nothing saying which of what is in it this
     change made; every such reading takes the strict count.
-
-    `record` is what the caller has in hand rather than something read here: a
-    dispatch record names no branch until a lease fills one in.
     """
-    del record
     if not (lease and lease.get("path")):
         return ROUNDS_TO_END_REVIEW
     path, trunk = Path(lease["path"]), lease.get("base_branch") or "main"
@@ -370,7 +369,7 @@ def land(dispatch_id: str, *, gate: str = "", change: str = "",
 
     # Read before the review check, because how many rounds this change takes
     # depends on what its branch touched, and only the checkout can say.
-    needed = rounds_needed(record, lease)
+    needed = rounds_needed(lease)
 
     # What the landing rests on, written into the record either way: an override
     # that leaves no trace reads exactly like a change that was reviewed.
@@ -531,7 +530,7 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
         # the landing. A sweep holding a document for a second round of commas
         # while `land` would take it is the rule meaning two different things
         # depending on who runs it.
-        needed = rounds_needed(record, lease)
+        needed = rounds_needed(lease)
 
         # The trunk must be clean and checked out before anything merges into it.
         if str(repo) not in checked:

@@ -52,10 +52,13 @@ lands code on one round. The one round is for a change landed from its own
 leased checkout; a change made anywhere else has no branch of record and takes
 two like any other. The stoker applies that round's wording findings itself,
 records why in the store note, and lands; it does not send a document out again.
-`bin/dispatch.py land` and `bin/dispatch.py reconcile` read both lists and
-enforce both counts. Record the round with `--document-only` so the store's
-landed count reads it the same way, the branch being merged and gone by the time
-the week is counted.
+`bin/dispatch.py land` and `bin/dispatch.py reconcile` read both lists wherever
+the checkout still exists, and enforce both counts; a dispatch closed after its
+slot has gone back has only its committed paths left to read. Landing writes
+that reading onto the round it rested on, so the store's landed count reads the
+change the same way once the branch is merged and there is no diff left. Reach
+for `bin/store.py review --document-only` only when the round is recorded by
+hand with no dispatch behind it to write the flag.
 
 For everything else, run one final round. Record its wording findings as
 observations rather than findings, and land on its pass. A third round of commas

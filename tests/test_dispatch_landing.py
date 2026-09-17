@@ -1127,7 +1127,7 @@ class TestLooseCodeCountsAsCode(GitCase):
                      if l["id"] == record["lease_id"])
         self.assertIn("flag.py", dispatch.changed_paths(Path(lease["path"]),
                                                         lease.get("base_branch") or "main"))
-        self.assertEqual(dispatch.rounds_needed(record, lease), dispatch.ROUNDS_TO_END_REVIEW)
+        self.assertEqual(dispatch.rounds_needed(lease), dispatch.ROUNDS_TO_END_REVIEW)
 
     def test_the_sweep_does_not_land_loose_code_on_one_round(self):
         record = self.worker("write the survey")
@@ -1312,7 +1312,7 @@ class TestAChangeWithoutALeaseTakesTwoRounds(GitCase):
         self.on_a_branch("survey", "survey.md", "# survey\n")
         self.wording_pass(record["id"], 1)
 
-        self.assertEqual(dispatch.rounds_needed(record), dispatch.ROUNDS_TO_END_REVIEW)
+        self.assertEqual(dispatch.rounds_needed(None), dispatch.ROUNDS_TO_END_REVIEW)
         with self.assertRaises(dispatch.NotReadyToLand):
             dispatch.land(record["id"])
 
@@ -1331,7 +1331,7 @@ class TestAChangeWithoutALeaseTakesTwoRounds(GitCase):
     def test_a_dispatch_with_no_workdir_at_all_takes_the_code_rule(self):
         record = dispatch.open_dispatch("read the options and write them up", project="api")
         self.assertEqual(record["workdir"], "")
-        self.assertEqual(dispatch.rounds_needed(record), dispatch.ROUNDS_TO_END_REVIEW)
+        self.assertEqual(dispatch.rounds_needed(None), dispatch.ROUNDS_TO_END_REVIEW)
 
 
 class TestADocumentClosedWithNoCheckoutLeftIsCounted(GitCase):
