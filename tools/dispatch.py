@@ -243,8 +243,21 @@ def someone_working_in(path: Path) -> bool:
     return False
 
 
+def override_note(reason: str) -> str:
+    """What a landing that skipped review rests on, in the note it leaves behind.
+
+    `OPINIONS.md` 13 allows the skip on condition the note records why, so the
+    reason is part of the phrase rather than something beside it. A skip with
+    nothing said is still recorded, and says that nothing was said: refusing it
+    would only push the override somewhere that leaves no note at all.
+    """
+    said = reason.strip()
+    phrase = "review skipped by the stoker's explicit override"
+    return f"{phrase}: {said}" if said else f"{phrase} (no reason given)"
+
+
 def land(dispatch_id: str, *, gate: str = "", change: str = "",
-         skip_review: bool = False) -> dict[str, Any]:
+         skip_review: bool = False, reason: str = "") -> dict[str, Any]:
     """Merge a worker's branch back, then give its slot up.
 
     The whole cycle in one step, because a merge that leaves the checkout behind
@@ -259,7 +272,7 @@ def land(dispatch_id: str, *, gate: str = "", change: str = "",
     named = change or dispatch_id
     # What the landing rests on, written into the record either way: an override
     # that leaves no trace reads exactly like a change that was reviewed.
-    approval = "review skipped by the stoker's explicit override"
+    approval = override_note(reason)
     if not skip_review:
         if not reviewed(named):
             raise NotReadyToLand(
@@ -358,7 +371,7 @@ def merge_into_trunk(repo: Path, path: Path, branch: str, trunk: str,
 
 
 def reconcile(*, run_id: str = "", project: str = "", require_review: bool = True,
-              gate: str = "") -> dict[str, Any]:
+              gate: str = "", reason: str = "") -> dict[str, Any]:
     """Consolidate every finished worker into the trunk, then clean up after it.
 
     Safe to run at any time and safe to run again: what to do is worked out from
@@ -412,7 +425,16 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
             continue
 
         if worktrees.landed(lease, trunk):
-            # A previous sweep merged it and stopped before cleaning up.
+            # A previous sweep merged it and stopped before cleaning up — or a
+            # worker that has not committed yet caught its empty branch up with
+            # a trunk that moved (`git pull`, `git merge main`). Both leave a
+            # branch the trunk contains, standing past the commit it was cut
+            # from, so git cannot tell them apart and the heartbeat has to:
+            # deleting the second one takes the slot from a worker mid-task.
+            if (why := still_in_use(path, f"{branch} is already in {trunk}")):
+                report["held"].append({"dispatch": record["id"], "branch": branch,
+                                       "why": why})
+                continue
             finish(record, lease, branch, repo, trunk, "already in the trunk")
             report["landed"].append(record["id"])
             continue
@@ -435,8 +457,7 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
             report["needs_fix"].append({"dispatch": record["id"], "branch": branch, "why": why})
             continue
 
-        approval = (review_note(record["id"]) if require_review
-                    else "review skipped by the stoker's explicit override")
+        approval = review_note(record["id"]) if require_review else override_note(reason)
         finish(record, lease, branch, repo, trunk, f"{why}; {approval}")
         report["landed"].append(record["id"])
 
@@ -496,9 +517,18 @@ def held_in_flight(record: dict[str, Any], lease: dict[str, Any], state: str) ->
     age = age_minutes(record)
     if age is None or age < EMPTY_BRANCH_STALE_HOURS * 60:
         return f"{branch} {state}; the worker is still out"
-    if someone_working_in(Path(lease.get("path", ""))):
-        return (f"{branch} {state}, but its checkout made a tool call "
-                f"within {STALE_MINUTES}m")
+    return still_in_use(Path(lease.get("path", "")), f"{branch} {state}")
+
+
+def still_in_use(path: Path, state: str) -> str:
+    """Why this checkout may not be removed yet, or "" when nobody is in it.
+
+    One sentence for every route that would delete a checkout, so a worker that
+    is alive is said to be alive the same way wherever the sweep notices it.
+    `state` is what git showed, said back as given.
+    """
+    if someone_working_in(path):
+        return f"{state}, but its checkout made a tool call within {STALE_MINUTES}m"
     return ""
 
 
@@ -603,6 +633,8 @@ def main(argv: list[str]) -> int:
     sweep.add_argument("--project", default="")
     sweep.add_argument("--gate", default="", help="command that must exit 0 in each checkout")
     sweep.add_argument("--skip-review", action="store_true")
+    sweep.add_argument("--reason", default="",
+                       help="why review was skipped; recorded in the note of everything landed")
 
     sub.add_parser("list", help="dispatches still out")
 
@@ -612,6 +644,8 @@ def main(argv: list[str]) -> int:
     finish.add_argument("--change", default="", help="the change name in the review store; defaults to the dispatch id")
     finish.add_argument("--skip-review", action="store_true",
                         help="land without a recorded review pass; for a human who has looked")
+    finish.add_argument("--reason", default="",
+                        help="why review was skipped; recorded in the landing note")
 
     end = sub.add_parser("close", help="record that a worker reported")
     end.add_argument("dispatch_id")
@@ -635,7 +669,8 @@ def main(argv: list[str]) -> int:
             print()
     elif args.action == "reconcile":
         result = reconcile(run_id=args.run_id, project=args.project,
-                           require_review=not args.skip_review, gate=args.gate)
+                           require_review=not args.skip_review, gate=args.gate,
+                           reason=args.reason)
         print(render_reconcile(result))
         return 1 if (result["held"] or result["needs_fix"]) else 0
     elif args.action == "list":
@@ -643,7 +678,7 @@ def main(argv: list[str]) -> int:
     elif args.action == "land":
         try:
             record = land(args.dispatch_id, gate=args.gate, change=args.change,
-                          skip_review=args.skip_review)
+                          skip_review=args.skip_review, reason=args.reason)
         except (NotReadyToLand, ValueError) as error:
             print(f"dispatch: {error}", file=sys.stderr)
             return 1

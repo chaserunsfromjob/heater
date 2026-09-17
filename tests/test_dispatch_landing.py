@@ -14,6 +14,8 @@ git is what decides, a real repository.
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import os
 import subprocess
@@ -262,6 +264,60 @@ class TestLandingSaysWhichRound(GitCase):
         self.assertIn("review skipped", landed["note"].lower(),
                       "an override that leaves no trace is indistinguishable from a review")
 
+    def test_skipping_review_records_the_reason_given(self):
+        """OPINIONS.md 13 lets the stoker skip review "recording why in the store note".
+
+        The override phrase alone says a human decided; it does not say what
+        they decided on, which is the half somebody reading the note a week
+        later needs.
+        """
+        record = self.worker()
+        self.work(record)
+        landed = dispatch.land(record["id"], skip_review=True,
+                               reason="research doc, stoker read it end to end")
+        self.assertIn("review skipped by the stoker's explicit override: "
+                      "research doc, stoker read it end to end", landed["note"])
+
+    def test_skipping_review_without_a_reason_says_no_reason_was_given(self):
+        """Refused would strand the override; silence would read as a reason."""
+        record = self.worker()
+        self.work(record)
+        landed = dispatch.land(record["id"], skip_review=True)
+        self.assertIn("review skipped by the stoker's explicit override "
+                      "(no reason given)", landed["note"])
+
+    def test_reconcile_records_that_review_was_skipped(self):
+        record = self.worker()
+        self.work(record)
+        dispatch.reconcile(require_review=False)
+        note = self.stored(record["id"])["note"]
+        self.assertIn("review skipped by the stoker's explicit override "
+                      "(no reason given)", note)
+
+    def test_reconcile_records_the_reason_review_was_skipped(self):
+        record = self.worker()
+        self.work(record)
+        dispatch.reconcile(require_review=False, reason="one-line typo fix")
+        self.assertIn("review skipped by the stoker's explicit override: "
+                      "one-line typo fix", self.stored(record["id"])["note"])
+
+    def test_the_reason_reaches_the_note_from_the_command_line(self):
+        """The flag is only worth having if it is wired to the note."""
+        landing = self.worker()
+        self.work(landing)
+        with contextlib.redirect_stdout(io.StringIO()):
+            dispatch.main(["dispatch.py", "land", landing["id"], "--skip-review",
+                           "--reason", "operator read it"])
+        self.assertIn("override: operator read it", self.stored(landing["id"])["note"])
+
+        swept = self.worker()
+        self.work(swept, name="second.txt")
+        with contextlib.redirect_stdout(io.StringIO()):
+            dispatch.main(["dispatch.py", "reconcile", "--skip-review",
+                           "--reason", "operator read this one too"])
+        self.assertIn("override: operator read this one too",
+                      self.stored(swept["id"])["note"])
+
     def test_reconcile_notes_the_round_it_landed_on(self):
         record = self.worker()
         self.work(record)
@@ -402,6 +458,52 @@ class TestAnEmptyBranchIsNotLanded(GitCase):
         self.assertIn("already in the trunk", self.stored(record["id"])["note"])
         self.assertFalse(Path(record["workdir"]).exists(),
                          "its slot goes back once the trunk provably has the work")
+
+    def test_a_live_worker_that_caught_up_with_a_moved_trunk_is_held(self):
+        """A branch reaches the trunk two ways, and only one of them is finished.
+
+        A worker that runs `git merge main` before its first commit leaves a
+        branch whose commits the trunk has, standing past the commit the slot
+        was cut from — the same two answers a merged branch gives. Read as
+        merged, the sweep deletes the checkout of a worker whose last tool call
+        was seconds ago. The heartbeat is what separates them.
+        """
+        record = self.worker("research the options")
+        (self.repo / "b.txt").write_text("trunk moved on\n")
+        run("git", "add", "-A", cwd=self.repo)
+        run("git", "commit", "-qm", "trunk moves", cwd=self.repo)
+        run("git", "merge", "--no-edit", "-q", "main", cwd=Path(record["workdir"]))
+        self.beat(Path(record["workdir"]))
+
+        report = dispatch.reconcile()
+
+        held = [h for h in report["held"] if h["dispatch"] == record["id"]]
+        self.assertEqual(len(held), 1, "a worker still making tool calls is not finished")
+        self.assertIn("tool call", held[0]["why"])
+        self.assertTrue(Path(record["workdir"]).exists(),
+                        "a running worker's checkout must survive the sweep")
+        self.assertEqual([d["id"] for d in dispatch.live()], [record["id"]],
+                         "a worker still out is not a dispatch that landed")
+
+    def test_a_silent_checkout_whose_work_is_in_the_trunk_still_lands(self):
+        """The guard is the heartbeat, not the state of the branch.
+
+        Same branch as the test above with nothing heard from the checkout, so
+        the sweep that finds it must still clean it up; otherwise the guard
+        would strand every merged slot instead of the running ones.
+        """
+        record = self.worker()
+        self.work(record)
+        self.approve(record["id"])
+        lease = next(l for l in jsonstore.load(worktrees.leases_dir())
+                     if l["id"] == record["lease_id"])
+        run("git", "merge", "--no-ff", lease["branch"], "-m", "landed by hand", cwd=self.repo)
+        self.beat(Path(record["workdir"]), minutes_ago=dispatch.STALE_MINUTES + 1)
+
+        report = dispatch.reconcile()
+
+        self.assertEqual(report["landed"], [record["id"]])
+        self.assertFalse(Path(record["workdir"]).exists())
 
     def test_an_old_silent_merged_checkout_is_not_closed_as_never_started(self):
         """The same branch left a day, which is when the false note gets written."""
