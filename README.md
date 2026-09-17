@@ -110,7 +110,11 @@ complete.
       on the disk rather than by a headcount.
       `reconcile` sweeps finished workers into the trunk and clears up behind
       them, deriving what to do from git so it is safe to repeat. Nothing is
-      deleted until its commits are provably in the trunk.
+      deleted until its commits are provably in the trunk. A checkout with no
+      work saved on it yet is not treated as finished work: it is held while
+      its worker may still be out there. Such a slot is only taken back once
+      the dispatch is more than a day old (`EMPTY_BRANCH_STALE_HOURS`) and
+      nothing has run in the checkout for half an hour (`STALE_MINUTES`).
 
 ## Credit
 

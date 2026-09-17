@@ -104,9 +104,18 @@ class TestTheLatestRoundDecides(StoreCase):
                          "the latest round failed; an older pass is not a review pass")
 
     def test_the_last_recorded_round_wins_when_numbers_tie(self):
-        self.wording_pass("auth", 1)
-        self.clean_pass("auth", 2)
+        """Two rounds both called "round 2": the one recorded last decides.
+
+        Built so that the two orderings disagree. The fail is stored first, so
+        its filename sorts earliest and the store hands it over first; the pass
+        is then backdated an hour, so `created` says the opposite of the
+        filename. Reading the rounds in file order ends on two passes and calls
+        the review over; reading them by `created` ends on the fail.
+        """
         self.round_of("auth", 2, "fail", findings=1)
+        later_pass = self.clean_pass("auth", 2)
+        backdate(store.reviews_dir(), later_pass["id"], 1)
+        self.clean_pass("auth", 3)
         self.assertFalse(dispatch.reviewed("auth"),
                          "two rounds numbered the same are settled by which was recorded last")
 
@@ -130,9 +139,17 @@ class TestTheLatestRoundDecides(StoreCase):
         self.assertTrue(dispatch.reviewed("auth"))
 
     def test_rounds_of_another_change_are_not_counted(self):
+        """One change's rounds never end another change's review.
+
+        "other" is reviewed to the end while "auth" has a single pass of its
+        own. Counting every round in the store would read auth's pass and
+        other's last pass as two consecutive passes for auth.
+        """
         self.approve("other")
-        self.round_of("auth", 1, "fail", findings=1)
-        self.assertFalse(dispatch.reviewed("auth"))
+        self.wording_pass("auth", 1)
+        self.assertFalse(dispatch.reviewed("auth"),
+                         "auth has had one round; another change's rounds are not auth's")
+        self.assertTrue(dispatch.reviewed("other"))
 
 
 class TestReviewEndsOnTwoRounds(StoreCase):
@@ -336,12 +353,28 @@ class TestAnEmptyBranchIsNotLanded(GitCase):
                         "autosave runs first, so this branch is not empty")
 
     def test_work_already_merged_is_still_cleaned_up(self):
+        """A sweep that merged and then stopped leaves the rest to the next one.
+
+        This is the state reconcile finds after a crash between the merge and
+        the cleanup: the dispatch still open, its slot still held, and the
+        commits already reachable from the trunk. The checkout is gone because
+        removing it is the step that sweep got through before it stopped. While
+        the checkout is still there the branch reads as carrying no commits the
+        trunk lacks, and is held for a worker who may still be out.
+        """
         record = self.worker()
         self.work(record)
         self.approve(record["id"])
-        dispatch.reconcile()
-        again = dispatch.reconcile()
-        self.assertEqual(again["landed"], [])
+        lease = next(l for l in jsonstore.load(worktrees.leases_dir())
+                     if l["id"] == record["lease_id"])
+        run("git", "merge", "--no-ff", lease["branch"], "-m", "landed by hand", cwd=self.repo)
+        run("git", "worktree", "remove", "--force", lease["path"], cwd=self.repo)
+
+        report = dispatch.reconcile()
+
+        self.assertEqual(report["landed"], [record["id"]])
+        self.assertIn("already in the trunk", self.stored(record["id"])["note"],
+                      "work the trunk already has is cleaned up, not merged again")
         self.assertFalse(Path(record["workdir"]).exists())
 
 
