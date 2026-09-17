@@ -37,6 +37,13 @@ from heartbeats import STALE_MINUTES, beats, someone_working_in  # noqa: F401
 from reviewloop import ROUNDS_TO_END_REVIEW  # noqa: F401
 
 OUTCOMES = ("landed", "pushed", "escalated", "failed", "abandoned")
+
+# The two outcomes that say there is nothing of this dispatch left anywhere: its
+# work is in the trunk, or there was never any work to put there. Both are read
+# as finished and neither is counted as something to answer, so recording one
+# over work still sitting in a checkout is how a wake reads green over it.
+LEAVES_NOTHING_BEHIND = ("landed", "abandoned")
+
 REPO = jsonstore.REPO
 
 # How long a branch with no commits on it is left alone. A checkout that has
@@ -126,7 +133,23 @@ def close_dispatch(dispatch_id: str, outcome: str, note: str = "") -> dict[str, 
         try:
             worktrees.release(record["lease_id"], f"dispatch {outcome}")
         except (RuntimeError, ValueError) as error:
-            record["note"] = (record["note"] + f" [slot held: {error}]").strip()
+            # The refusal is itself the answer to what this dispatch did. The
+            # slot is only held back when the branch carries work that exists
+            # nowhere else, which means the work is not in the trunk and nobody
+            # else has a copy, so an outcome claiming nothing was left behind is
+            # false. It used to be kept, with the refusal appended to the note,
+            # and `landed` is a clean outcome: the work was counted as delivered
+            # and the wake read green over a checkout nobody would open again.
+            #
+            # Closed rather than left open, because the worker has reported and
+            # is gone; a dispatch left open would have the sweep waiting on a
+            # review for a worker that is never coming back. The slot itself is
+            # reported by every sweep from here on, so the work is still asked
+            # about until somebody lands it or pushes it.
+            claimed_clean = outcome in LEAVES_NOTHING_BEHIND
+            record["outcome"] = "failed" if claimed_clean else outcome
+            said = f"slot held, so not {outcome}" if claimed_clean else "slot held"
+            record["note"] = f"{record['note']} [{said}: {error}]".strip()
             jsonstore.write(dispatches_dir(), record)
     return record
 
@@ -470,8 +493,48 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
         finish(record, lease, branch, repo, trunk, f"{why}; {approval}")
         report["landed"].append(record["id"])
 
+    # Slots that never went back, from closes this sweep just made and from
+    # every close before it. Asked outside the loop above because `live()` has
+    # nothing to say about a dispatch that is already closed.
+    report["left_behind"].extend(slots_never_returned(run_id=run_id, project=project))
+
     report["runs_finished"] = finished_runs()
     return report
+
+
+def slots_never_returned(*, run_id: str = "", project: str = "") -> list[dict[str, Any]]:
+    """Closed dispatches whose checkout is still standing on work nobody has.
+
+    Handing the slot back is part of closing, and release refuses while the
+    branch holds work that exists nowhere else. The dispatch closes either way,
+    so `live()` never offers it to a sweep again: without this, the checkout
+    stands there with the only copy of the work in it and no sweep ever says so.
+
+    Asked of every closed dispatch, not only of the one just closed, because the
+    condition is not a moment -- it lasts until somebody lands or pushes that
+    branch, and a slot nobody is told about is a slot nobody frees.
+    """
+    leases = {l["id"]: l for l in jsonstore.load(worktrees.leases_dir())}
+    held = []
+    for record in jsonstore.load(dispatches_dir()):
+        if not record.get("closed_at"):
+            continue
+        if run_id and record.get("run_id") != run_id:
+            continue
+        if project and record.get("project") != project:
+            continue
+        lease = leases.get(record.get("lease_id", ""))
+        if lease is None or lease.get("released_at"):
+            continue
+        if not worktrees.work_at_risk(lease):
+            # The checkout is still there but holds nothing of its own, so
+            # nothing is at stake: `reclaim` takes that slot back on age.
+            continue
+        branch = lease.get("branch", "")
+        held.append({"dispatch": record["id"], "branch": branch,
+                     "why": f"the slot never went back: {branch} holds work that "
+                            f"exists nowhere else, so nothing of it is in the trunk"})
+    return held
 
 
 # Why a branch carries nothing the trunk lacks. Both read as a clause after the
@@ -602,9 +665,10 @@ def finish(record: dict[str, Any], lease: dict[str, Any], branch: str,
     close_dispatch(record["id"], outcome, why)
 
 
-# What a run's member can be closed as and still leave nothing behind: its work
-# is in the trunk, or there was never any work to put there.
-RUN_MEMBER_FINISHED = ("landed", "abandoned")
+# What a run's member can be closed as and still leave nothing behind. The same
+# pair `close_dispatch` refuses to record over a slot it could not get back, and
+# named once so the two cannot drift apart.
+RUN_MEMBER_FINISHED = LEAVES_NOTHING_BEHIND
 
 
 def finished_runs() -> list[str]:
