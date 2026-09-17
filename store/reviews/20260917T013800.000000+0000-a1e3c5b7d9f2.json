@@ -1,0 +1,17 @@
+{
+  "id": "a1e3c5b7d9f2",
+  "created": "2026-09-17T01:38:00.000000+00:00",
+  "change": "45e49ce81e40",
+  "project": "pokerbot",
+  "round": 6,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 4,
+  "wording_only": false,
+  "files": 3,
+  "insertions": 3352,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 900.0,
+  "note": "PC-session reviewer at 5640284: FAIL, 1 substantive + 3 wording. Round-5 F1/F6 (MIVAT, against the PDF), F2, F4, F5, W1-W5 all resolved and verified; 278 links 0 broken; suite 34; 222 checks; encoding-safe; nothing settled. F1 :1990-2003 and checker docstring :30-38 still overclaim (third round running): 'every column of the budget table' (columns 1-2 unchecked — seat lists and run names mutate freely), 'every figure the report block prints' (weights line, cycle a>b>c>d, the invented intervals :942 which :2038 declares not data), 'checks every place' (4,438 unchecked at :1014/:1753/:2046; 47,564 at :2046). 33-mutation sweep: 10 misses, 8 inside claimed coverage. Extend the checker or narrow the sentences; never leave 'every column'/'every figure'. W1 §4.5 'that did run' vs §3.7 'the engine can deal'. W2 MIVAT in the contents and §2.4 heading before its expansion. W3 ENGINE_SUPERSEDED_HANDS_PER_SEC guards a phrase that no longer exists. Findings in handover/findings-45e49ce81e40-evaluation-r6.md. Cost: ~50 tool calls, ~15 min; no dollar figure."
+}
