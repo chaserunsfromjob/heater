@@ -1,0 +1,18 @@
+{
+  "id": "d82528eed8c4",
+  "created": "2026-09-17T07:48:52.532761+00:00",
+  "task": "Sweep every quotation of CLAUDE.md's old goal line ('a table of 3 or more') out of the pokerbot documents (TABLE_SIZE_AND_SIZING_NOTES.md ~1292, DECISION_LAYER_BLUEPRINT.md 523 and 653, and any other hit of git grep) so each quotes or paraphrases the current goal line",
+  "project": "pokerbot",
+  "done_when": "git grep 'table of 3 or more' returns nothing outside git history; the three checkers and bash bin/gate.sh pass; branch pushed with a draft PR",
+  "task_id": "d279ff86d8c8",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/b3234c807b23",
+  "lease_id": "b3234c807b23",
+  "branch": "worker/d82528eed8c4",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

@@ -37,7 +37,11 @@ Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-No agent is out. Every change dispatched tonight has landed; reconcile at
+One agent is out: `d82528eed8c4` pokerbot worker (worktree
+pokerbot/b3234c807b23, task d279ff86d8c8): sweep the old goal line quotes
+out of TABLE_SIZE_AND_SIZING_NOTES.md and DECISION_LAYER_BLUEPRINT.md. On
+report: session reads the hits, lands `--skip-review --reason` with `bash
+bin/gate.sh`. Everything dispatched before it has landed; reconcile at
 07:48Z reported nothing open. pokerbot main is at 728c5da (CLAUDE.md now has
 a "Firm requirements" section: 2-9 players, true no-limit, exploitative
 play keyed to the named player; the goal line agrees; PR #19). heater main
@@ -47,8 +51,8 @@ Next work when the band allows (weekly 82% at 07:45Z, four days left;
 five-hour window resets 09:10Z): read `bin/inbox.py tasks` and take the
 top actionable one only. The list's top, the dickreuter PC push
 (cfdbaaf...), cannot be done from the Mac: the PC's next bearings run
-pushes it. Then 1d556f9ada0d (stale quotes of the old goal line in two
-documents) is a small pokerbot sweep.
+pushes it. After d82528eed8c4, the next actionable tasks are all fleet reporting
+texture (scores 41-48); hold unless the band opens.
 
 - `6e3f3af1ef5c` heater sweep/store truthfulness: LANDED 87f9569 (round 1
   fail, round 2 pass, two wording items by the session). The sweep's exit
