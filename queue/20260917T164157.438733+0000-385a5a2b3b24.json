@@ -1,0 +1,17 @@
+{
+  "id": "385a5a2b3b24",
+  "created": "2026-09-17T16:41:57.438733+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "rules/global.md",
+  "origin": "",
+  "summary": "OPERATOR RULE CHANGE, 2026-09-17, verbatim: 'yes to document only changes we definitely only need one check. for bigger things we should stay at two but that can change to one.' Apply in four places, one worker: (1) OPINIONS.md: a new numbered opinion carrying the words, with the reasoning the stoker gave (review is the largest cost: 138 rounds over 38 changes in 7 days, median 2, worst 10) in the commit message not the rule; (2) rules/global.md Landing: a document-only change (every path in the diff against trunk is .md or .txt, or under research/results/ or handover/) lands on ONE round that passes with wording-only findings; every other change keeps two consecutive; (3) skills/adversarial-review 'When review ends' says the same; (4) tools/dispatch.py land: detect document-only from the diff and require one round for it, with a test for each path (a .md-only branch lands after one wording-only pass; a branch touching a .py needs two; a mixed branch counts as code); README step 7 updated. Reason in the commit, never in the rule",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T16:41:57.498282+00:00",
+    "score": 66,
+    "task_id": "921f9190a071"
+  }
+}
