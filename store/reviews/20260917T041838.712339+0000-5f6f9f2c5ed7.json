@@ -1,0 +1,17 @@
+{
+  "id": "5f6f9f2c5ed7",
+  "created": "2026-09-17T04:18:38.712339+00:00",
+  "change": "baed4c5203a7",
+  "project": "pokerbot",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 8,
+  "wording_only": false,
+  "files": 4,
+  "insertions": 977,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "F1 six-handed tree figures (7.67M states, 37.2s, 5.8GB) not in the committed jsonl and not reproducible (17.9M nodes, 18.5s measured); F2/F3 misquotes trunk CLAUDE.md forefront rule; F4 560,000x should be ~450,000x; F5 180s header wrong for overrun cells; F6 BUILD_PLAN.md not cited; F7 table renderer asserts unknown phase; F8 re-run command incomplete. Exact replacements given."
+}
