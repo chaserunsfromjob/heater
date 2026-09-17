@@ -1,6 +1,6 @@
 # Handover
 
-<!-- handover-commit: dd9f533 -->
+<!-- handover-commit: 2c24df8 -->
 
 Written on `main`, 2026-09-17 about 17:55Z, on the Mac, at 36% context, the
 operator clearing the session; nothing is out. Verify with `bin/handover.py`. A snapshot, not a log;
