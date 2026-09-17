@@ -93,8 +93,11 @@ dispatch closes as `landed` on the spot. Where the slot has gone back and the
 branch still holds commits the trunk does not — a slot handed back by hand, or
 reclaimed from a worker that never landed — nothing was abandoned and nothing
 landed, so the dispatch closes as `failed`, the branch is named on screen, and
-the sweep exits 1. Every one of these closes says which review state it rested
-on, so it can be checked afterwards rather than taken on trust.
+the sweep exits 1. A released slot whose branch or repository cannot be found,
+or whose comparison against the trunk git could not answer, is reported the
+same way: closed `failed`, named on screen, exit 1, because the point is to
+stop guessing that work arrived. Every one of these closes says which review
+state it rested on, so it can be checked afterwards rather than taken on trust.
 
 Nothing is deleted until its commits are provably reachable from the trunk. That
 check is the invariant the whole sweep rests on, and `finish` raises rather than

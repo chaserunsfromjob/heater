@@ -4,7 +4,7 @@
   "kind": "finding",
   "urgency": "normal",
   "project": "heater",
-  "path": "",
+  "path": "tools/store.py",
   "origin": "",
   "summary": "tools/store.py:145 passed_first_round is read off the windowed rounds, so a change whose earlier rounds fall outside the window is counted as a first-round pass: the same windowing flaw as changes_landed, one figure over",
   "delivered_at": null,
