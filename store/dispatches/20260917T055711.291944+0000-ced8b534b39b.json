@@ -1,0 +1,18 @@
+{
+  "id": "ced8b534b39b",
+  "created": "2026-09-17T05:57:11.291944+00:00",
+  "task": "Two ways a live worker still loses its checkout: worktrees.reclaim() releases a lease older than 240m with no heartbeat check (b3b71f0512ac), and reconcile autosaves a live worker's loose files before any heartbeat guard (d80c47c137ae); route both through dispatch.still_in_use / someone_working_in",
+  "project": "heater",
+  "done_when": "failing test first for each; reclaim holds a checkout with a heartbeat under STALE_MINUTES; autosave is skipped (or moved after the guards) for such a checkout; bash bin/gate.sh passed; branch pushed",
+  "task_id": "b3b71f0512ac",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/heater",
+  "workdir": "/Users/chasethompson/.heater/worktrees/heater/8212f4d02130",
+  "lease_id": "8212f4d02130",
+  "branch": "worker/ced8b534b39b",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}
