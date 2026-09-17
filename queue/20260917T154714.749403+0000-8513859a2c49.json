@@ -1,0 +1,17 @@
+{
+  "id": "8513859a2c49",
+  "created": "2026-09-17T15:47:14.749403+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "BUILD_PLAN.md",
+  "origin": "",
+  "summary": "OPERATOR DECISION D2, 2026-09-17, verbatim: 'i plan to play on an app on my phone which will be screen mirrored to this computer. so you will capture my computer screen. the screen mirror will be on the right side of my screen in a phone shaped column. you will be playing from there.' Record in BUILD_PLAN.md section 3 D2 as answered and size Stage 6 against it: capture is a screen reader over a fixed region of the Mac display (the mirrored phone column on the right), the dickreuter capture layer is the reference (RESOURCES_DICKREUTER.md), the app's name and the mirroring method are still to be named by the operator, and typing hands in by hand stays the bridge until the reader reads that layout",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T15:47:14.805388+00:00",
+    "score": 55,
+    "task_id": "65f90b96b980"
+  }
+}
