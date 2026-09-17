@@ -8,5 +8,10 @@
   "origin": "",
   "summary": "tools/debrief.py:41 SENTENCE_END never splits after a word in capitals, so 'The reconciliation, written as a BUILD PLAN. Write ONE new file BUILD_PLAN.md...' is one sentence and its order is invisible to _says_the_work (dispatch c91832fe9882)",
   "delivered_at": null,
-  "resolution": null
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T05:43:32.858775+00:00",
+    "score": 39,
+    "task_id": "8e672a54a3be"
+  }
 }

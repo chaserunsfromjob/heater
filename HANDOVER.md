@@ -28,12 +28,12 @@ None of that is repeated here.
 
 ## Where things stand
 
-pokerbot main is at 3a54ce2 (T1 the table, PR #11, and T2 the first bot, PR #15, landed).
+pokerbot main is at 88ffff1: T1 the table (PR #11), T2 the first bot (PR #15) and T3 the scoreboard (PR #16) all landed tonight. The MORNING REPORT is queued (d9e05d4e4a29, 05:43Z): deliver it, do not write another.
 Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-Two agents are out (T3 wording fixer, taper fixer 7); each report needs one action. Compaction keeps them;
+One agent is out (taper fixer 7); each report needs one action. Compaction keeps them;
 a fresh session must read the branches on origin instead.
 
 - `8edc0ce3e009` T2 the first bot: LANDED 3a54ce2 (PR #15) on a round-2
@@ -44,14 +44,12 @@ a fresh session must read the branches on origin instead.
   (both add sections); then keep personas.py as the one home for the three
   trivial agents and shim arena.py to it; delete baselines.py (task
   6805b01c7bd2 covers the __init__ docstring).
-- `1fd3a6ebe936` T3 the scoreboard, PR #16, tip 0b39814, worktree
-  pokerbot/4ecb51776067. Round 1 fail on ten findings, all fixed; round 2
-  PASS with six wording findings. A small FIXER is out: merge origin/main
-  (T2 landed at 3a54ce2; README conflict expected) and apply the six. On
-  its report: `bin/dispatch.py land 1fd3a6ebe936 --skip-review --gate "bash
-  bin/gate.sh"` (record: round-2 pass, wording applied), push pokerbot main,
-  delete branch. Then the three trivial agents exist twice (T2 baselines.py,
-  T3 personas.py): task filed to keep personas.py and shim arena.py.
+- `1fd3a6ebe936` T3 the scoreboard: LANDED 88ffff1 (PR #16) on a round-2
+  wording-only pass with the six wording edits applied by a fixer and the
+  merge with T2 resolved (README both sections). 270 tests on main. The
+  three trivial agents now exist twice (task d077f18909a7: keep personas.py,
+  shim arena.py, delete baselines.py); the __init__ docstring names two
+  layers of three (task 6805b01c7bd2).
 - `20b9ff39b519` heater auto-push in bearings: LANDED 3b26e74 on a round-5
   clean pass (five rounds). Every bearings read now pushes unpushed local
   branches in every known checkout; HEATER_AUTOPUSH=0 turns it off; it
@@ -82,9 +80,13 @@ a fresh session must read the branches on origin instead.
   the next status-line render and bearings shows the five-hour figure and
   the pacing line: pace agents by it.
 
-Nothing else is dispatched. Next after these land: the morning report; then
-Stage 2 of BUILD_PLAN.md (run T2's bot through T3's scoreboard, which is
-the first real measurement of the plan), and D1/D2 remain the operator's.
+Nothing else is dispatched. Next: land the taper; then Stage 2 of
+BUILD_PLAN.md as one pokerbot worker: register T2's search bot with
+league.register_bot, run `python -m pokerbot.scoreboard --bot search` over
+the nine personas at seats 2/6/8/9 (about 4 minutes for the 52-cell grid),
+commit the report (under 200 lines) and say what it shows; fold task
+d077f18909a7 (one home for the trivial agents) into the same brief. D1/D2
+remain the operator's.
 
 ## Traps
 
