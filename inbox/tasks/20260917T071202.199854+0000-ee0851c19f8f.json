@@ -1,0 +1,10 @@
+{
+  "id": "ee0851c19f8f",
+  "created": "2026-09-17T07:12:02.199854+00:00",
+  "score": 41,
+  "title": "store query passed_first_round still windows rounds before judging (same flaw as changes_landed had)",
+  "source_finding": "28936c5444c9",
+  "project": "heater",
+  "path": "tools/store.py",
+  "done_at": null
+}
