@@ -420,8 +420,15 @@ class TestReconcile(WorktreeCase):
             run("git", "commit", "-qm", f"work on {name}", cwd=path)
 
     def approve(self, *records: dict):
+        """Take each change to the end of its review loop.
+
+        Two consecutive rounds finding only wording, because that is where the
+        loop ends; one recorded pass is the middle of it.
+        """
         for record in records:
-            store.record_review(record["id"], 1, "default", "pass")
+            store.record_review(record["id"], 1, "default", "pass",
+                                findings=1, wording_only=True)
+            store.record_review(record["id"], 2, "default", "pass")
 
     def test_committed_work_reaches_the_trunk(self):
         first, second = self.start()
@@ -475,11 +482,16 @@ class TestReconcile(WorktreeCase):
         dispatch.reconcile(require_review=False)
         self.assertTrue((self.repo / "a.py").is_file())
 
-    def test_a_worker_that_did_nothing_is_cleaned_up(self):
+    def test_a_worker_that_has_committed_nothing_keeps_its_slot(self):
+        """An empty branch is work that has not started, not work that landed.
+
+        The rest of this rule, including when such a slot is finally taken back,
+        is in tests/test_dispatch_landing.py.
+        """
         records = self.start()
         self.approve(*records)
         dispatch.reconcile()
-        self.assertEqual(worktrees.active("api"), [])
+        self.assertEqual(len(worktrees.active("api")), len(records))
 
     def test_a_conflict_is_flagged_and_nothing_is_lost(self):
         first, second = self.start()
@@ -567,7 +579,10 @@ class TestLanding(WorktreeCase):
         run("git", "commit", "-qm", f"add {name}", cwd=path)
 
     def pass_review(self, record: dict):
-        store.record_review(record["id"], 1, "default", "pass", cost_usd=0.1)
+        """Two consecutive wording-only rounds: the end of the review loop."""
+        store.record_review(record["id"], 1, "default", "pass", findings=1,
+                            wording_only=True, cost_usd=0.1)
+        store.record_review(record["id"], 2, "default", "pass", cost_usd=0.1)
 
     def test_work_reaches_the_main_checkout(self):
         record = self.second_worker()

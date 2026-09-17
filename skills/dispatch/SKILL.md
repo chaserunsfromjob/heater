@@ -111,7 +111,22 @@ checkout is dirty or on the wrong branch, or when the merge conflicts. A
 conflicting merge is aborted rather than left half-applied for someone to find.
 
 `--skip-review` exists for a human who has read the change themselves. It is not
-for getting past a review the loop has not finished.
+for getting past a review the loop has not finished. The sweep may carry it when
+a reason is recorded, so a change a human has read is not stranded waiting for
+rounds nobody is going to run. It never widens what the sweep may delete.
+
+The sweep removes a checkout on three routes, and each asks a different
+question first. A branch with nothing committed is removed only when its
+dispatch is older than `EMPTY_BRANCH_STALE_HOURS` and the checkout has been
+silent for `STALE_MINUTES`. A branch the trunk already contains is removed
+only once the checkout has been silent for `STALE_MINUTES`. A branch with
+commits to merge is removed once its review has ended, or, under
+`--skip-review`, once the checkout has been silent for `STALE_MINUTES`. A
+recorded review pass is taken as the statement that the work is finished, so
+a reviewed checkout is cleaned up on the next sweep even if a session is still
+working in it: a reviewer or fixer dispatched into a worker's checkout should
+expect that, and nobody should keep a reviewed checkout open expecting it to
+survive.
 
 ## When it did not work out
 

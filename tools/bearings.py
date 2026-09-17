@@ -16,14 +16,11 @@ Exit 0 when nothing needs attention, 1 when something does.
 
 from __future__ import annotations
 
-import json
 import subprocess
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "hooks"))
 
 import deploy
 import dispatch
@@ -33,12 +30,13 @@ import queue
 import store
 import unpushed
 import worktrees
-from heater_hook import heartbeat_dir
 
 REPO = jsonstore.REPO
 
 # A worker whose last tool call is older than this is quiet enough to look at.
-STALE_MINUTES = 30
+# Taken from dispatch rather than set again here: the sweep deletes a silent
+# worker's checkout on this number, so what it means has to be one decision.
+STALE_MINUTES = dispatch.STALE_MINUTES
 TOP_TASKS = 3
 
 
@@ -74,14 +72,9 @@ def out() -> tuple[list[str], bool]:
 def heartbeats() -> tuple[list[str], bool]:
     """A heartbeat says a worker's tool call returned. Silence says nothing, which
     is exactly why it is worth surfacing: quiet and dead look identical otherwise."""
-    directory = heartbeat_dir()
     lines, attention = [], False
-    for path in sorted(directory.glob("*.json")) if directory.exists() else []:
-        try:
-            beat = json.loads(path.read_text(encoding="utf-8"))
-            age = (datetime.now(timezone.utc) - datetime.fromisoformat(beat["at"])).total_seconds() / 60
-        except (json.JSONDecodeError, OSError, KeyError, ValueError):
-            continue
+    for beat in dispatch.beats():
+        age = beat["age_minutes"]
         stale = age > STALE_MINUTES
         attention = attention or stale
         lines.append(f"  {beat.get('role') or 'unmarked'} {str(beat.get('session'))[:12]} "

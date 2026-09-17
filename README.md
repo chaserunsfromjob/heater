@@ -113,7 +113,16 @@ complete.
       on the disk rather than by a headcount.
       `reconcile` sweeps finished workers into the trunk and clears up behind
       them, deriving what to do from git so it is safe to repeat. Nothing is
-      deleted until its commits are provably in the trunk.
+      deleted until its commits are provably in the trunk. Before removing a
+      checkout the sweep asks three things: a branch with nothing committed
+      goes only when its dispatch is over a day old (`EMPTY_BRANCH_STALE_HOURS`)
+      and the checkout has been silent for half an hour (`STALE_MINUTES`); a
+      branch the trunk already contains goes only after that half hour of
+      silence; a branch with commits to merge goes once its review has
+      ended, or, under `--skip-review`, after the half hour of silence. A
+      checkout whose review has ended is cleaned up on the next sweep even if
+      a session is still working in it, so do not keep one open expecting it
+      to survive.
 
 ## Credit
 

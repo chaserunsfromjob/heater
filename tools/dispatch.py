@@ -16,6 +16,7 @@ wrapped in the same standing instructions.
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -23,13 +24,30 @@ from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "hooks"))
 
 import jsonstore
 import store
 import worktrees
+from heater_hook import heartbeat_dir
 
 OUTCOMES = ("landed", "pushed", "escalated", "failed", "abandoned")
 REPO = jsonstore.REPO
+
+# Review ends when this many consecutive rounds pass finding only wording, which
+# is `skills/adversarial-review/SKILL.md`'s rule and not a number picked here.
+# One wording-only pass is the second-to-last step of the loop, not its end.
+ROUNDS_TO_END_REVIEW = 2
+
+# How long a branch with no commits on it is left alone. A checkout that has
+# produced nothing is a worker that has not finished its first commit far more
+# often than it is a worker that is gone, and the two look identical to git.
+EMPTY_BRANCH_STALE_HOURS = 24
+
+# A session whose last tool call is older than this has stopped saying anything.
+# One threshold and one reader for the whole fleet: bearings shows the same
+# beats through `beats()` and calls the same silence dead.
+STALE_MINUTES = 30
 
 
 def dispatches_dir() -> Path:
@@ -123,22 +141,132 @@ class NotReadyToLand(RuntimeError):
     """A landing condition is unmet. Never a reason to merge anyway."""
 
 
-def reviewed(change: str) -> bool:
-    """True when a review round recorded a pass for this change.
+def rounds_for(change: str) -> list[dict[str, Any]]:
+    """Every recorded round for this change, oldest first.
 
-    Read from the store rather than taken on trust: landing needs a fresh
-    independent review pass, and the store is the only place that records one.
+    Ordered by round number and then by when it was recorded, so two rounds both
+    called "round 6" settle on the one that arrived last rather than on whichever
+    the filesystem happened to list first.
     """
-    return any(r["verdict"] == "pass" and r["change"] == change
-               for r in jsonstore.load(store.reviews_dir()))
+    return sorted((r for r in jsonstore.load(store.reviews_dir())
+                   if r.get("change") == change),
+                  key=lambda r: (r.get("round", 0), r.get("created", "")))
+
+
+def settled(round_record: dict[str, Any]) -> bool:
+    """True when this round is a pass with nothing substantive left outstanding.
+
+    `bin/store.py review` already refuses to record a pass with substantive
+    findings. This refuses to act on one anyway: the store is a directory of
+    files, and a file can arrive by some route other than that command.
+    """
+    if round_record.get("verdict") != "pass":
+        return False
+    return not round_record.get("findings") or bool(round_record.get("wording_only"))
+
+
+def reviewed(change: str) -> bool:
+    """True when the review loop has ended for this change.
+
+    The latest round decides, never the best one on record: a pass from round 4
+    says nothing about a change that rounds 5, 6 and 7 failed. And one pass is
+    not the end of the loop — review ends on two consecutive rounds that find
+    only wording, so the last two rounds must both be settled passes.
+    """
+    rounds = rounds_for(change)
+    if len(rounds) < ROUNDS_TO_END_REVIEW:
+        return False
+    return all(settled(r) for r in rounds[-ROUNDS_TO_END_REVIEW:])
+
+
+def review_note(change: str) -> str:
+    """Which rounds a landing rests on, for the note it leaves behind.
+
+    A landing that does not say what it landed on cannot be checked afterwards,
+    which is how a stale round-4 pass went unnoticed for a day.
+    """
+    rounds = rounds_for(change)[-ROUNDS_TO_END_REVIEW:]
+    if not rounds:
+        return "no review round recorded"
+    return "landed on " + ", ".join(f"round {r.get('round', '?')}" for r in rounds)
+
+
+def review_state(change: str) -> str:
+    """Where the review loop has got to, for a refusal that has to explain itself."""
+    rounds = rounds_for(change)
+    if not rounds:
+        return "no round recorded"
+    last = rounds[-1]
+    findings = f" with {last['findings']} finding(s)" if last.get("findings") else ""
+    return (f"{len(rounds)} round(s) recorded, the latest is round "
+            f"{last.get('round', '?')}: {last.get('verdict')}{findings}")
+
+
+def beats() -> list[dict[str, Any]]:
+    """Every heartbeat on the machine, freshest first, each with its age.
+
+    A heartbeat says a session's tool call returned. One reader for all of them,
+    because the sweep deletes checkouts on this answer and bearings prints it,
+    and two readers would drift into two answers.
+    """
+    directory = heartbeat_dir()
+    found = []
+    for path in sorted(directory.glob("*.json")) if directory.exists() else []:
+        try:
+            beat = json.loads(path.read_text(encoding="utf-8"))
+            beat["age_minutes"] = ((datetime.now(timezone.utc)
+                                    - datetime.fromisoformat(beat["at"])).total_seconds() / 60)
+        except (json.JSONDecodeError, OSError, KeyError, ValueError, TypeError):
+            continue
+        found.append(beat)
+    return sorted(found, key=lambda b: b["age_minutes"])
+
+
+def resolved(path: Path) -> Path | None:
+    try:
+        return path.resolve()
+    except OSError:
+        return None
+
+
+def someone_working_in(path: Path) -> bool:
+    """True when a session's tool call returned from inside this checkout lately."""
+    here = resolved(path)
+    if here is None:
+        return False
+    for beat in beats():
+        if beat["age_minutes"] > STALE_MINUTES:
+            continue
+        where = resolved(Path(str(beat.get("cwd") or ""))) if beat.get("cwd") else None
+        if where is not None and (where == here or here in where.parents):
+            return True
+    return False
+
+
+def override_note(reason: str) -> str:
+    """What a landing that skipped review rests on, in the note it leaves behind.
+
+    `OPINIONS.md` 13 allows the skip on condition the note records why, so the
+    reason is part of the phrase rather than something beside it. A skip with
+    nothing said is still recorded, and says that nothing was said: refusing it
+    would only push the override somewhere that leaves no note at all.
+    """
+    said = reason.strip()
+    phrase = "review skipped by the stoker's explicit override"
+    return f"{phrase}: {said}" if said else f"{phrase} (no reason given)"
 
 
 def land(dispatch_id: str, *, gate: str = "", change: str = "",
-         skip_review: bool = False) -> dict[str, Any]:
+         skip_review: bool = False, reason: str = "") -> dict[str, Any]:
     """Merge a worker's branch back, then give its slot up.
 
     The whole cycle in one step, because a merge that leaves the checkout behind
     and a checkout deleted before its merge are both ways to lose work.
+
+    The heartbeat guard the sweep applies is deliberately left off here: the
+    caller named this one dispatch rather than sweeping whatever it found, and
+    land refuses outright on uncommitted changes, so a worker mid-task is
+    stopped by the refusal rather than by being read as silent.
     """
     record = next((d for d in jsonstore.load(dispatches_dir()) if d["id"] == dispatch_id), None)
     if record is None:
@@ -146,10 +274,17 @@ def land(dispatch_id: str, *, gate: str = "", change: str = "",
     if record.get("closed_at"):
         raise NotReadyToLand(f"{dispatch_id} is already closed as {record['outcome']}")
 
-    if not skip_review and not reviewed(change or dispatch_id):
-        raise NotReadyToLand(
-            f"no review pass recorded for {change or dispatch_id}; "
-            "run the adversarial-review loop and record the round before landing")
+    named = change or dispatch_id
+    # What the landing rests on, written into the record either way: an override
+    # that leaves no trace reads exactly like a change that was reviewed.
+    approval = override_note(reason)
+    if not skip_review:
+        if not reviewed(named):
+            raise NotReadyToLand(
+                f"review has not ended for {named} ({review_state(named)}); it ends on "
+                f"{ROUNDS_TO_END_REVIEW} consecutive rounds passing with wording-only "
+                "findings, each recorded with `bin/store.py review`")
+        approval = review_note(named)
 
     lease = None
     if record.get("lease_id"):
@@ -159,7 +294,8 @@ def land(dispatch_id: str, *, gate: str = "", change: str = "",
     if lease is None:
         # The worker used the project's own checkout, so there is nothing to
         # merge from and nothing to clean up.
-        return close_dispatch(dispatch_id, "landed", "worked in the project checkout")
+        return close_dispatch(dispatch_id, "landed",
+                              f"worked in the project checkout; {approval}")
 
     path, repo = Path(lease["path"]), Path(lease["repo"])
     branch, trunk = lease["branch"], lease.get("base_branch") or "main"
@@ -189,7 +325,7 @@ def land(dispatch_id: str, *, gate: str = "", change: str = "",
 
     worktrees.release(lease["id"], "landed")
     worktrees.git(repo, "branch", "-d", branch)
-    return close_dispatch(dispatch_id, "landed", f"merged {branch} into {trunk}")
+    return close_dispatch(dispatch_id, "landed", f"merged {branch} into {trunk}; {approval}")
 
 
 def start_run(task: str, *, repo: str, project: str = "", workers: int = 2,
@@ -240,7 +376,7 @@ def merge_into_trunk(repo: Path, path: Path, branch: str, trunk: str,
 
 
 def reconcile(*, run_id: str = "", project: str = "", require_review: bool = True,
-              gate: str = "") -> dict[str, Any]:
+              gate: str = "", reason: str = "") -> dict[str, Any]:
     """Consolidate every finished worker into the trunk, then clean up after it.
 
     Safe to run at any time and safe to run again: what to do is worked out from
@@ -276,11 +412,34 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
             report["held"].append({"dispatch": record["id"], "why": blocked})
             continue
 
+        # Loose work becomes a commit first, so a branch still standing on the
+        # commit it was cut from is one nobody worked, not one nobody saved.
         worktrees.autosave(lease)
 
+        if (state := empty_branch(lease, trunk)):
+            # Work that has not started, which `merge-base` cannot tell from
+            # work that already landed. Answering "landed" here once released
+            # three running workers' slots and deleted their checkouts.
+            if (why := held_in_flight(record, lease, state)):
+                report["held"].append({"dispatch": record["id"], "branch": branch, "why": why})
+                continue
+            finish(record, lease, branch, repo, trunk,
+                   f"{branch} {state}, and nothing has run in the checkout for over "
+                   f"{EMPTY_BRANCH_STALE_HOURS}h")
+            report["landed"].append(record["id"])
+            continue
+
         if worktrees.landed(lease, trunk):
-            # Either nothing was done, or a previous sweep merged it and stopped
-            # before cleaning up. Both end the same way.
+            # A previous sweep merged it and stopped before cleaning up — or a
+            # worker that has not committed yet caught its empty branch up with
+            # a trunk that moved (`git pull`, `git merge main`). Both leave a
+            # branch the trunk contains, standing past the commit it was cut
+            # from, so git cannot tell them apart and the heartbeat has to:
+            # deleting the second one takes the slot from a worker mid-task.
+            if (why := still_in_use(path, f"{branch} is already in {trunk}")):
+                report["held"].append({"dispatch": record["id"], "branch": branch,
+                                       "why": why})
+                continue
             finish(record, lease, branch, repo, trunk, "already in the trunk")
             report["landed"].append(record["id"])
             continue
@@ -288,6 +447,19 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
         if require_review and not reviewed(record["id"]):
             report["awaiting_review"].append(record["id"])
             continue
+
+        if not require_review:
+            # The third route that removes a checkout, and the one the review
+            # requirement used to stand in for: with `--skip-review` nothing
+            # else here asks whether the worker has finished, so a first commit
+            # from a session still making tool calls would be merged and its
+            # slot taken mid-task. The reviewed path stays exempt on purpose —
+            # a recorded review pass says the work itself is finished, while an
+            # override says something about the reviewer, not about the worker.
+            if (why := still_in_use(path, f"{branch} has commits {trunk} does not")):
+                report["held"].append({"dispatch": record["id"], "branch": branch,
+                                       "why": why})
+                continue
 
         if gate:
             done = subprocess.run(gate, shell=True, cwd=path, capture_output=True,
@@ -303,11 +475,79 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
             report["needs_fix"].append({"dispatch": record["id"], "branch": branch, "why": why})
             continue
 
-        finish(record, lease, branch, repo, trunk, why)
+        approval = review_note(record["id"]) if require_review else override_note(reason)
+        finish(record, lease, branch, repo, trunk, f"{why}; {approval}")
         report["landed"].append(record["id"])
 
     report["runs_finished"] = finished_runs()
     return report
+
+
+# Why a branch carries nothing the trunk lacks. Both read as a clause after the
+# branch name, because both are said back in a held report and in a closing note.
+NEVER_COMMITTED = "has no commits of its own yet"
+BASE_UNRECORDED = ("has no commits the trunk lacks and no record of the commit "
+                   "it was cut from")
+
+
+def empty_branch(lease: dict[str, Any], trunk: str) -> str:
+    """Why this branch has nothing to land, or "" when it has work to land.
+
+    Two opposite branches carry no commit the trunk lacks: one nobody has
+    committed on, and one whose commits the trunk has already taken. Counting
+    commits alone says the same "0" for both, so merged work was held as a
+    worker still out, and a day later closed as work nobody ever did.
+
+    The commit the slot was cut from tells them apart: a branch that never
+    started still stands on it, while a merged branch has moved past it. An old
+    lease that never recorded one is held rather than guessed at, which is the
+    refusal `worktrees.work_at_risk` already makes for the same reason.
+
+    Asked of git in the checkout itself, and only while the checkout is there: a
+    slot whose folder has gone has nothing left to protect.
+    """
+    path = Path(lease.get("path", ""))
+    if not path.exists():
+        return ""
+    code, output = worktrees.git(path, "rev-list", "--count", f"{trunk}..HEAD")
+    if code != 0 or output.strip() != "0":
+        return ""
+    base = str(lease.get("base_sha", "")).strip()
+    code, head = worktrees.git(path, "rev-parse", "HEAD")
+    if code != 0 or not base:
+        return BASE_UNRECORDED
+    return NEVER_COMMITTED if head.strip() == base else ""
+
+
+def held_in_flight(record: dict[str, Any], lease: dict[str, Any], state: str) -> str:
+    """Why an empty checkout must be kept, or "" when nobody is left to keep it for.
+
+    Two things have to be true before an empty slot is taken back, because
+    either alone is wrong often enough to cost a day's work: the dispatch is
+    older than anything a worker plausibly runs for, and the checkout has gone
+    silent. Silence is read from the same heartbeats bearings calls dead, so a
+    worker that is quiet in one place is not busy in the other.
+
+    `state` is `empty_branch`'s answer, said back as given so the hold never
+    claims more about the branch than git showed.
+    """
+    branch = lease.get("branch", "this branch")
+    age = age_minutes(record)
+    if age is None or age < EMPTY_BRANCH_STALE_HOURS * 60:
+        return f"{branch} {state}; the worker is still out"
+    return still_in_use(Path(lease.get("path", "")), f"{branch} {state}")
+
+
+def still_in_use(path: Path, state: str) -> str:
+    """Why this checkout may not be removed yet, or "" when nobody is in it.
+
+    One sentence for every route that would delete a checkout, so a worker that
+    is alive is said to be alive the same way wherever the sweep notices it.
+    `state` is what git showed, said back as given.
+    """
+    if someone_working_in(path):
+        return f"{state}, but its checkout made a tool call within {STALE_MINUTES}m"
+    return ""
 
 
 def trunk_state(repo: Path, trunk: str) -> str:
@@ -411,6 +651,8 @@ def main(argv: list[str]) -> int:
     sweep.add_argument("--project", default="")
     sweep.add_argument("--gate", default="", help="command that must exit 0 in each checkout")
     sweep.add_argument("--skip-review", action="store_true")
+    sweep.add_argument("--reason", default="",
+                       help="why review was skipped; only used with --skip-review")
 
     sub.add_parser("list", help="dispatches still out")
 
@@ -420,6 +662,8 @@ def main(argv: list[str]) -> int:
     finish.add_argument("--change", default="", help="the change name in the review store; defaults to the dispatch id")
     finish.add_argument("--skip-review", action="store_true",
                         help="land without a recorded review pass; for a human who has looked")
+    finish.add_argument("--reason", default="",
+                        help="why review was skipped; only used with --skip-review")
 
     end = sub.add_parser("close", help="record that a worker reported")
     end.add_argument("dispatch_id")
@@ -443,7 +687,8 @@ def main(argv: list[str]) -> int:
             print()
     elif args.action == "reconcile":
         result = reconcile(run_id=args.run_id, project=args.project,
-                           require_review=not args.skip_review, gate=args.gate)
+                           require_review=not args.skip_review, gate=args.gate,
+                           reason=args.reason)
         print(render_reconcile(result))
         return 1 if (result["held"] or result["needs_fix"]) else 0
     elif args.action == "list":
@@ -451,7 +696,7 @@ def main(argv: list[str]) -> int:
     elif args.action == "land":
         try:
             record = land(args.dispatch_id, gate=args.gate, change=args.change,
-                          skip_review=args.skip_review)
+                          skip_review=args.skip_review, reason=args.reason)
         except (NotReadyToLand, ValueError) as error:
             print(f"dispatch: {error}", file=sys.stderr)
             return 1
