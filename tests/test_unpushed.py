@@ -368,9 +368,9 @@ class TestDeadline(SweepCase):
         """Make each push take longer than the deadline allows."""
         original = unpushed.push
 
-        def slow(path, branch, timeout=None):
+        def slow(path, branch, timeout=unpushed.PUSH_TIMEOUT):
             time.sleep(seconds)
-            return original(path, branch)
+            return original(path, branch, timeout=timeout)
 
         unpushed.push = slow
         self.addCleanup(setattr, unpushed, "push", original)
@@ -400,6 +400,53 @@ class TestDeadline(SweepCase):
         self.assertTrue(all("deadline" in r["detail"] for r in skipped))
         self.assertTrue(all(r["branch"] for r in skipped), "a skipped branch is named")
 
+    def stall_pushes(self, seconds: float) -> None:
+        """Make origin itself sit on every push, the way a slow network does.
+
+        A hook on the bare remote, not a stub in Python: what is under test is
+        the real push being cut short by the real timeout, which a stub that
+        sleeps and then pushes locally never exercises. `ls-remote` runs no
+        hook, so the reachability probe stays fast and only the push stalls.
+        """
+        hook = self.origin / "hooks" / "pre-receive"
+        hook.write_text(f"#!/bin/sh\nsleep {seconds}\nexit 0\n", encoding="utf-8")
+        hook.chmod(0o755)
+
+    def test_a_push_the_deadline_cuts_short_is_skipped_not_refused(self):
+        """Cut short is not the same as answered no.
+
+        The deadline hands each push what is left of the sweep, so a slow
+        remote's push is killed part way. Reported as refused it reads as a
+        divergence somebody has to reconcile, raises the flag bearings turns
+        into exit 1, and gives as its reason a Python repr of the command line.
+        """
+        self.branch("worker/stalled")
+        self.commit("n.txt", "a push origin will sit on")
+        self.stall_pushes(5)
+        self.env(unpushed.DEADLINE_ENV, "2")
+
+        results = unpushed.sweep([self.repo])
+        lines, attention = unpushed.render(results)
+
+        self.assertEqual(self.statuses(results), {("worker/stalled", "skipped")})
+        self.assertIn("did not finish inside", results[0]["detail"])
+        self.assertIn(unpushed.DEADLINE_ENV, results[0]["detail"])
+        said = "\n".join(lines)
+        self.assertIn("worker/stalled", said)
+        self.assertNotIn("Command '[", said, "a Python repr explains nothing")
+        self.assertNotIn("timed out after", said)
+        self.assertFalse(attention, "a push that ran out of time is news, not a decision")
+
+    def test_a_probe_the_deadline_cuts_short_is_not_called_offline(self):
+        """The remote answered nothing because it was not given time to."""
+        self.assertEqual(unpushed.git(self.repo, "ls-remote", "--heads", "origin",
+                                      timeout=0.001)[0], unpushed.TIMED_OUT)
+        reachable, why = unpushed.remote_reachable(self.repo, timeout=0.001)
+
+        self.assertFalse(reachable)
+        self.assertIn("in time", why)
+        self.assertNotIn("Command '[", why)
+
     def test_a_nonsense_deadline_falls_back_to_the_default(self):
         """`nan` compares false against everything, so it is no bound at all."""
         for value in ("nan", "inf", "-inf", "banana"):
@@ -407,6 +454,25 @@ class TestDeadline(SweepCase):
                 self.env(unpushed.DEADLINE_ENV, value)
                 self.assertEqual(unpushed.deadline_seconds(),
                                  float(unpushed.SWEEP_DEADLINE))
+
+    def test_zero_or_a_negative_deadline_is_no_bound_at_all(self):
+        """What the constant's comment promises, in the two spellings of it."""
+        for value in ("0", "-5"):
+            with self.subTest(value=value):
+                self.env(unpushed.DEADLINE_ENV, value)
+                self.assertEqual(unpushed.deadline_seconds(), float(value))
+
+    def test_an_unbounded_sweep_skips_nothing(self):
+        second = self.root / "second"
+        second.mkdir()
+        self.env(unpushed.DEADLINE_ENV, "-5")
+        self.branch("worker/unbounded")
+        self.commit("o.txt", "reached however long it takes")
+        self.crawl(0.2)
+
+        results = unpushed.sweep([self.repo, second])
+
+        self.assertEqual(self.statuses(results), {("worker/unbounded", "pushed")})
 
     def test_a_deadline_skip_is_news_not_a_failure(self):
         second = self.root / "second"

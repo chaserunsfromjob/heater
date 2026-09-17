@@ -57,7 +57,8 @@ PUSH_TIMEOUT = 180
 # Per-checkout timeouts still let six recorded checkouts on a network that
 # swallows packets cost six probes end to end, and this hangs off the one
 # command every session is required to run first. So the sweep as a whole gets
-# one bound as well. Zero or less means no bound at all.
+# one bound as well. Zero, or any negative number, means no bound at all; text
+# that is not a number, and a number with no finite value, falls back to this.
 SWEEP_DEADLINE = 60
 DEADLINE_ENV = "HEATER_AUTOPUSH_DEADLINE"
 
@@ -69,6 +70,14 @@ OFF = {"0", "no", "off", "false"}
 READ_ONLY_ROLES = {"reviewer"}
 
 REMOTE = "origin"
+
+# What `git` reports when the timeout killed the command instead of git
+# answering. git's own exit codes run 0-255 and a command killed by a signal
+# shows as a small negative number, so nothing real can land on this value. It
+# has to be told apart from a plain failure: a command cut short was never
+# answered, and reporting no answer as a no puts a decision in front of a person
+# that nobody has actually been asked to take.
+TIMED_OUT = 1000
 
 
 def why_off() -> str:
@@ -107,9 +116,19 @@ def deadline_seconds() -> float:
 
 
 def git(path: Path, *args: str, timeout: float = 30) -> tuple[int, str]:
+    """Run one git command here, and report how it went.
+
+    A command the timeout killed comes back as `TIMED_OUT` and never as a plain
+    failure, because the two mean opposite things and only one of them is a
+    person's job. Python's own account of the killing is dropped rather than
+    passed on: it is the command line and a fraction of a second, printed as
+    code, and it ends up read by somebody who has never seen git.
+    """
     try:
         done = subprocess.run(["git", "-C", str(path), *args],
                               capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return TIMED_OUT, f"no answer within {timeout:g}s"
     except (subprocess.SubprocessError, OSError) as error:
         return 1, str(error)
     return done.returncode, (done.stdout + done.stderr).strip()
@@ -233,10 +252,15 @@ def remote_reachable(path: Path, timeout: float = PROBE_TIMEOUT) -> tuple[bool, 
     The timeout is passed in rather than fixed, so what is left of the sweep
     deadline can cut a probe short instead of the probe outliving the deadline.
     """
+    cut_short = f"checking {REMOTE} did not finish in time"
     code, output = git(path, "remote", timeout=timeout)
+    if code == TIMED_OUT:
+        return False, cut_short
     if code != 0 or REMOTE not in output.split():
         return False, f"no {REMOTE} remote"
     code, output = git(path, "ls-remote", "--heads", REMOTE, timeout=timeout)
+    if code == TIMED_OUT:
+        return False, cut_short
     if code != 0:
         return False, "offline"
     return True, ""
@@ -273,19 +297,26 @@ def refusal_detail(output: str) -> str:
     return salient
 
 
-def push(path: Path, branch: str, timeout: float = PUSH_TIMEOUT) -> tuple[bool, str]:
+def push(path: Path, branch: str, timeout: float = PUSH_TIMEOUT) -> tuple[str, str]:
     """Plain push, upstream set, the ref named in full on both sides.
 
     `git push origin <branch>` takes a refspec, not a name, so a branch legally
     called `+main` asks for a forced overwrite of `main` on the remote. Spelling
     both ends as `refs/heads/...` leaves no leading `+` to be read that way, and
     a push that would discard work is then refused by git as it should be.
+
+    Answers with one of `pushed`, `refused` or `timeout`, and why. `timeout` is
+    kept apart from `refused` because a push cut short before the remote could
+    answer has decided nothing: the branch is still here and the next sweep will
+    try it again, while a refusal is two histories waiting for a person.
     """
     refspec = f"refs/heads/{branch}:refs/heads/{branch}"
     code, output = git(path, "push", "-u", REMOTE, refspec, timeout=timeout)
+    if code == TIMED_OUT:
+        return "timeout", output
     if code != 0:
-        return False, refusal_detail(output)
-    return True, output.strip().splitlines()[-1] if output.strip() else ""
+        return "refused", refusal_detail(output)
+    return "pushed", output.strip().splitlines()[-1] if output.strip() else ""
 
 
 def budget(expires: float | None, cap: float) -> float:
@@ -319,6 +350,15 @@ def sweep(paths: list[Path] | None = None) -> list[dict[str, Any]]:
     expires = time.monotonic() + limit if limit > 0 else None
     missed_reason = (f"not reached inside the {limit:g}s sweep "
                      f"deadline ({DEADLINE_ENV})")
+    # Which bound actually stopped the push: the sweep's, or, when the sweep has
+    # no bound, the one on a single push. Naming the wrong one sends whoever
+    # reads it to change a setting that was not in play.
+    cut_short_reason = (
+        f"the push did not finish inside the {limit:g}s sweep deadline "
+        f"({DEADLINE_ENV}); it will be tried again on the next bearings read"
+        if limit > 0 else
+        f"the push did not finish inside {PUSH_TIMEOUT}s; it will be tried "
+        "again on the next bearings read")
 
     def out_of_time() -> bool:
         return expires is not None and time.monotonic() >= expires
@@ -343,9 +383,11 @@ def sweep(paths: list[Path] | None = None) -> list[dict[str, Any]]:
                 results += [{"path": str(path), "branch": missed, "status": "skipped",
                              "detail": missed_reason} for missed in branches[position:]]
                 break
-            done, detail = push(path, branch, timeout=budget(expires, PUSH_TIMEOUT))
+            outcome, detail = push(path, branch, timeout=budget(expires, PUSH_TIMEOUT))
+            if outcome == "timeout":
+                outcome, detail = "skipped", cut_short_reason
             results.append({"path": str(path), "branch": branch,
-                            "status": "pushed" if done else "refused", "detail": detail})
+                            "status": outcome, "detail": detail})
     return results
 
 
