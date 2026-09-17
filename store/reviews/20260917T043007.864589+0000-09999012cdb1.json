@@ -1,0 +1,17 @@
+{
+  "id": "09999012cdb1",
+  "created": "2026-09-17T04:30:07.864589+00:00",
+  "change": "70884871cf3e",
+  "project": "pokerbot",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 7,
+  "wording_only": false,
+  "files": 14,
+  "insertions": 1722,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "Reviewer verdict PASS with 7 findings (4 substantive: README omits requirements-research.txt; deal_check blanket except masks adapter bugs as engine refusal; no regression test for the abort mechanism; I7 can skip silently). Recorded fail because store refuses pass with findings. 141 passed / 1 skipped verified; I3 payout example worked by hand; determinism verified across processes."
+}
