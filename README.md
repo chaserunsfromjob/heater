@@ -25,6 +25,7 @@ from that.
 | `hooks/session_end.py` | Records how a session ended and what fleet state it left unsynced. |
 | `hooks/statusline.py` | The status line. Records the exact context window size and the plan's usage windows, neither of which the transcript carries. |
 | `tools/usage.py` | How much of the plan is spent, and how much that still allows the stoker to start. |
+| `tools/fleetrepo.py` | Which checkout is the fleet repository: the main worktree, worked out from git, so a leased checkout reads and writes the fleet's own queue and stores. `HEATER_REPO` overrides it; a `HEATER_*_DIR` setting still wins over both. |
 | `hooks/pre_compact.py` | Backstop. Marks a session whose memory was summarised before a handover. |
 | `roles/stoker.md` | The stoker's own rules. Loaded for any session opened in this repository, and by `HEATER_ROLE=stoker` anywhere else. |
 | `roles/worker.md` | Standing instructions wrapped around every dispatched brief. |

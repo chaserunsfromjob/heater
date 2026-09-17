@@ -533,7 +533,9 @@ def slots_never_returned(*, run_id: str = "", project: str = "") -> list[dict[st
         branch = lease.get("branch", "")
         held.append({"dispatch": record["id"], "branch": branch,
                      "why": f"the slot never went back: {branch} holds work that "
-                            f"exists nowhere else, so nothing of it is in the trunk"})
+                            f"exists nowhere else, so nothing of it is in the trunk; "
+                            f"land it (bin/dispatch.py land {record['id']}) or push "
+                            f"it (git push -u origin {branch}) to clear this"})
     return held
 
 
