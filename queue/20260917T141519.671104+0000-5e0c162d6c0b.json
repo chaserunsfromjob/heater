@@ -1,0 +1,17 @@
+{
+  "id": "5e0c162d6c0b",
+  "created": "2026-09-17T14:15:19.671104+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "RESOURCES_DICKREUTER.md",
+  "origin": "",
+  "summary": "RESOURCES_DICKREUTER.md intro dates everything to 00:47-01:11 UTC, but appendix B items 6-10 record work at 01:40-01:53 and later; the stated window is narrower than the log",
+  "delivered_at": "2026-09-17T14:15:53.159824+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T14:16:36.958208+00:00",
+    "score": 30,
+    "task_id": "cd296d578243"
+  }
+}

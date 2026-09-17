@@ -1,0 +1,10 @@
+{
+  "id": "cd296d578243",
+  "created": "2026-09-17T14:16:36.956295+00:00",
+  "score": 30,
+  "title": "RESOURCES_DICKREUTER.md intro dates everything to 00:47-01:11 UTC, but appendix B items 6-10 record work at 01:40-01:53 and later; the stated window is narrower than the log",
+  "source_finding": "5e0c162d6c0b",
+  "project": "pokerbot",
+  "path": "RESOURCES_DICKREUTER.md",
+  "done_at": null
+}
