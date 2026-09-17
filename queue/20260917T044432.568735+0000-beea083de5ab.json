@@ -1,0 +1,17 @@
+{
+  "id": "beea083de5ab",
+  "created": "2026-09-17T04:44:32.568735+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "tools/store.py",
+  "origin": "",
+  "summary": "tools/store.py:101 query's changes_landed still counts a change as landed if ANY round passed; the same stale-pass reading dispatch.reviewed() dropped in ecc208e2d0d6. Reuse dispatch.reviewed() or its review_state.",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T04:44:38.857701+00:00",
+    "score": 55,
+    "task_id": "917775c34006"
+  }
+}
