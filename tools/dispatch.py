@@ -249,15 +249,17 @@ def rounds_needed(lease: dict[str, Any] | None) -> int:
     return reviewloop.rounds_needed(changed_paths(path, trunk))
 
 
-def rounds_needed_after_the_checkout_is_gone(lease: dict[str, Any] | None) -> int:
-    """The same question for a slot that has already gone back.
+def rounds_needed_without_reading_the_checkout(lease: dict[str, Any] | None) -> int:
+    """The same question asked of the branch, not of a checkout.
 
-    The sweep closes a dispatch whose checkout was handed back with its commits
-    already in the trunk, and by then there is no checkout to read a diff in. The
-    branch is still in the project and the lease recorded the commit it was cut
-    from, so what that branch changed is still git's to say. Loose files are not
-    in this reading: they went with the checkout, so they are not part of what
-    the trunk received.
+    Two routes through the sweep cannot use the reading above. One has no
+    checkout left: the slot went back with its commits already in the trunk. The
+    other still has its checkout, but the commits are in the trunk already, so
+    the `trunk...HEAD` diff there is empty by construction and says nothing
+    about what the branch changed. Either way the branch is still in the project
+    and the lease recorded the commit it was cut from, so what that branch
+    changed is still git's to say. Loose files are not in this reading: they are
+    not part of what the trunk received.
 
     A dispatch that never held a lease has no branch of record, which is the
     strict count by the rule above, and a diff that cannot be read is code.
@@ -384,8 +386,9 @@ def land(dispatch_id: str, *, gate: str = "", change: str = "",
 
     if lease is None:
         # The worker used the project's own checkout, so there is nothing to
-        # merge from and nothing to clean up.
-        stamp_document_only(named, needed)
+        # merge from and nothing to clean up. Nothing is stamped either: with no
+        # lease `needed` is the strict count by the rule above, so the one-round
+        # rule cannot apply here.
         return close_dispatch(dispatch_id, "landed",
                               f"worked in the project checkout; {approval}")
 
@@ -515,7 +518,8 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
             # in by hand is counted by the query the same as one the sweep
             # merged itself. Read from the branch against the commit its lease
             # was cut from, the checkout that `land` would have read being gone.
-            stamp_document_only(record["id"], rounds_needed_after_the_checkout_is_gone(lease))
+            stamp_document_only(record["id"],
+                                rounds_needed_without_reading_the_checkout(lease))
             close_dispatch(record["id"], "landed",
                            f"no checkout to consolidate; {review_state(record['id'])}")
             report["landed"].append(record["id"])
@@ -603,7 +607,14 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
             # refusing here would strand the slot rather than protect anything.
             # The note says which review state it rested on, so the close can be
             # checked afterwards instead of taken on trust.
-            stamp_document_only(record["id"], needed)
+            #
+            # Read from the branch against the commit its lease was cut from,
+            # not from `needed`: these commits are in the trunk already, so the
+            # checkout's `trunk...HEAD` diff is empty and the one-round rule
+            # would never apply. A document merged by hand with its checkout
+            # still standing closed as landed and was counted by nothing.
+            stamp_document_only(record["id"],
+                                rounds_needed_without_reading_the_checkout(lease))
             finish(record, lease, branch, repo, trunk,
                    f"already in the trunk; {review_state(record['id'])}")
             report["landed"].append(record["id"])

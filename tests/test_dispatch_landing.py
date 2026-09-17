@@ -1389,5 +1389,51 @@ class TestADocumentClosedWithNoCheckoutLeftIsCounted(GitCase):
         self.assertFalse(dispatch.rounds_for(record["id"])[-1]["document_only"])
 
 
+class TestADocumentMergedByHandWithItsCheckoutStandingIsCounted(GitCase):
+    """Round 5, F1: the other half of the same defect, one route along.
+
+    A document merged into the trunk by hand with its slot still held leaves the
+    sweep a branch the trunk already contains and a checkout still standing. The
+    diff that route read was `trunk...HEAD`, which is empty by construction once
+    those commits are in the trunk, so the one-round rule never applied and the
+    close wrote nothing onto the round. The week's query counted no document.
+    """
+
+    def lease_of(self, record: dict) -> dict:
+        return next(l for l in jsonstore.load(worktrees.leases_dir())
+                    if l["id"] == record["lease_id"])
+
+    def merged_by_hand(self, record: dict) -> None:
+        """Merged into the trunk, with the slot still held and the checkout there."""
+        run("git", "merge", "--no-ff", self.lease_of(record)["branch"],
+            "-m", "landed by hand", cwd=self.repo)
+
+    def landed_count(self) -> int:
+        return store.query()["reviews"]["changes_landed"]
+
+    def test_a_document_already_in_the_trunk_is_stamped_and_counted(self):
+        record = self.worker("write the survey")
+        self.work(record, "survey.md", "# survey\n")
+        self.wording_pass(record["id"], 1)
+        self.merged_by_hand(record)
+
+        self.assertIn(record["id"], dispatch.reconcile()["landed"])
+
+        self.assertEqual(self.stored(record["id"])["outcome"], "landed")
+        self.assertTrue(dispatch.rounds_for(record["id"])[-1]["document_only"])
+        self.assertEqual(self.landed_count(), 1)
+
+    def test_code_already_in_the_trunk_is_not_stamped_as_a_document(self):
+        record = self.worker("add a flag")
+        self.work(record, "flag.py", "FLAG = 1\n")
+        self.wording_pass(record["id"], 1)
+        self.clean_pass(record["id"], 2)
+        self.merged_by_hand(record)
+
+        dispatch.reconcile()
+
+        self.assertFalse(dispatch.rounds_for(record["id"])[-1]["document_only"])
+
+
 if __name__ == "__main__":
     unittest.main()
