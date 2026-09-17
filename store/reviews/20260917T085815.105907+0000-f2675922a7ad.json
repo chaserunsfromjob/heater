@@ -1,0 +1,17 @@
+{
+  "id": "f2675922a7ad",
+  "created": "2026-09-17T08:58:15.105907+00:00",
+  "change": "b68dd506e0ee",
+  "project": "pokerbot",
+  "round": 2,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 3,
+  "wording_only": false,
+  "files": 6,
+  "insertions": 3051,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "All four round-1 fixes mutation-proved; fixture repairs honest; worked example byte-clean. F1 OPPONENT_MODEL_DESIGN.md still states the losing walk reading and Table C's vpip 1.00 opportunities/hand; F2 scope of the override (vpip only vs all preflop stats) was the fixer's call: stoker rules the strict reading (hands_dealt only) so vpip and pfr share a denominator and gap stays coherent; F3 IRC fixture has no walk."
+}
