@@ -10,11 +10,19 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import fleetrepo
+
+# The checkout this file is in, which is not always the fleet repository: a
+# worker runs from a leased worktree of it. `fleetrepo` tells the two apart, and
+# every store directory below hangs off its answer, not off this one.
 REPO = Path(__file__).resolve().parents[1]
 
 
@@ -29,7 +37,14 @@ def new_id() -> str:
 
 
 def resolve_dir(env_var: str, default: str) -> Path:
-    return Path(os.environ.get(env_var) or REPO / default)
+    """Where one store lives: named outright, or `default` inside the fleet repo.
+
+    Resolved against the fleet repository rather than against this file's own
+    checkout. A worker in a leased worktree filing a finding is writing to the
+    stoker's queue, and a checkout that is deleted when the slot goes back is
+    not a store.
+    """
+    return Path(os.environ.get(env_var) or fleetrepo.repo() / default)
 
 
 def filename(record: dict[str, Any]) -> str:

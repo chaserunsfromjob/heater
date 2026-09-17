@@ -942,5 +942,103 @@ class TestAnAbandonedWorkerIsNotALanding(GitCase):
                          "a failed member leaves work to account for")
 
 
+class TestASlotThatWouldNotGoBackIsNotALanding(GitCase):
+    """Task bc471f09618e: a close whose slot refused to go back read as green.
+
+    Giving the slot back is part of closing, and release refuses while the
+    branch holds work that exists nowhere else. The refusal was caught, noted on
+    the record, and the record still said `landed` -- so the work was counted as
+    delivered, the checkout stayed standing with the only copy of it in there,
+    and the next sweep never looked at the dispatch again because it was closed.
+    """
+
+    def lease_of(self, record: dict) -> dict:
+        return next(l for l in jsonstore.load(worktrees.leases_dir())
+                    if l["id"] == record["lease_id"])
+
+    def dirty(self, record: dict) -> None:
+        """Work left loose in the checkout: a change nobody committed anywhere."""
+        (Path(record["workdir"]) / "half-done.txt").write_text("in progress\n")
+
+    def test_a_commit_that_is_nowhere_else_does_not_close_as_landed(self):
+        record = self.worker()
+        self.work(record)
+
+        dispatch.close_dispatch(record["id"], "landed", "the worker says it is in")
+
+        closed = self.stored(record["id"])
+        self.assertNotEqual(closed["outcome"], "landed",
+                            "the commits are on the branch and nowhere else")
+        self.assertEqual(closed["outcome"], "failed")
+        self.assertIn(self.lease_of(record)["branch"], closed["note"],
+                      "the note has to name the branch still holding the work")
+        self.assertIn("land it or push it", closed["note"],
+                      "the note has to say why it did not close as asked")
+
+    def test_loose_work_in_the_checkout_does_not_close_as_landed(self):
+        record = self.worker()
+        self.dirty(record)
+
+        dispatch.close_dispatch(record["id"], "landed", "the worker says it is in")
+
+        self.assertEqual(self.stored(record["id"])["outcome"], "failed")
+
+    def test_the_sweep_reports_the_slot_it_could_not_get_back(self):
+        record = self.worker()
+        self.work(record)
+        branch = self.lease_of(record)["branch"]
+        dispatch.close_dispatch(record["id"], "landed", "the worker says it is in")
+
+        report = dispatch.reconcile()
+
+        self.assertEqual(report["landed"], [], "nothing reached the trunk")
+        self.assertEqual([e["branch"] for e in report["left_behind"]], [branch])
+        self.assertEqual([e["dispatch"] for e in report["left_behind"]], [record["id"]])
+        self.assertIn("left_behind", dispatch.reconcile_unclean(report))
+
+    def test_a_held_slot_is_not_a_green_wake(self):
+        record = self.worker()
+        self.work(record)
+        branch = self.lease_of(record)["branch"]
+        dispatch.close_dispatch(record["id"], "landed", "the worker says it is in")
+
+        code, printed = self.sweep()
+
+        self.assertEqual(code, 1, f"work nobody can reach is not green:\n{printed}")
+        self.assertIn("left_behind", printed)
+        self.assertIn(branch, printed, "the line has to say which branch still holds it")
+
+    def test_the_slot_stays_held_rather_than_being_taken_from_the_work(self):
+        record = self.worker()
+        self.work(record)
+        dispatch.close_dispatch(record["id"], "landed", "the worker says it is in")
+
+        self.assertFalse(self.lease_of(record).get("released_at"),
+                         "the only copy of the work is in there; the slot waits")
+        self.assertTrue(Path(record["workdir"]).exists())
+
+    def test_work_that_is_in_the_trunk_still_closes_as_landed(self):
+        record = self.worker()
+        self.work(record)
+        lease = self.lease_of(record)
+        run("git", "merge", "--no-ff", lease["branch"], "-m", "landed by hand", cwd=self.repo)
+
+        dispatch.close_dispatch(record["id"], "landed", "merged by hand")
+
+        self.assertEqual(self.stored(record["id"])["outcome"], "landed")
+        self.assertTrue(self.lease_of(record).get("released_at"), "the slot goes back")
+
+    def test_a_closed_dispatch_whose_slot_went_back_is_not_reported_again(self):
+        record = self.worker()
+        self.work(record)
+        lease = self.lease_of(record)
+        run("git", "merge", "--no-ff", lease["branch"], "-m", "landed by hand", cwd=self.repo)
+        dispatch.close_dispatch(record["id"], "landed", "merged by hand")
+
+        code, printed = self.sweep()
+
+        self.assertEqual(code, 0, printed)
+
+
 if __name__ == "__main__":
     unittest.main()

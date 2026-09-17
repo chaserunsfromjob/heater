@@ -159,4 +159,10 @@ even when it failed — an open record means a worker is still owed a reply, and
 one left open makes every later bearings read wrong.
 
 Closing frees the slot too, and refuses while the branch holds work that exists
-nowhere else, recording why on the dispatch instead of destroying it.
+nowhere else, recording why on the dispatch instead of destroying it. A close
+whose slot is refused records `failed` rather than the outcome asked for when
+that outcome was `landed` or `abandoned`, because both of those claim nothing
+was left behind; the note names the branch that still holds the work. Every
+sweep after that reports the slot under `left_behind` and exits 1 until the
+branch is landed (`bin/dispatch.py land <id>`) or pushed
+(`git push -u origin <branch>`).
