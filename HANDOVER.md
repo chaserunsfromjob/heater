@@ -38,7 +38,7 @@ branches on origin instead):
   .venv pytest plus the three checkers. Then dispatch T2 (the depth-limited
   search bot) and T3 (the persona league) from BUILD_PLAN.md section 4.
 
-- `20b9ff39b519` heater: session_start pushes unpushed local branches in
+- `20b9ff39b519` heater: bin/bearings.py (tools/unpushed.py) pushes unpushed local branches in
   every known checkout, with a temp-repo test. On report: one reviewer
   round, land with `bin/gate.sh`. This is what makes the PC's dickreuter
   branch reach GitHub without the operator typing anything.
@@ -105,6 +105,10 @@ on the PC (task at 52); nothing can be done from the Mac.
 - `gh pr create --draft` refuses an empty branch; workers commit a
   placeholder first. The GitHub rule says the worker marks the PR ready; the
   briefs keep it draft until review (task 33364d7ca3e1 at 40 says which).
+- Claude Code's auto-mode classifier refuses a worker brief that edits
+  `hooks/` (self-modification). Put session-start behaviour in
+  `bin/bearings.py` or `tools/` instead; only the operator can allow hook
+  edits with a permission rule.
 - `tools/style_lint.py` is for rule files; research notes fail it by design
   (11-127 problems each). Not a gate for them.
 
