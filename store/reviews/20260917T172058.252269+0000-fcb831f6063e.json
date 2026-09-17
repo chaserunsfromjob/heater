@@ -1,0 +1,17 @@
+{
+  "id": "fcb831f6063e",
+  "created": "2026-09-17T17:20:58.252269+00:00",
+  "change": "112be809c0fb",
+  "project": "pokerbot",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 6,
+  "wording_only": false,
+  "files": 2,
+  "insertions": 283,
+  "deletions": 35,
+  "cost_usd": null,
+  "duration_s": 1700.0,
+  "note": "Document-only. All ten operator quotations verbatim; 28 stage cross-references right; README platform, identity and visibility facts verified; gate exit 0. Four small fact slips (loss-count rule unstated, seventeen vs twenty-four on issue #4, GTO Wizard 'no API' overstated, 'only tier' vs 'top tier') and two wording, all applied by the stoker (commit on the branch) under the research-document pace rule; landed --skip-review on that basis. Reviewer: 87,197 tokens, 38 tool uses, 1700 s."
+}
