@@ -33,7 +33,7 @@ Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-Three agents are out (T3 reviewer 2 deciding, reconcile reviewer 4 deciding, taper fixer 7); each report needs one action. Compaction keeps them;
+Two agents are out (T3 wording fixer, taper fixer 7); each report needs one action. Compaction keeps them;
 a fresh session must read the branches on origin instead.
 
 - `8edc0ce3e009` T2 the first bot: LANDED 3a54ce2 (PR #15) on a round-2
@@ -44,34 +44,29 @@ a fresh session must read the branches on origin instead.
   (both add sections); then keep personas.py as the one home for the three
   trivial agents and shim arena.py to it; delete baselines.py (task
   6805b01c7bd2 covers the __init__ docstring).
-- `1fd3a6ebe936` T3 the scoreboard, PR #16, tip 7469d54, worktree
-  pokerbot/4ecb51776067. Built; closed form, rule rejection, pairing and
-  engine-only hand strength confirmed; full 52-cell run works (204 s).
-  Round 1 FAIL, ten findings (store 92b454e6fb34): arena ships inside
-  pokerbot/ against EVALUATION_STRATEGY.md sections 3.1/3.3 (fixer told to
-  amend the document and add an import-graph guard, not move modules);
-  169-class ranking at 120 rollouts is noise and its test cannot fail;
-  one-sided p-value stars a zero difference; header weights differ from
-  decide()'s; NOT RUN reason truncated; config rollouts unread; bot arm gets
-  no memory calls; bot RNG carries across cells; rescaling undocumented.
-  FIXER round 1 out. Then a confirming round; land; at the second of T2/T3
-  to land, keep personas.py as the one home for the three trivial agents
-  and shim arena.py to it (signature (hand, seat) -> Action); delete
-  baselines.py.
+- `1fd3a6ebe936` T3 the scoreboard, PR #16, tip 0b39814, worktree
+  pokerbot/4ecb51776067. Round 1 fail on ten findings, all fixed; round 2
+  PASS with six wording findings. A small FIXER is out: merge origin/main
+  (T2 landed at 3a54ce2; README conflict expected) and apply the six. On
+  its report: `bin/dispatch.py land 1fd3a6ebe936 --skip-review --gate "bash
+  bin/gate.sh"` (record: round-2 pass, wording applied), push pokerbot main,
+  delete branch. Then the three trivial agents exist twice (T2 baselines.py,
+  T3 personas.py): task filed to keep personas.py and shim arena.py.
 - `20b9ff39b519` heater auto-push in bearings: LANDED 3b26e74 on a round-5
   clean pass (five rounds). Every bearings read now pushes unpushed local
   branches in every known checkout; HEATER_AUTOPUSH=0 turns it off; it
   pushed the taper fixer's in-progress commit on its first live run. The
   PC's next bearings run pushes the dickreuter branch.
-- `ecc208e2d0d6` heater reconcile landing fixes (latest round decides; two
-  consecutive wording-only rounds; empty branch never landed; merged branch
-  told apart from never-started by the lease's base_sha), tip 79e31c2,
-  worktree heater/5663ae84bf74. Round 2 FAIL: the already-in-trunk route
-  has no heartbeat check; fixer 3 guarded it. Fixer 4 guarded the third
-  route (merge with --skip-review) and recorded the sweep-override policy
-  in skills/dispatch; REVIEWER round 4 (deciding) is out. On pass land; tasks
-  f16c56933d8a, dc8e3ac0bd7f, f0b91b86f69f done then. Pre-existing sibling
-  filed as task b3b71f0512ac (worktrees.reclaim has no heartbeat check).
+- `ecc208e2d0d6` heater reconcile landing fixes: LANDED c6b30aa after four
+  rounds (code mutation-proved each round; the last finding was prose,
+  applied by the session, landed --skip-review). The sweep now: lands on
+  the LATEST round; needs two consecutive wording-only passes; never treats
+  an empty branch as landed; holds any checkout with a heartbeat under 30
+  minutes on the empty, merged and --skip-review routes; `--reason` on land
+  and reconcile. A REVIEWED checkout is still removed on the next sweep
+  (documented in skills/dispatch and README step 7). Tasks f16c56933d8a,
+  dc8e3ac0bd7f, f0b91b86f69f done. Siblings filed: b3b71f0512ac
+  (worktrees.reclaim no heartbeat), d80c47c137ae (autosave before guards).
 - `c79a35661f9c` heater usage taper (bands, pacing line, debrief page,
   opinion 14), tip 1d175b8, worktree heater/03a2b608f262. Seven rounds; the
   taper half was sound from round 4 and the status-line writer is verified

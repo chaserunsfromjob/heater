@@ -1,0 +1,17 @@
+{
+  "id": "3a8d8ec6e835",
+  "created": "2026-09-17T05:37:24.496402+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "pokerbot/baselines.py",
+  "origin": "",
+  "summary": "T2's pokerbot/baselines.py (always_fold, always_call, uniform_random; signature (menu, rng)) duplicates T3's personas.py versions (signature (hand, seat)); behaviour equal, interfaces not. Keep personas.py as the one home, shim arena.py to it, delete baselines.py (both reviewers' recommendation); goes with task 6805b01c7bd2 (__init__ docstring)",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T05:37:31.651560+00:00",
+    "score": 57,
+    "task_id": "d077f18909a7"
+  }
+}
