@@ -1,0 +1,17 @@
+{
+  "id": "100ba33a0310",
+  "created": "2026-09-17T04:54:16.866390+00:00",
+  "change": "c79a35661f9c",
+  "project": "heater",
+  "round": 6,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 7,
+  "wording_only": false,
+  "files": 14,
+  "insertions": 2605,
+  "deletions": 4,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "Taper half sound; statusline writer verified against Claude Code 2.1.274 payload; pacing arithmetic right. Debrief page: F1 count omits two unreadable store records silently (says 11, store has 13); F2 .venv/pytest reach the page; F3 orphaned back-reference 'Sweep every such passage.'; F4 abandoned-with-dirty-worktree path untested. F5-F7 wording/bookkeeping."
+}
