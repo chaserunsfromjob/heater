@@ -1,0 +1,17 @@
+{
+  "id": "c5a5aba93610",
+  "created": "2026-09-17T20:24:39.065475+00:00",
+  "change": "e6dfe622fa6f",
+  "project": "heater",
+  "round": 3,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 5,
+  "wording_only": false,
+  "files": 10,
+  "insertions": 725,
+  "deletions": 99,
+  "cost_usd": null,
+  "duration_s": 540.0,
+  "note": "Round 3 at 529910b: FAIL on three substantive (F1 the no-lease one-round clause is unreachable, since open_dispatch never records a branch on that path, so the effective rule 'a document outside a leased checkout takes two rounds' is a decision no rule records; F2 the skill defines document-only by the committed diff while the code also counts loose files; F3 reconcile's no-checkout close never stamps document_only) and two wording (F4 rounds_needed docstring; F5 opinion 15 names land only). Suite 698 OK, gate exit 0. 13 tool calls, 9 minutes, no dollar figure."
+}
