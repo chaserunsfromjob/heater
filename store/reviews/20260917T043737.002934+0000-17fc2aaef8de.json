@@ -1,0 +1,17 @@
+{
+  "id": "17fc2aaef8de",
+  "created": "2026-09-17T04:37:37.002934+00:00",
+  "change": "20b9ff39b519",
+  "project": "heater",
+  "round": 2,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 3,
+  "wording_only": false,
+  "files": 8,
+  "insertions": 731,
+  "deletions": 4,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "All six round-1 findings confirmed fixed (F1 reproduced and fixed). New: F1 deadline not enforced inside a checkout (three 0.5s pushes under 0.2s deadline took 1.76s) and the test named for it tests less; nan value unbounded. F2 tag/branch same name gives heads/<b> shortname: silent skip or standing refusal. F3 refusal reports git's hint line, not the reason."
+}

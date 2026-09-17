@@ -7,7 +7,7 @@
   "path": "OPINIONS.md",
   "origin": "",
   "summary": "Operator 2026-09-17 ~04:35Z, verbatim: 'I want to run agents exactly as many as I can in order to use the entire five-hour limit after five hours of usage. And I want to basically streamline the most important tasks. So however many agents I can have, running for the full five hours without using up all my usage should be running and doing the tasks that I deem most important or that you deem most important and you have discretion on that. But yeah, keep the tasks important that these agents are doing.' -- pace the five-hour window: a steady number of agents across the whole window on top-of-list work, not a burst that hits the limit early (as at 03:45Z today); depends on the taper change c79a35661f9c for the usage figures",
-  "delivered_at": null,
+  "delivered_at": "2026-09-17T04:24:29.381468+00:00",
   "resolution": {
     "action": "promoted",
     "at": "2026-09-17T04:23:14.347771+00:00",

@@ -1,0 +1,18 @@
+{
+  "id": "ecc208e2d0d6",
+  "created": "2026-09-17T04:33:38.907104+00:00",
+  "task": "Fix three landing defects in tools/dispatch.py: reconcile lands on one wording-only pass instead of two consecutive (f16c56933d8a); reviewed() returns True if ANY round passed rather than the latest (dc8e3ac0bd7f); reconcile treats a live worker's empty branch as landed and discards it (f0b91b86f69f)",
+  "project": "heater",
+  "done_when": "failing test first for each of the three, then green; bash bin/gate.sh passed; branch pushed",
+  "task_id": "f16c56933d8a",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/heater",
+  "workdir": "/Users/chasethompson/.heater/worktrees/heater/5663ae84bf74",
+  "lease_id": "5663ae84bf74",
+  "branch": "worker/ecc208e2d0d6",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}
