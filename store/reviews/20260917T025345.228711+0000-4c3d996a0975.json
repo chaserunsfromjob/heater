@@ -1,0 +1,17 @@
+{
+  "id": "4c3d996a0975",
+  "created": "2026-09-17T02:53:45.228711+00:00",
+  "change": "7f09949cb56f",
+  "project": "pokerbot",
+  "round": 3,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 5,
+  "wording_only": false,
+  "files": 3,
+  "insertions": 777,
+  "deletions": 36,
+  "cost_usd": null,
+  "duration_s": 600.0,
+  "note": "Fresh reviewer at f2d6133: everything in the diff sound (second sitting reproduces, 3 figures spot-checked, licence table 7 of 8 verified, merge clean, 47 passed). F1 decisive: eight passages (:79-80, :132-136, :160-162, :879-885, :888, :942-945, :978-979, :985-1031) still say the chooser needs a recorded carve-out to the forefront rule, which trunk 2d411f3 rewrote today to permit it. F2 :942 stage 1 quoted as live vs :157 superseded. F3 :727 PyPokerEngine load range 3.68 should be 4.27-4.66. F4 :822 PokerRL licence cell has no source. F5 :417 'every ratio' wider than the three named. F1/F3 were applied at 0a29519/c1db53c, not 52bd81d. Fixer dispatched; lands on the fixer's report under the pace decision. Cost 17 tool calls."
+}
