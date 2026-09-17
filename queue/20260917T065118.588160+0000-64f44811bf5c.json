@@ -1,0 +1,17 @@
+{
+  "id": "64f44811bf5c",
+  "created": "2026-09-17T06:51:18.588160+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "tools/dispatch.py",
+  "origin": "",
+  "summary": "tools/dispatch.py:124 close_dispatch catches a refused release, appends '[slot held: ...]' to the note, and the sweep still reports that dispatch under landed and exits 0: commits left on a branch nobody merged read green (noted by 6e3f3af1ef5c's worker)",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T06:51:25.069490+00:00",
+    "score": 54,
+    "task_id": "bc471f09618e"
+  }
+}
