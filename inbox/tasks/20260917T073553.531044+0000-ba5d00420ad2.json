@@ -1,0 +1,10 @@
+{
+  "id": "ba5d00420ad2",
+  "created": "2026-09-17T07:35:53.531044+00:00",
+  "score": 48,
+  "title": "hooks/heater_hook.py REPO still resolves to its own checkout; import tools/fleetrepo (hooks/ edit; operator permission rule needed)",
+  "source_finding": "84aa85ef7173",
+  "project": "heater",
+  "path": "hooks/heater_hook.py",
+  "done_at": null
+}

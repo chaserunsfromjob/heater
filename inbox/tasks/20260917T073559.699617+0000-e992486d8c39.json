@@ -1,0 +1,10 @@
+{
+  "id": "e992486d8c39",
+  "created": "2026-09-17T07:35:59.699617+00:00",
+  "score": 45,
+  "title": "bearings and dispatch alias jsonstore.REPO; use fleetrepo.repo() so a leased checkout reports the fleet repo",
+  "source_finding": "36955c49ca84",
+  "project": "heater",
+  "path": "tools/bearings.py",
+  "done_at": null
+}
