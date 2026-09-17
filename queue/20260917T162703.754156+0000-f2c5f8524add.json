@@ -1,0 +1,17 @@
+{
+  "id": "f2c5f8524add",
+  "created": "2026-09-17T16:27:03.754156+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "BUILD_PLAN.md",
+  "origin": "",
+  "summary": "OPERATOR GOAL, 2026-09-17, verbatim: 'at the end of all this i would like the project to be a downloadable software. i am a human and not a computer so i would like there to be a physical like bot folder ... i want this to be a downloadable software that i can install on my computer and then it will play for me basically.' Record as the final deliverable in BUILD_PLAN.md: one installable Mac application (an app icon the operator double-clicks) that bundles the pokerbot package, the engine, the solved baseline, the notebook store and the screen reader for the mirrored phone column, with a small window showing what it sees and what it did. Sizing belongs after Stage 6; not to be started before the reader exists",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T16:27:03.832453+00:00",
+    "score": 45,
+    "task_id": "50da88f07e0c"
+  }
+}

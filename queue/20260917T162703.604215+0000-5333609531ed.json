@@ -1,0 +1,17 @@
+{
+  "id": "5333609531ed",
+  "created": "2026-09-17T16:27:03.604215+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "BUILD_PLAN.md",
+  "origin": "",
+  "summary": "OPERATOR DECISION, 2026-09-17: the baseline comes BEFORE exploitation. Verbatim: 'i think it should be done the other way.' Said after the stoker set out both orders and recommended exploitation first. So the order is: (A) the equilibrium baseline, preflop ranges for every seat count 2-9 solved with our own external-sampling MCCFR on the fchpa menu, loaded into the search as the bot's own preflop play against strangers and as the default continuation style, checked against GTO Wizard spots in the operator's browser by the stoker; then (B) the notebook wired into the search's continuation strategies (old Stage 4). Record the reorder in BUILD_PLAN.md and renumber; the scoreboard judges each against the Stage 2 baseline run. This task IS step (A): build it. Done looks like: a solved preflop strategy per seat count on disk with provenance, the search using it, the scoreboard re-run, and a first theory-agreement batch recorded",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T16:27:03.709731+00:00",
+    "score": 72,
+    "task_id": "46cf8fab29ef"
+  }
+}
