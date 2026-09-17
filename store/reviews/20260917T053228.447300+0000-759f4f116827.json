@@ -1,0 +1,17 @@
+{
+  "id": "759f4f116827",
+  "created": "2026-09-17T05:32:28.447300+00:00",
+  "change": "8edc0ce3e009",
+  "project": "pokerbot",
+  "round": 2,
+  "lens": "default",
+  "verdict": "pass",
+  "findings": 1,
+  "wording_only": true,
+  "files": 13,
+  "insertions": 2245,
+  "deletions": 32,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "Confirming round: all eight fixes real; deal pool measured 0.0 wrong exclusions over 200 decisions; leak test caught full and 25% leaks; digest reproduced at the evidence commit. One wording finding applied by the session."
+}

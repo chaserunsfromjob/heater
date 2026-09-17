@@ -1,0 +1,17 @@
+{
+  "id": "77359df9f322",
+  "created": "2026-09-17T05:25:34.624806+00:00",
+  "change": "ecc208e2d0d6",
+  "project": "heater",
+  "round": 3,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 5,
+  "wording_only": false,
+  "files": 5,
+  "insertions": 823,
+  "deletions": 35,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "All round-3 fixes confirmed by mutation (4 mutations bite). F1 merge route with --skip-review still removes a live worker's checkout (probed); F2 bulk override unrecorded (stoker decides: keep, guarded, recorded in skills/dispatch); F3 README states one hold rule of two; F4/F5 wording. F6 = task b3b71f0512ac already."
+}

@@ -1,0 +1,10 @@
+{
+  "id": "d077f18909a7",
+  "created": "2026-09-17T05:37:31.649685+00:00",
+  "score": 57,
+  "title": "pokerbot: three trivial agents exist twice (T2 baselines.py, T3 personas.py); keep personas.py, shim arena.py, delete baselines.py",
+  "source_finding": "3a8d8ec6e835",
+  "project": "pokerbot",
+  "path": "pokerbot/baselines.py",
+  "done_at": null
+}

@@ -1,0 +1,17 @@
+{
+  "id": "0ad445f7cc69",
+  "created": "2026-09-17T05:35:53.974148+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "tools/dispatch.py",
+  "origin": "",
+  "summary": "tools/dispatch.py:415 reconcile runs worktrees.autosave(lease) on every candidate before any heartbeat guard, so the sweep commits a live worker's loose files on its branch while the worker is still editing them (pre-existing; noted by ecc208e2d0d6 round-4 reviewer)",
+  "delivered_at": "2026-09-17T05:38:10.731533+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T05:36:44.332089+00:00",
+    "score": 52,
+    "task_id": "d80c47c137ae"
+  }
+}

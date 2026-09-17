@@ -1,0 +1,17 @@
+{
+  "id": "ad08d9578dad",
+  "created": "2026-09-17T05:36:44.304762+00:00",
+  "change": "1fd3a6ebe936",
+  "project": "pokerbot",
+  "round": 2,
+  "lens": "default",
+  "verdict": "pass",
+  "findings": 6,
+  "wording_only": true,
+  "files": 21,
+  "insertions": 3199,
+  "deletions": 2317,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "Confirming round: all ten fixes real (146 distinct equities at 600 rollouts; p=1.0 on all-zero; tilter tilts as the bot; cell reproducible alone). Six wording findings: commit message's 32o claim wrong (43o last at 600; correction goes in the landing commit), section 3.1 bullet cites the wrong direction, tree mislabels shared modules, _pool docstring names the harmless direction, p-value docstring, one verb."
+}
