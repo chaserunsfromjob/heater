@@ -12,7 +12,7 @@
   "branch": "",
   "run_id": "",
   "part": "",
-  "closed_at": null,
-  "outcome": null,
-  "note": ""
+  "closed_at": "2026-09-17T02:40:43.504178+00:00",
+  "outcome": "pushed",
+  "note": "review delivered: FAIL all groups; 24 required changes in handover/codex-tonight-required-changes-2026-09-17.md and a GitHub issue on pokerbot"
 }

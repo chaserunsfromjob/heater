@@ -1,0 +1,17 @@
+{
+  "id": "85d029f583d0",
+  "created": "2026-09-17T02:40:01.086598+00:00",
+  "change": "bc7299f59f85",
+  "project": "pokerbot",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 4,
+  "wording_only": false,
+  "files": 1,
+  "insertions": 154,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 420.0,
+  "note": "Fresh reviewer at 9afa280 (scope narrowed to 3 of 10 sources on the operator's word): FAIL, three small substantive: F1 :73 Gupta's 90% UTG fold is the GTO chart, not ChatGPT; F2 :142/:130 'paid or networked' left a local model permitted, contradicting :134 and PokerGPT's own 5.4 s; F3 :134 'the engine's search' was CFR+ at Leduc, not our engine. F4 seven sources unverified (recorded, dismissed by the operator's pace decision). Suspicion-Agent, PokerGPT, Gupta otherwise exact. Style clean; merges clean; suite 47 passed. Applied by the session and landed under the pace decision. Cost 13 tool calls ~7 min 47k tokens."
+}

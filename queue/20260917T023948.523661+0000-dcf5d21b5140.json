@@ -1,0 +1,12 @@
+{
+  "id": "dcf5d21b5140",
+  "created": "2026-09-17T02:39:48.523661+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": ".heater/worktrees/pokerbot",
+  "origin": "",
+  "summary": "The venv worktree 9fd7bd8ad257 named in the round-1 findings and the fixer task is gone; only 92e2a2c459ef/.venv still has pytest, so every pokerbot suite command in handover notes points at a path that does not exist",
+  "delivered_at": null,
+  "resolution": null
+}
