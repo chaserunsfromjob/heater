@@ -53,10 +53,10 @@ class DebriefCase(unittest.TestCase):
 
     def job(self, task: str, *, minutes_ago: float = 60, agent: str = "worker",
             outcome: str | None = None, closed_minutes_ago: float | None = None,
-            note: str = "", done_when: str = "") -> dict:
+            note: str = "", done_when: str = "", project: str = "heater") -> dict:
         record = {
             "id": jsonstore.new_id(), "created": self.stamp(minutes_ago), "task": task,
-            "project": "heater", "done_when": done_when, "task_id": "", "agent": agent,
+            "project": project, "done_when": done_when, "task_id": "", "agent": agent,
             "repo": "", "workdir": "", "lease_id": "", "branch": "", "run_id": "",
             "part": "",
             "closed_at": self.stamp(closed_minutes_ago) if outcome else None,
@@ -510,6 +510,13 @@ class TestAFullWindow(DebriefCase):
         self.assertNotIn("worker/aebf85e3a420", text)
         self.assertIn("the work is now part of the project", text)
 
+    def test_the_shared_copy_is_said_in_plain_words_after_on_as_well(self):
+        """"on main" is the same copy as "onto main", and as unreadable."""
+        self.job("Build the table we trust on main, and say what it holds.")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("the table we trust on the shared copy", text)
+        self.assertNotIn("on main", text)
+
     def test_a_task_written_with_an_abbreviation_is_not_cut_in_half(self):
         """The abbreviation must not end the sentence; the folder must not survive."""
         self.job("Vendor the solver into this repo (e.g. under vendor/) so it "
@@ -642,32 +649,165 @@ class TestARenderingThatSaysNothingOfItsOwn(DebriefCase):
     def test_two_jobs_whose_only_name_was_swapped_away_do_not_read_alike(self):
         """Dispatches baed4c5203a7 and f541eb44075b, word for word out of the store.
 
-        Both rendered as "Write one new file a file in the project at the
-        pokerbot root.": every word of it was the frame of the order, and the
-        one word that said which job it was -- the file's name -- is the word
-        the swap took out.
+        Each brief opens its order with the file it is for, and the clause that
+        said what the file is about names the engine the work sits on -- a tool
+        the page must not print. With that clause gone the order says only that
+        a file was written, so the account stops there rather than reading on
+        and quoting the instructions that follow it, which are the same
+        instructions in both briefs.
         """
-        self.job("Research with measurement, not product code. Write ONE new file "
-                 "DECISION_LAYER_BLUEPRINT.md at the pokerbot root: the options "
-                 "for a PRE-COMPUTED strategy (a 'blueprint') on top of OpenSpiel "
-                 "universal_poker for 2-9 player no-limit hold'em. Cover at least: "
-                 "vanilla CFR, external-sampling MCCFR, and a Pluribus-style "
-                 "abstracted blueprint.", minutes_ago=50)
-        self.job("Research with measurement, not product code. Write ONE new file "
-                 "DECISION_LAYER_SEARCH.md at the pokerbot root: the options for "
-                 "choosing an action IN REAL TIME at the table on top of OpenSpiel "
-                 "universal_poker for 2-9 player no-limit hold'em. Cover at least: "
-                 "equity-versus-pot-odds rules with Monte Carlo equity, and "
-                 "depth-limited search with a blueprint at the leaves.",
-                 minutes_ago=40)
+        self.job("Research with measurement, not product code. Write ONE "
+                 "new file DECISION_LAYER_BLUEPRINT.md at the pokerbot "
+                 "root: the options for a PRE-COMPUTED strategy (a "
+                 "'blueprint') on top of OpenSpiel universal_poker for "
+                 "2-9 player no-limit hold'em, now that the rule allows "
+                 "AI-written decision code (no live model call; ordinary "
+                 "tested code). Cover at least: vanilla CFR, CFR+, "
+                 "external-sampling and outcome-sampling MCCFR, Deep CFR,"
+                 " and a Pluribus-style abstracted blueprint; for each: "
+                 "what OpenSpiel already ships (name the module and check"
+                 " it imports on this machine), the card and action "
+                 "abstraction it needs, what is reachable in HOURS ON ONE"
+                 " LAPTOP (the compute budget in CLAUDE.md) and what is "
+                 "not, and how an opponent model could bias or re-solve "
+                 "it. MEASURE: commit a script under research/ that runs "
+                 "at least one CFR variant on universal_poker at 2, 3 and"
+                 " 6 players with a small abstraction for a fixed "
+                 "wall-clock budget (say 10 minutes each) and records "
+                 "exploitability or NashConv where OpenSpiel can compute "
+                 "it, hands/iterations per second, memory, and the "
+                 "1-minute load average read from uptime beside every "
+                 "figure; run each at least twice and quote ranges. Rate "
+                 "every option against the operator's requirements: (a) "
+                 "2-9 players, (b) true no-limit sizing, (c) exploiting "
+                 "specific opponents by identity, (d) reachable in hours "
+                 "on one laptop, (e) fits a public GPL-3.0 repository. "
+                 "Verify every source by visiting it (URL, authors, year,"
+                 " the specific result). End with a ranked shortlist and "
+                 "one recommendation. Do NOT duplicate "
+                 "ENGINE_ALTERNATIVES.md (on branch worker/7f09949cb56f, "
+                 "read it there) or RESOURCES_SOLVERS.md; cite them. A "
+                 "sibling worker writes DECISION_LAYER_SEARCH.md on "
+                 "REAL-TIME search; do not cover search. Do not touch any"
+                 " existing file. GitHub first: git fetch origin; git "
+                 "merge origin/main; git push -u origin <branch>; gh pr "
+                 "create --draft titled with the task; push as you go; "
+                 "end with a push. Run fleet tooling from "
+                 "/Users/chasethompson/heater (bin/inbox.py check "
+                 "--summary before filing a finding). Use the venv at "
+                 "/Users/chasethompson/.heater/worktrees/pokerbot/9fd7bd8ad257/.venv/bin/python"
+                 " if your checkout has none. Report branch and PR URL.",
+                 done_when="DECISION_LAYER_BLUEPRINT.md committed and "
+                          "pushed with at least five options each rated "
+                          "(a)-(e), every figure produced by a committed "
+                          "script under research/ with load recorded, a "
+                          "ranked shortlist and one recommendation; draft"
+                          " PR open; no existing file touched.",
+                 project="pokerbot", minutes_ago=50)
+        self.job("Research with measurement, not product code. Write ONE "
+                 "new file DECISION_LAYER_SEARCH.md at the pokerbot root:"
+                 " the options for choosing an action IN REAL TIME at the"
+                 " table on top of OpenSpiel universal_poker for 2-9 "
+                 "player no-limit hold'em, now that the rule allows "
+                 "AI-written decision code (no live model call; ordinary "
+                 "tested code). Cover at least: equity-versus-pot-odds "
+                 "rules with Monte Carlo equity, Information Set MCTS "
+                 "(OpenSpiel ships one), depth-limited search with a "
+                 "blueprint at the leaves (Pluribus-style, with biased "
+                 "continuation strategies), and search that plugs in a "
+                 "per-opponent model (fold-to-bet rate, aggression) to "
+                 "bias the opponents' assumed strategies; for each: what "
+                 "OpenSpiel already ships (name the module, check it "
+                 "imports here), what it needs precomputed, decision "
+                 "latency at 2, 3 and 6 players, and how the opponent "
+                 "model from OPPONENT_MODEL_DESIGN.md enters it. MEASURE:"
+                 " commit a script under research/ that runs at least two"
+                 " of these on universal_poker at 2, 3 and 6 players and "
+                 "records decisions per second, play-outs per decision "
+                 "within a 250 ms and a 2 s budget, memory, and the "
+                 "1-minute load average from uptime beside every figure; "
+                 "two or more repeats, quote ranges. A real table gives "
+                 "the bot 10-25 seconds to act; say what each option can "
+                 "do in that time on this laptop. Rate every option "
+                 "against: (a) 2-9 players, (b) true no-limit sizing, (c)"
+                 " exploiting specific opponents by identity, (d) "
+                 "reachable in hours on one laptop, (e) fits a public "
+                 "GPL-3.0 repository. Verify every source by visiting it "
+                 "(URL, authors, year, the specific result). End with a "
+                 "ranked shortlist and one recommendation. Do NOT "
+                 "duplicate ENGINE_ALTERNATIVES.md (on branch "
+                 "worker/7f09949cb56f, read it there; it measured a "
+                 "four-move chooser) or RESOURCES_SOLVERS.md; cite them. "
+                 "A sibling worker writes DECISION_LAYER_BLUEPRINT.md on "
+                 "PRE-COMPUTED strategies; do not cover CFR training. Do "
+                 "not touch any existing file. GitHub first: git fetch "
+                 "origin; git merge origin/main; git push -u origin "
+                 "<branch>; gh pr create --draft titled with the task; "
+                 "push as you go; end with a push. Run fleet tooling from"
+                 " /Users/chasethompson/heater (bin/inbox.py check "
+                 "--summary before filing a finding). Use the venv at "
+                 "/Users/chasethompson/.heater/worktrees/pokerbot/9fd7bd8ad257/.venv/bin/python"
+                 " if your checkout has none. Report branch and PR URL.",
+                 done_when="DECISION_LAYER_SEARCH.md committed and pushed "
+                          "with at least four options each rated (a)-(e),"
+                          " every figure produced by a committed script "
+                          "under research/ with load recorded, latency "
+                          "stated per option per table size, a ranked "
+                          "shortlist and one recommendation; draft PR "
+                          "open; no existing file touched.",
+                 project="pokerbot", minutes_ago=40)
         text = " ".join(debrief.write(hours=5).split())
+        self.assertEqual(text.count(debrief.DOES_NOT_TRANSLATE), 2)
+        self.assertNotIn("Cover at least", text)
+        self.assertNotIn("vanilla cfr", text)
+        self.assertNotIn("equity-versus-pot-odds rules", text)
         self.assertNotIn("Write one new file a file in the project at the "
                          "pokerbot root.", text)
-        self.assertIn("vanilla cfr", text)
-        self.assertIn("equity-versus-pot-odds rules", text)
-        lines = [l for l in text.split(" Sent out ") if "Cover at least" in l]
-        self.assertEqual(len(lines), 2, "both entries must say what their job was")
-        self.assertNotEqual(lines[0], lines[1], "two different jobs, two lines")
+
+    def test_an_order_further_down_is_not_the_one_the_brief_was_carrying_on(self):
+        """Dispatch c91832fe9882 in little: its third sentence says what to read.
+
+        A list of documents is the whole of what that sentence carries, and the
+        swap takes every one of them out. That is not the brief losing the
+        order it opened with -- the order is further down, and it says what the
+        job was -- so the page still prints it.
+        """
+        self.job("The reconciliation, written as a BUILD PLAN. Write ONE new file "
+                 "BUILD_PLAN.md at the pokerbot root. The operator's bar, "
+                 "verbatim: 'just something that we know is beating real players'. "
+                 "Read, on main: CLAUDE.md (rules and hand evaluation come from "
+                 "OpenSpiel universal_poker), ENGINE_ALTERNATIVES.md and "
+                 "RESOURCES_BOTS.md. Write: (1) one page in plain words a "
+                 "non-programmer can follow saying what the bot will be; (2) the "
+                 "stages to build, in order.", project="pokerbot")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("Write: (1) one page in plain words a non-programmer can "
+                      "follow saying what the bot will be; (2) the stages to "
+                      "build, in order.", text)
+
+    def test_a_line_whose_only_word_of_its_own_is_the_project_name_is_dropped(self):
+        """Dispatch 3b3236e88284, word for word out of the store.
+
+        It rendered as "Add a file in the project to pokerbot.". The file's
+        name is the word the swap took out, the rest is the frame every such
+        order is written in, and the project's name is where the reader already
+        knows the work was. What finishing would look like says no more: it is
+        a command to type and the number it comes back with.
+        """
+        self.job("Add bin/gate.sh to pokerbot: one command that stands up"
+                 " or reuses .venv from requirements-research.txt, runs "
+                 "pytest over tests/, and runs the three "
+                 "tools/check_*_numbers.py checkers; exit 0 only when all"
+                 " pass",
+                 done_when="bash bin/gate.sh exits 0 on the branch and "
+                          "prints a one-line verdict; it exits non-zero "
+                          "on a deliberately failing test; README.md "
+                          "names it; branch pushed with a draft PR",
+                 project="pokerbot")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn(debrief.DOES_NOT_TRANSLATE, text)
+        self.assertNotIn("a file in the project to pokerbot", text)
+        self.assertNotIn("exits 0", text)
 
     def test_a_file_named_where_it_goes_still_reads_as_one_file(self):
         """The swap put a second file beside the word file: "one new file a file"."""

@@ -14,6 +14,21 @@ It is written for someone who does not program. Identifiers, file paths and
 branch names are left out unless the reader would have to go there, and a thing
 is described by what it does before it is named.
 
+One decision about what the page will not do, recorded here so that it is not
+guessed at again. A brief gives its order in one sentence and then spends
+several more saying how much of that order to do -- "Cover at least:",
+"Include:", "Measure:". Where the order itself cannot be said, because the
+words saying what the work was about name a tool this page must not print,
+none of those later sentences may stand in for it: each continues an order it
+does not repeat, and a page built from them says how much of a job was wanted
+without ever saying what the job was. Two such briefs, for two quite different
+pieces of research, read as though one of them had been done twice. So the
+entry says plainly that it does not translate. The page never guesses.
+
+The one sentence allowed to stand in is a sentence saying what the operator
+wanted, because that says what the work was for rather than telling the agent
+how much of it to do.
+
     bin/debrief.py --hours 5
     bin/debrief.py --hours 5 --queue
 """
@@ -83,15 +98,15 @@ PLAIN_WORDS = (
 # for a project, and the name of the copy everyone's work is joined onto. They
 # are ordinary words, not machinery, so a sentence carrying one is still worth
 # saying -- it is said in the words the reader would use. The branch word is
-# only swapped where it is the object of joining one copy to another, so "the
-# main checkout" is left alone.
+# only swapped where a preposition puts it there -- joined onto it, sitting on
+# it -- so "the main checkout" is left alone.
 JARGON_WORDS = (
     # To read something read-only is to look at it without changing it, which is
     # what the words say once they are said in full.
     (re.compile(r"\bread-only\b", re.I), "without changing anything"),
     (re.compile(r"\brepos\b"), "projects"),
     (re.compile(r"\brepo\b"), "project"),
-    (re.compile(r"\b(and|onto|into|from|with|against|to)\s+(?:main|trunk)\b"),
+    (re.compile(r"\b(and|onto|into|from|with|against|to|on)\s+(?:main|trunk)\b"),
      r"\1 the shared copy"),
     # To vendor something is to bring a copy of somebody else's project into
     # yours. Only the verb is swapped: a vendor who sells things is a different
@@ -140,7 +155,7 @@ CODE_SHAPE = re.compile(
 FLEET_JARGON = re.compile(
     r"(?i:\b(?:worktrees?|checkouts?|stubs?|stubbed|stubbing|monkeypatch\w*"
     r"|context-usage|statusline|autopush"
-    r"|pytest|pip|venv|grep|git|pull requests?)\b)")
+    r"|bash|pytest|pip|venv|grep|git|pull requests?)\b)")
 
 # Everything a sentence is passed over for, in one pattern, so that what is
 # rejected in a brief is rejected in what finishing it would look like too.
@@ -273,6 +288,13 @@ AGENT_WORDS = {
     "general-purpose": "to look something up and write up what it found",
 }
 AGENT_FALLBACK = "to carry out a piece of work"
+
+# How far into a brief its order is still the order. A brief states what it
+# wants at the top; an order further down is as likely to be the preparation --
+# one live brief says which documents to read in its third sentence, and the
+# list of them is all that sentence carries. Only an order this near the top
+# counts as the one the rest of the brief is carrying on.
+OPENS_A_BRIEF = 2
 
 # What is said where the brief cannot be said at all. An honest line beats a
 # line of machinery, and beats an invented summary of a brief nobody read.
@@ -542,7 +564,7 @@ def _says_the_work(sentence: str) -> bool:
     return False
 
 
-def _says_something(said: str) -> bool:
+def _says_something(said: str, project: str = "") -> bool:
     """Whether a rendering has content of its own, or only what a swap put there.
 
     "bin/gate.sh passes" becomes "a file in the project passes", which is a swap
@@ -553,8 +575,21 @@ def _says_something(said: str) -> bool:
     The frame the order was written in goes with them: "Write one new file a
     file in the project at the pokerbot root" is where a file went and what was
     done with it, and two different jobs came out of it word for word alike.
+
+    The name of the project the work was in counts for nothing either. One live
+    entry read "Add a file in the project to pokerbot", which is the frame plus
+    the name of the project -- and every job in that project could say it.
+
+    A rendering that opens on a swap is the same failure from the front: what
+    the sentence is about is the one word the swap took out, so "a file in the
+    project committed and pushed with at least five options" could be said of
+    any of them.
     """
+    if any(said.strip().lower().startswith(plain) for _, plain in PLAIN_WORDS):
+        return False
     left = WHERE_IT_GOES.sub(" ", said)
+    if project.strip():
+        left = re.sub(rf"\b{re.escape(project.strip())}\b", " ", left, flags=re.I)
     for _, plain in PLAIN_WORDS:
         if left.count(plain) > 2:
             return False
@@ -583,26 +618,54 @@ def _points_outside(said: str) -> bool:
     return False
 
 
+def _lost_its_content_to_machinery(sentence: str, said: str, project: str) -> bool:
+    """Whether the order a brief opened with was cut down to nothing by a name.
+
+    The opening order says what the work is for, and it often says it in a
+    clause naming the engine or the tool the work sits on -- a name this page
+    does not print. Cut there, what is left is the frame every such order is
+    written in: a file was written, something was added to a project. The rest
+    of the brief is no help, because the rest is how much of the order to do.
+    So the account stops taking orders from that brief rather than offering a
+    sentence that was never the point: two briefs for two quite different pieces
+    of research both went on to say "Cover at least:", then to rate their
+    options against the same five requirements, and the page read as though one
+    of them had been done twice.
+    """
+    return (bool(MACHINERY.search(_plainly(sentence)))
+            and not (said and _says_something(said, project)))
+
+
 def _describe(record: dict[str, Any], limit: int = 220) -> str:
     """What the job was, in the brief's own words with the machinery taken out.
 
     Every sentence of the brief is offered, and the ones that are its
     surroundings rather than its order are passed over, because the order is as
-    often the fourth sentence as the first. Where no sentence of the brief can
-    be said plainly, what finishing would look like is tried instead -- but only
-    where that says something of its own, since a line built out of swaps tells
-    the reader nothing. Where that fails too the account says so, which is worth
-    more than a sentence the reader cannot read.
+    often the fourth sentence as the first. Where the brief's opening order lost
+    what it was about to a name this page does not print, the sentences after it
+    are passed over too -- they carry on that order rather than giving it, and
+    the page does not guess. A sentence saying what the operator wanted is the
+    exception, because it says what the work was for. Where no sentence of the
+    brief can be said plainly, what finishing would look like is tried instead,
+    held to the same tests, since a line built out of swaps tells the reader
+    nothing. Where that fails too the account says so, which is worth more than
+    a sentence the reader cannot read.
     """
-    for sentence in _sentences(record.get("task", "")):
+    project, opening, gutted = record.get("project") or "", True, False
+    for place, sentence in enumerate(_sentences(record.get("task", ""))):
         if META_CLAUSE.match(sentence) or not _says_the_work(sentence):
             continue
-        if ((said := _in_plain_words(sentence, limit))
-                and _says_something(said) and not _points_outside(said)):
+        said = _in_plain_words(sentence, limit)
+        stands = bool(said) and (opening or not gutted or bool(WANTED.search(sentence)))
+        if stands and _says_something(said, project) and not _points_outside(said):
             return said
+        if opening:
+            gutted = (place < OPENS_A_BRIEF
+                      and _lost_its_content_to_machinery(sentence, said, project))
+            opening = False
     for sentence in _sentences(record.get("done_when", "")):
         if ((said := _in_plain_words(sentence, limit))
-                and _says_something(said) and not _points_outside(said)):
+                and _says_something(said, project) and not _points_outside(said)):
             return _upper(f"done when {said[:1].lower() + said[1:]}")
     return NOT_RECORDED if not (record.get("task") or "").strip() else DOES_NOT_TRANSLATE
 
