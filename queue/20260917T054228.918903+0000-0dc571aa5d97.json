@@ -1,0 +1,12 @@
+{
+  "id": "0dc571aa5d97",
+  "created": "2026-09-17T05:42:28.918903+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "",
+  "path": "",
+  "origin": "",
+  "summary": "tools/debrief.py:41 SENTENCE_END never splits after a word in capitals, so 'The reconciliation, written as a BUILD PLAN. Write ONE new file BUILD_PLAN.md...' is one sentence and its order is invisible to _says_the_work (dispatch c91832fe9882)",
+  "delivered_at": null,
+  "resolution": null
+}
