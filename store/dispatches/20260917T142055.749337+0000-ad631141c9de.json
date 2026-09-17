@@ -1,0 +1,18 @@
+{
+  "id": "ad631141c9de",
+  "created": "2026-09-17T14:20:55.749337+00:00",
+  "task": "Review round 3 of worker/0a62853153e4 (f229ed3, PR #23): confirm R2-F1 to R2-F3 resolved, say if wording only",
+  "project": "pokerbot",
+  "done_when": "verdict recorded with an explicit wording-only statement",
+  "task_id": "815aea61d060",
+  "agent": "reviewer",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/1c8786a5fc8e",
+  "lease_id": "1c8786a5fc8e",
+  "branch": "worker/ad631141c9de",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

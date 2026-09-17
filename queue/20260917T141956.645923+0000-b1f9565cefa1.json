@@ -1,0 +1,17 @@
+{
+  "id": "b1f9565cefa1",
+  "created": "2026-09-17T14:19:56.645923+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": ".git/config",
+  "origin": "",
+  "summary": "pokerbot commits from worktrees are authored as chasethompson@Chases-MacBook-Air.local, not the operator's GitHub email, so GitHub does not link them to the account",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T14:20:55.713626+00:00",
+    "score": 40,
+    "task_id": "8511e611f839"
+  }
+}
