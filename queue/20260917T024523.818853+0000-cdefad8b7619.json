@@ -7,7 +7,7 @@
   "path": "",
   "origin": "",
   "summary": "TABLE_SIZE_AND_SIZING_NOTES.md Sources still lists the pseudo-harmonic formula, Ganzfried & Sandholm 2013 and Pluribus's bet-size abstraction as memory-cited and unverified; ACTION_TRANSLATION.md (branch worker/5a58d580c339) retrieved all three and confirms the formula as quoted - a later task should move them to that document's retrieved list",
-  "delivered_at": null,
+  "delivered_at": "2026-09-17T02:48:21.393103+00:00",
   "resolution": {
     "action": "dismissed",
     "at": "2026-09-17T02:46:14.320854+00:00",

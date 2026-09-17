@@ -7,7 +7,7 @@
   "path": "handover/findings-7f09949cb56f-engine-r2-remaining.md",
   "origin": "",
   "summary": "The engine survey's remaining-findings note listed F1 and F3 as open and said no benchmark existed, when commit 52bd81d had already applied both with committed scripts and raw output; tonight's Mac fixer spent a measurement session verifying work already done.",
-  "delivered_at": null,
+  "delivered_at": "2026-09-17T02:48:21.393103+00:00",
   "resolution": {
     "action": "dismissed",
     "at": "2026-09-17T02:48:15.564911+00:00",

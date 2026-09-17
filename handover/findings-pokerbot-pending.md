@@ -34,6 +34,10 @@ that stage is applied by the session and landed.
 - bc7299f59f85 LLM_POKER_FAILURE_MODES.md — f959aad (one round, three
   one-sentence fixes applied by the session).
 
+- 5a58d580c339 ACTION_TRANSLATION.md — 8bd3490 (one round, five edits
+  applied by the session; recommendation: fchpa menu with randomised
+  pseudo-harmonic mapping in pot fractions).
+
 ## Still open
 
 - 7eead182560d RESOURCES_DICKREUTER.md (worker/7eead182560d @ b0c5b4a):

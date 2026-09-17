@@ -1,0 +1,17 @@
+{
+  "id": "d0841b36bf57",
+  "created": "2026-09-17T02:52:51.125710+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "research/action_translation.py",
+  "origin": "",
+  "summary": "ACTION_TRANSLATION.md's figures are checked by 'python3 research/action_translation.py --check' but nothing in pytest runs it and no drift test mutates the document; add tests/test_action_translation_numbers.py on the pattern of test_table_size_numbers.py when a worker next touches that note",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T02:52:51.171492+00:00",
+    "score": 30,
+    "task_id": "91d86bcbfdbe"
+  }
+}
