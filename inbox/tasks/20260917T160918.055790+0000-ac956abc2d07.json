@@ -1,0 +1,10 @@
+{
+  "id": "ac956abc2d07",
+  "created": "2026-09-17T16:09:18.055790+00:00",
+  "score": 52,
+  "title": "Refinement of the operator's equilibrium-baseline position (2026-09-17): the operator asked why GTO Wizard's answers cannot be the baseline. RESOURCES_SOLVERS.md entry 17: 9-player solving exists PREFLOP only (Feb 2026), postflop up to 3 players, no strategy API, browser-only, ranges copied by hand as UPI text, top tier $229-359/month. So the feasible baseline is: (1) preflop equilibrium ranges for every seat count 2-9 solved with our own external-sampling MCCFR on the fchpa menu, checked by hand against a few GTO Wizard preflop spots if the operator holds a subscription; (2) postflop the per-bucket coarse solves already named for Stage 5. Order Stage 5's equilibrium candidate preflop-first. Same worker as the other BUILD_PLAN.md records",
+  "source_finding": "ecc3ee41979c",
+  "project": "pokerbot",
+  "path": "BUILD_PLAN.md",
+  "done_at": null
+}
