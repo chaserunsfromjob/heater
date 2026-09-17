@@ -1,0 +1,17 @@
+{
+  "id": "9552535d9e45",
+  "created": "2026-09-17T04:50:34.985899+00:00",
+  "change": "20b9ff39b519",
+  "project": "heater",
+  "round": 3,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 2,
+  "wording_only": false,
+  "files": 8,
+  "insertions": 881,
+  "deletions": 4,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "All three round-2 fixes confirmed with real stalled-push repro. New R3-1: a push cut short by the deadline is recorded 'refused' (subprocess TimeoutExpired collapsed into exit 1) so bearings exits 1 with a Python repr as the reason; must be 'skipped' with a plain reason. Minor wording: negative deadline comment vs -inf handling."
+}

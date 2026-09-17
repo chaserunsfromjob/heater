@@ -1,0 +1,17 @@
+{
+  "id": "acaf5cef57d6",
+  "created": "2026-09-17T04:42:34.721216+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "tools/debrief.py",
+  "origin": "",
+  "summary": "debrief page: three machinery shapes the swaps still miss, seen on the live five-hour page at 04:35Z 2026-09-17 (entries 13 and 21): a branch name with no dot or underscore ('codex/tonight'), a seven-character commit id ('tip ca8339e', below the eight-character record-number rule), and a bare call written as 'reviewed()' (the call rule needs a dot). All three predate change c79a35661f9c's round-5 fixes and are outside its findings F1-F11, so they were left alone.",
+  "delivered_at": "2026-09-17T04:42:58.694257+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T04:42:54.271640+00:00",
+    "score": 40,
+    "task_id": "06e6e60bc3f7"
+  }
+}

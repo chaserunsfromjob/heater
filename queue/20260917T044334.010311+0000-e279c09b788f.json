@@ -1,0 +1,17 @@
+{
+  "id": "e279c09b788f",
+  "created": "2026-09-17T04:43:34.010311+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "tools/debrief.py",
+  "origin": "",
+  "summary": "debrief page wording, seen live 04:43Z 2026-09-17: one note reads 'One note was left for you in this window, and all of them have been passed on to you' -- a singular subject with a plural predicate (tools/debrief.py _note_lines, the 'not unsent' branch does not vary with the count). Also entries 9-12 read 'Write one new file a file in the project at the pokerbot root', where the swapped-in phrase lands next to 'one new file' with no comma. Both predate change c79a35661f9c's round-5 findings F1-F11 and were left alone.",
+  "delivered_at": "2026-09-17T04:43:48.486492+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T04:45:35.746265+00:00",
+    "score": 41,
+    "task_id": "001bbe019ca8"
+  }
+}

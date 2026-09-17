@@ -1,0 +1,17 @@
+{
+  "id": "b5d7a555fe57",
+  "created": "2026-09-17T04:44:32.593354+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "tools/dispatch.py",
+  "origin": "",
+  "summary": "tools/dispatch.py reconcile's 'already in the trunk' and 'no checkout to consolidate' paths (about :400-414 on worker/ecc208e2d0d6) close a dispatch as landed without consulting the review store; and an empty branch abandoned past 24h is closed with outcome 'landed' though nothing landed ('abandoned' exists but finished_runs() counts only landed).",
+  "delivered_at": "2026-09-17T04:44:44.460454+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T04:44:38.890342+00:00",
+    "score": 56,
+    "task_id": "3259f1e2808e"
+  }
+}

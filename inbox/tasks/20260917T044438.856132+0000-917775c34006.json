@@ -1,0 +1,10 @@
+{
+  "id": "917775c34006",
+  "created": "2026-09-17T04:44:38.856132+00:00",
+  "score": 55,
+  "title": "store.py query changes_landed counts any pass as landed; reuse dispatch.reviewed()",
+  "source_finding": "beea083de5ab",
+  "project": "heater",
+  "path": "tools/store.py",
+  "done_at": null
+}
