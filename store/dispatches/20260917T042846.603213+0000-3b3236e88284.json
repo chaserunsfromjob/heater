@@ -1,0 +1,18 @@
+{
+  "id": "3b3236e88284",
+  "created": "2026-09-17T04:28:46.603213+00:00",
+  "task": "Add bin/gate.sh to pokerbot: one command that stands up or reuses .venv from requirements-research.txt, runs pytest over tests/, and runs the three tools/check_*_numbers.py checkers; exit 0 only when all pass",
+  "project": "pokerbot",
+  "done_when": "bash bin/gate.sh exits 0 on the branch and prints a one-line verdict; it exits non-zero on a deliberately failing test; README.md names it; branch pushed with a draft PR",
+  "task_id": "79e6cd271cff",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/d0a46a625659",
+  "lease_id": "d0a46a625659",
+  "branch": "worker/3b3236e88284",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}
