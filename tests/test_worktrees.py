@@ -9,11 +9,13 @@ route — closing a dispatch, an explicit release, or reclaiming.
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Callable
@@ -39,7 +41,8 @@ def run(*args: str, cwd: Path) -> None:
 
 class WorktreeCase(unittest.TestCase):
     ENV = ("HEATER_LEASES_DIR", "HEATER_WORKTREE_ROOT", "HEATER_DISPATCHES_DIR",
-           "HEATER_REVIEWS_DIR", "HEATER_SUITES_DIR", "HEATER_REFUSALS_DIR")
+           "HEATER_REVIEWS_DIR", "HEATER_SUITES_DIR", "HEATER_REFUSALS_DIR",
+           "HEATER_LOG_DIR")
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -51,6 +54,9 @@ class WorktreeCase(unittest.TestCase):
         os.environ["HEATER_REVIEWS_DIR"] = str(self.root / "reviews")
         os.environ["HEATER_SUITES_DIR"] = str(self.root / "suites")
         os.environ["HEATER_REFUSALS_DIR"] = str(self.root / "refusals")
+        # The heartbeats reclaim reads, in this test's directory rather than the
+        # machine's: a real session's beat must never decide a test's answer.
+        os.environ["HEATER_LOG_DIR"] = str(self.root / "logs")
 
         self.repo = self.root / "proj"
         self.repo.mkdir()
@@ -91,6 +97,15 @@ class WorktreeCase(unittest.TestCase):
         patcher = mock.patch.object(worktrees.shutil, "disk_usage", side_effect=usage)
         self.addCleanup(patcher.stop)
         return patcher.start()
+
+    def beat(self, cwd: Path, *, minutes_ago: float = 0.0, session: str = "s1") -> None:
+        """Write what the PostToolUse hook writes when a tool call returns."""
+        directory = Path(os.environ["HEATER_LOG_DIR"]).parent / "heartbeat"
+        directory.mkdir(parents=True, exist_ok=True)
+        when = datetime.now(timezone.utc) - timedelta(minutes=minutes_ago)
+        (directory / f"{session}.json").write_text(json.dumps({
+            "at": when.isoformat(timespec="seconds"), "session": session,
+            "role": "worker", "tool": "Bash", "cwd": str(cwd)}) + "\n", encoding="utf-8")
 
     def checkouts_on_disk(self) -> int:
         trees = Path(os.environ["HEATER_WORKTREE_ROOT"])
@@ -336,6 +351,48 @@ class TestReclaim(WorktreeCase):
     def test_leaves_a_fresh_slot_alone(self):
         worktrees.lease(self.repo, "api", "worker/one")
         self.assertEqual(worktrees.reclaim("api"), [])
+
+    def test_keeps_a_stale_lease_whose_checkout_still_makes_tool_calls(self):
+        """Four hours is a long dispatch, not a dead one.
+
+        The lease age says only how long the slot has been held; whether anybody
+        is in it is the heartbeat's answer. A worker with everything pushed and
+        nothing loose looks exactly like an abandoned slot to `work_at_risk`, so
+        without the heartbeat the sweep deletes the checkout underneath it.
+        """
+        held = worktrees.lease(self.repo, "api", "worker/one")
+        self.beat(Path(held["path"]))
+        with mock.patch.object(worktrees, "STALE_MINUTES", -1):
+            self.assertEqual(worktrees.reclaim("api"), [])
+        self.assertEqual([l["id"] for l in worktrees.active("api")], [held["id"]])
+        self.assertTrue(Path(held["path"]).exists(),
+                        "a running worker's checkout must survive reclaim")
+
+    def test_says_why_it_kept_the_slot(self):
+        held = worktrees.lease(self.repo, "api", "worker/one")
+        self.beat(Path(held["path"]))
+        kept: list[dict] = []
+        with mock.patch.object(worktrees, "STALE_MINUTES", -1):
+            worktrees.reclaim("api", held=kept)
+        self.assertEqual([k["lease"] for k in kept], [held["id"]])
+        self.assertIn("tool call", kept[0]["why"])
+
+    def test_a_beat_from_another_checkout_does_not_keep_the_slot(self):
+        held = worktrees.lease(self.repo, "api", "worker/one")
+        self.beat(self.repo)
+        with mock.patch.object(worktrees, "STALE_MINUTES", -1):
+            self.assertEqual(len(worktrees.reclaim("api")), 1)
+        self.assertEqual(worktrees.active("api"), [])
+
+    def test_an_old_beat_does_not_keep_an_abandoned_slot(self):
+        """The guard is the heartbeat, so silence still reclaims: otherwise no
+        slot would ever come back."""
+        held = worktrees.lease(self.repo, "api", "worker/one")
+        self.beat(Path(held["path"]), minutes_ago=dispatch.STALE_MINUTES + 1)
+        with mock.patch.object(worktrees, "STALE_MINUTES", -1):
+            self.assertEqual(len(worktrees.reclaim("api")), 1)
+        self.assertEqual(worktrees.active("api"), [])
+        self.assertFalse(Path(held["path"]).exists())
 
     def test_lease_reclaims_before_refusing(self):
         """Room a dead worker is still holding is room: give it back before

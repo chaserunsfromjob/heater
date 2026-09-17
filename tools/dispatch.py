@@ -16,7 +16,6 @@ wrapped in the same standing instructions.
 from __future__ import annotations
 
 import argparse
-import json
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -24,12 +23,13 @@ from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "hooks"))
 
 import jsonstore
 import store
 import worktrees
-from heater_hook import heartbeat_dir
+# Re-exported, not re-implemented: worktrees answers the same question on the
+# route reclaim takes, and it cannot import this module back.
+from heartbeats import STALE_MINUTES, beats, someone_working_in  # noqa: F401
 
 OUTCOMES = ("landed", "pushed", "escalated", "failed", "abandoned")
 REPO = jsonstore.REPO
@@ -43,12 +43,6 @@ ROUNDS_TO_END_REVIEW = 2
 # produced nothing is a worker that has not finished its first commit far more
 # often than it is a worker that is gone, and the two look identical to git.
 EMPTY_BRANCH_STALE_HOURS = 24
-
-# A session whose last tool call is older than this has stopped saying anything.
-# One threshold and one reader for the whole fleet: bearings shows the same
-# beats through `beats()` and calls the same silence dead.
-STALE_MINUTES = 30
-
 
 def dispatches_dir() -> Path:
     return jsonstore.resolve_dir("HEATER_DISPATCHES_DIR", "store/dispatches")
@@ -200,47 +194,6 @@ def review_state(change: str) -> str:
     findings = f" with {last['findings']} finding(s)" if last.get("findings") else ""
     return (f"{len(rounds)} round(s) recorded, the latest is round "
             f"{last.get('round', '?')}: {last.get('verdict')}{findings}")
-
-
-def beats() -> list[dict[str, Any]]:
-    """Every heartbeat on the machine, freshest first, each with its age.
-
-    A heartbeat says a session's tool call returned. One reader for all of them,
-    because the sweep deletes checkouts on this answer and bearings prints it,
-    and two readers would drift into two answers.
-    """
-    directory = heartbeat_dir()
-    found = []
-    for path in sorted(directory.glob("*.json")) if directory.exists() else []:
-        try:
-            beat = json.loads(path.read_text(encoding="utf-8"))
-            beat["age_minutes"] = ((datetime.now(timezone.utc)
-                                    - datetime.fromisoformat(beat["at"])).total_seconds() / 60)
-        except (json.JSONDecodeError, OSError, KeyError, ValueError, TypeError):
-            continue
-        found.append(beat)
-    return sorted(found, key=lambda b: b["age_minutes"])
-
-
-def resolved(path: Path) -> Path | None:
-    try:
-        return path.resolve()
-    except OSError:
-        return None
-
-
-def someone_working_in(path: Path) -> bool:
-    """True when a session's tool call returned from inside this checkout lately."""
-    here = resolved(path)
-    if here is None:
-        return False
-    for beat in beats():
-        if beat["age_minutes"] > STALE_MINUTES:
-            continue
-        where = resolved(Path(str(beat.get("cwd") or ""))) if beat.get("cwd") else None
-        if where is not None and (where == here or here in where.parents):
-            return True
-    return False
 
 
 def override_note(reason: str) -> str:
@@ -410,6 +363,22 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
             checked[str(repo)] = trunk_state(repo, trunk)
         if (blocked := checked[str(repo)]):
             report["held"].append({"dispatch": record["id"], "why": blocked})
+            continue
+
+        # Asked before autosave, not only before the routes that delete a
+        # checkout: committing a file the worker is still writing puts a commit
+        # the worker did not make in the middle of the change it is making.
+        # One route takes a live checkout anyway — a dispatch whose review has
+        # ended is cleaned up with a session still in it, which `README` says
+        # out loud — so that route still autosaves, because there the loose
+        # files go with the checkout if nobody commits them. Every other route
+        # leaves the checkout standing, so its loose work is left alone too.
+        # The later guards stay: they read the heartbeat again nearer the moment
+        # a checkout is removed, with git and the gate run in between.
+        working = still_in_use(path, f"{branch} is checked out")
+        if working and not (require_review and reviewed(record["id"])):
+            report["held"].append({"dispatch": record["id"], "branch": branch,
+                                   "why": working})
             continue
 
         # Loose work becomes a commit first, so a branch still standing on the

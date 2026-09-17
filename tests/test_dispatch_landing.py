@@ -545,6 +545,71 @@ class TestAnEmptyBranchIsNotLanded(GitCase):
 
 
 
+class TestTheSweepDoesNotCommitALiveWorkersFiles(GitCase):
+    """Task d80c47c137ae: the autosave that ran before any heartbeat guard.
+
+    Every guard in reconcile asks the heartbeat before deleting a checkout, but
+    autosave ran above all of them, so a sweep passing a worker mid-edit staged
+    and committed a half-written file on that worker's branch. Nothing is lost,
+    which is why it went unnoticed; what it costs is a commit the worker did not
+    make, in the middle of the change it was making.
+    """
+
+    def dirty(self, record: dict) -> str:
+        done = subprocess.run(["git", "status", "--porcelain"], cwd=record["workdir"],
+                              capture_output=True, text=True, check=True, timeout=60)
+        return done.stdout
+
+    def test_loose_files_are_left_alone_while_the_worker_is_still_in_the_checkout(self):
+        record = self.worker()
+        self.work(record)
+        (Path(record["workdir"]) / "half_written.py").write_text("def half(\n")
+        self.beat(Path(record["workdir"]))
+
+        report = dispatch.reconcile()
+
+        self.assertIn("half_written.py", self.dirty(record),
+                      "the sweep may not commit a file the worker is still writing")
+        held = [h for h in report["held"] if h["dispatch"] == record["id"]]
+        self.assertEqual(len(held), 1, "a worker still making tool calls is not finished")
+        self.assertIn("tool call", held[0]["why"])
+        self.assertEqual([d["id"] for d in dispatch.live()], [record["id"]])
+
+    def test_a_reviewed_checkouts_loose_files_are_saved_even_with_a_worker_in_it(self):
+        """The one route that takes a live checkout still commits its loose work.
+
+        A dispatch whose review has ended is cleaned up on the next sweep even
+        with a session still working in it — `README` says so, and says not to
+        keep one open expecting it to survive. Since that route removes the
+        checkout, skipping autosave there would delete the loose files with it,
+        which is the opposite of what holding back autosave is for.
+        """
+        record = self.worker()
+        self.work(record)
+        (Path(record["workdir"]) / "loose.py").write_text("never committed\n")
+        self.approve(record["id"])
+        self.beat(Path(record["workdir"]))
+
+        report = dispatch.reconcile()
+
+        self.assertEqual(report["landed"], [record["id"]])
+        self.assertTrue((self.repo / "loose.py").is_file(),
+                        "the route that takes the checkout must save what is loose in it")
+
+    def test_a_silent_checkouts_loose_files_are_still_saved(self):
+        """The guard is the heartbeat, so silence is still autosaved: otherwise
+        the sweep would stop protecting the work it exists to protect."""
+        record = self.worker()
+        (Path(record["workdir"]) / "loose.py").write_text("never committed\n")
+        self.approve(record["id"])
+        self.beat(Path(record["workdir"]), minutes_ago=dispatch.STALE_MINUTES + 1)
+
+        dispatch.reconcile()
+
+        self.assertTrue((self.repo / "loose.py").is_file(),
+                        "a checkout nobody is in is autosaved and lands as before")
+
+
 class TestSkipReviewDoesNotTakeALiveWorkersSlot(GitCase):
     """The third route out of reconcile that removes a checkout: the merge.
 

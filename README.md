@@ -192,7 +192,11 @@ complete.
       ended, or, under `--skip-review`, after the half hour of silence. A
       checkout whose review has ended is cleaned up on the next sweep even if
       a session is still working in it, so do not keep one open expecting it
-      to survive.
+      to survive. That same half hour holds back the two things the sweep does
+      short of removing a checkout: committing what a worker left loose, and
+      `bin/worktrees.py reclaim` taking a slot back once its lease is four
+      hours old (`worktrees.STALE_MINUTES` is the age of the lease, not the
+      silence).
 
 ## Credit
 
