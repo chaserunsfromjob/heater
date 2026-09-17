@@ -1,0 +1,18 @@
+{
+  "id": "bb1f9e612089",
+  "created": "2026-09-17T07:54:42.346423+00:00",
+  "task": "Finish the goal-line sweep: three passages attribute the old goal to CLAUDE.md in words, EVALUATION_STRATEGY.md:34 and :151-152 ('a table of three or more') and ENGINE_ALTERNATIVES.md:767 (which drives a Requirement verdict about a heads-up-only solver); rewrite each to the current 2-to-9 goal and re-judge that verdict honestly",
+  "project": "pokerbot",
+  "done_when": "git grep -in 'three or more' shows no goal-line attribution; the three checkers and bash bin/gate.sh pass; branch pushed with a draft PR",
+  "task_id": "",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/8d25b23208cf",
+  "lease_id": "8d25b23208cf",
+  "branch": "worker/bb1f9e612089",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

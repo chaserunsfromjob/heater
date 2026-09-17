@@ -12,7 +12,7 @@
   "branch": "worker/d82528eed8c4",
   "run_id": "",
   "part": "",
-  "closed_at": null,
-  "outcome": null,
-  "note": ""
+  "closed_at": "2026-09-17T07:54:38.970220+00:00",
+  "outcome": "landed",
+  "note": "merged worker/d82528eed8c4 into main; review skipped by the stoker's explicit override: document sweep of a quoted line, hits read by the session, checkers unchanged and green"
 }

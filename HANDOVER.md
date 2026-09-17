@@ -37,12 +37,14 @@ Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-One agent is out: `d82528eed8c4` pokerbot worker (worktree
-pokerbot/b3234c807b23, task d279ff86d8c8): sweep the old goal line quotes
-out of TABLE_SIZE_AND_SIZING_NOTES.md and DECISION_LAYER_BLUEPRINT.md. On
-report: session reads the hits, lands `--skip-review --reason` with `bash
-bin/gate.sh`. Everything dispatched before it has landed; reconcile at
-07:48Z reported nothing open. pokerbot main is at 728c5da (CLAUDE.md now has
+One agent is out: `bb1f9e612089` pokerbot worker (worktree
+pokerbot/8d25b23208cf): the last three worded quotes of the old goal line
+(EVALUATION_STRATEGY.md:34, :151; ENGINE_ALTERNATIVES.md:767, which also
+carries a heads-up-solver verdict to re-judge against 2-to-9). On report:
+session reads the sentences and the verdict decision, lands `--skip-review
+--reason` with `bash bin/gate.sh`. The digit-form sweep `d82528eed8c4`
+landed at pokerbot 4fec583 (PR #20). Everything dispatched before it has landed; reconcile at
+07:48Z reported nothing open. pokerbot main is at 4fec583 (CLAUDE.md now has
 a "Firm requirements" section: 2-9 players, true no-limit, exploitative
 play keyed to the named player; the goal line agrees; PR #19). heater main
 is at 895c954 or later.
