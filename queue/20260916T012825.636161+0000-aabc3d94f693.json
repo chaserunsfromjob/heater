@@ -1,0 +1,16 @@
+{
+  "id": "aabc3d94f693",
+  "created": "2026-09-16T01:28:25.636161+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "/Users/chasethompson/.heater/worktrees/pokerbot/85f4140c6fae",
+  "origin": "",
+  "summary": "An autosave hook commits worker-branch work mid-task, so five 'Autosave uncommitted work' commits landed on worker/048795519f43 during change 048795519f43 round 2 and had to be squashed before the real commit",
+  "delivered_at": "2026-09-16T01:33:38.417532+00:00",
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-16T01:30:00.356550+00:00",
+    "reason": "Duplicate of 0640f118246d, dismissed minutes earlier: the autosave commit is intentional (nothing a worker wrote is lost when a checkout is released); reviewers judge the branch tip against main, never commit by commit; a fixer may reset the pointer to make its one commit, as this one did. Autosave commits on a worker branch are never a finding."
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "id": "c7e2a9b4d1f6",
+  "created": "2026-09-17T01:15:00.000000+00:00",
+  "change": "984aa6810a05",
+  "project": "pokerbot",
+  "round": 7,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 8,
+  "wording_only": false,
+  "files": 3,
+  "insertions": 2233,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 1800.0,
+  "note": "PC-session reviewer at 6c5f807: FAIL, 1 substantive (a regression by fixer 6) + 7 wording. Round-6 F1 and W1-W6 all resolved and verified (only RESOURCES_BOTS.md on origin/main; two below-mentions of the decision; OpenSpiel/fedden/dickreuter glosses true; R3 heading judgment: fixer's choice satisfies write-out-before-use; wsd/A-B glosses match the design; fb353c6 exact); links 142/55/0 verified; trunk not merged; checker 233; 35 passed both encodings; nothing settled. F1 :391-394 the flipped AF gloss now says 'one of the two thresholds below' turns on bets÷calls — AFQ_SPLIT is the design's aggression-FREQUENCY cut (§4.2 :686), a different quantity; as an AF value 0.50 reads passive, as AFq aggressive — flips the flag. Scope the gloss to the quotation. W1 :323-325 wsd is a whole-hand outcome, not street-local (wording; nothing depends on it). W2 :146-149 'a third program again'. W3 :148-151 'That decision' antecedent. W4 fixer 6's commit message claimed six links to the R3 heading; there are none. W5 :750 SPR before expansion. W6 :502 PPAD-complete unglossed. W7 :371, :892, :1411, :1424 unwrapped lines. Findings in handover/findings-984aa6810a05-tablesize-r7.md. Cost: 29 tool calls, ~30 min; no dollar figure."
+}

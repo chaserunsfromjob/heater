@@ -1,0 +1,17 @@
+{
+  "id": "f543d0314b8b",
+  "created": "2026-09-15T22:06:31.156082+00:00",
+  "change": "76bbf2823a53",
+  "project": "pokerbot",
+  "round": 2,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 16,
+  "wording_only": false,
+  "files": 1,
+  "insertions": 938,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "9 substantive: 'only PokerStars records seat_count' false (FTP does; ABS 27% 8/9-handed); audit target stats_preflop.py holds no opportunity definitions; rec 1 answers design Q1 (operator's call) as dependency-free; AGPL equated with GPL without s13; misattributed imports; wrong eval7 call site; plain-words summary contradicts measurement; pokeragent claim denied by own rating; BASELINE citation reversed. 7 hygiene/wording. Round-1 measurements all reproduced."
+}

@@ -1,0 +1,17 @@
+{
+  "id": "7a3111069186",
+  "created": "2026-09-16T00:36:22.554976+00:00",
+  "change": "76bbf2823a53",
+  "project": "pokerbot",
+  "round": 3,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 12,
+  "wording_only": false,
+  "files": 3,
+  "insertions": 1358,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "4 substantive: OpenSpiel status column misread (it is \ud83d\udfe2 thoroughly tested; the \u274c marks are determinism/perfect-info, :540-541); 'PokerStars and Full Tilt record seat_count' overstates: Full Tilt's field is on 6-max hands only, none of its 50 full-ring hands (:731-737, :76-78, :1019-1020); fpdb-3 (e) \u2714 settles the AGPL question the prose routes (:360); '.60 an order of magnitude cheaper than 2010 HandHQ' has no base in the document (:840-841). 8 wording (round-to-round narration, stake-slice generalisation, (c) criterion looseness, dates, paths). Script reproduced byte for byte; every sampled citation exact."
+}

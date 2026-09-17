@@ -1,0 +1,17 @@
+{
+  "id": "85ef5112778d",
+  "created": "2026-09-17T03:12:48.223485+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "OPPONENT_MODEL_DESIGN.md",
+  "origin": "",
+  "summary": "Stale 'still on its branch' pointers after today's landings: OPPONENT_MODEL_DESIGN.md:1298-1303 says ENGINE_ALTERNATIVES.md is not on main; DECISION_LAYER_SEARCH.md:5-6 and :736-737 say it lives on worker/7f09949cb56f. Both are on main now. Fold into the next clean-up sweep.",
+  "delivered_at": "2026-09-17T03:18:00.852353+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T03:12:48.252523+00:00",
+    "score": 44,
+    "task_id": "4af04b8cfb9d"
+  }
+}

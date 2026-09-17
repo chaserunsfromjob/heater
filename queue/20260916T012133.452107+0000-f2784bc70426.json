@@ -1,0 +1,17 @@
+{
+  "id": "f2784bc70426",
+  "created": "2026-09-16T01:21:33.452107+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "",
+  "path": "",
+  "origin": "",
+  "summary": "tools/dispatch.py:632 reconcile exits 0 when a sweep reports work left on a branch or commits it could not check; only held and needs_fix set exit 1, so the stoker's wake sees green",
+  "delivered_at": "2026-09-16T01:23:20.572605+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-16T01:22:29.428353+00:00",
+    "score": 58,
+    "task_id": "68b249e08219"
+  }
+}

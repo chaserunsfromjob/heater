@@ -1,0 +1,17 @@
+{
+  "id": "42bddf3b2301",
+  "created": "2026-09-16T03:26:35.660058+00:00",
+  "change": "048795519f43",
+  "project": "pokerbot",
+  "round": 5,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 7,
+  "wording_only": false,
+  "files": 12,
+  "insertions": 1561,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 1500.0,
+  "note": "reviewer a85e985ca7b966d6b at 474402d: FAIL, 4 substantive + 3 wording. All eight round-4 fixes verified real and correct (F6 half-mistaken confirmed against deepsolver.com/api and /pricing); settled/open split clean; GTO Wizard, monkerware, holdemsolver, pokerai.bet, HRC, simplepoker, spinwize, gtostrategy, gtobase, GitHub facts, CLAUDE.md citations all exact; treys and phevaluator benches re-run at load 3.74 inside the file's ranges. F1 (fail-class) '$69 to $499' at :889/:899/:900-901/:944/:1034/:1087: $499 on monkerguy.com is a PLO MTT pack; hold'em ladder tops at $319 (8-max MTT pack), $199 for 9-player 100bb; six sites. F2 :1068-1070 'about 13,000' and 'about 242' play-outs are stale ENGINE_ALTERNATIVES.md figures; current draft reads 7,370-12,373-13,285 and 117-244-250. F3 :105-111/:392-403/:1078-1081 GTOpen player_types.md head-note (lines 3-6) says historical fixed-profile results 'should not be read as current adaptive-model predictions'; survey omits it. F4 :68/:199/:913/:1007/:1108 '0.56 to 0.71 s solver' upper end traces to no committed file. F5 :990 heading 'safe to adopt now' over a timings-only bullet. F6 :1086 'settled part uses ISC and Apache code'. F7 :90-92 vs :1068 the two play-out quantities need half a sentence apart. Findings in handover/findings-048795519f43-solvers-r5.md. Cost: 33 tool calls, ~25 min; no dollar figure."
+}

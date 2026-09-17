@@ -1,0 +1,17 @@
+{
+  "id": "e3b7f9a2c514",
+  "created": "2026-09-17T01:02:00.000000+00:00",
+  "change": "114e5b3f5b1b",
+  "project": "pokerbot",
+  "round": 4,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 2,
+  "wording_only": false,
+  "files": 5,
+  "insertions": 747,
+  "deletions": 37,
+  "cost_usd": null,
+  "duration_s": 900.0,
+  "note": "PC-session confirming reviewer at 732a7f4: FAIL, 2 substantive, 0 wording. Round-3 W1/W2 applied as asked; forefront section byte-identical but for the added bullet; LICENSE sha unchanged; suite 25; design checker 680; merges into local main cleanly. F1 REFERENCE_NOTES.md:306 and :346 cite CLAUDE.md:17 and :16 — the intro paragraph pushed every bullet down two: treys bullet is now :19, combinatorics bullet :18. F2 RESOURCES_BOTS.md:767-768 cites REFERENCE_NOTES.md:414 and :427 — one net line added above; now :415 and :428. Observations: REFERENCE_NOTES.md:408 cites CLAUDE.md:29 for the compute budget, already wrong before (was :43, now :47) — fix in the same pass; RESOURCES_EXPLOITATION.md on local main still carries the old criterion (e) and cites CLAUDE.md:45-49 (now :59-64) — the touch-up change 8a80689e7354 owes it. Findings in handover/findings-114e5b3f5b1b-rules-r4.md. Cost: 19 tool calls, ~15 min; no dollar figure."
+}

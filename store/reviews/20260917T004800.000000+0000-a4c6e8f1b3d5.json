@@ -1,0 +1,17 @@
+{
+  "id": "a4c6e8f1b3d5",
+  "created": "2026-09-17T00:48:00.000000+00:00",
+  "change": "984aa6810a05",
+  "project": "pokerbot",
+  "round": 6,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 7,
+  "wording_only": false,
+  "files": 3,
+  "insertions": 2216,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 2400.0,
+  "note": "PC-session reviewer at d43bab9: FAIL, 1 substantive (small) + 6 wording. All five round-5 substantive and four wording findings resolved as asked; the encoding crash reproduced on the old checker and absent on the new under both encodings; 142 links 0 broken verified; twelve figures hand-traced exact; OpenSpiel paragraph settles nothing; checker 233 match; 35 passed both encodings. F1 :128-131 claims all four surveys 'landed on the trunk branch on 2026-09-17' — only RESOURCES_BOTS.md is on origin/main; EXPLOITATION is on local main unpushed; ENGINE and SOLVERS on branches. Delete the clause. W1 'nothing below is rewritten on the strength of it' false (two places were); W2 OpenSpiel/fedden/dickreuter names without plain words; W3 :1079-1083 clause does not parse; W4 EP/MP/LP/SB/BB, wsd, VPIP-before-expansion, AF-before-gloss, A/B; W5 VPIP gloss splits a sentence, five glosses name-first; W6 cites an unpushed branch as the record — name heater fb353c6. Findings in handover/findings-984aa6810a05-tablesize-r6.md. Cost: 47 tool calls, ~40 min; no dollar figure."
+}

@@ -1,0 +1,18 @@
+{
+  "id": "70884871cf3e",
+  "created": "2026-09-17T03:26:53.027273+00:00",
+  "task": "Build task T1 of BUILD_PLAN.md (on main): the table we trust. Read BUILD_PLAN.md section 4 T1 and Stage 1, CLAUDE.md (the forefront rule: you may write decision code, but this task is engine plumbing and tests only; rules and hand evaluation come from OpenSpiel universal_poker), ENGINE_ALTERNATIVES.md :121 onward (the recommendation and the settings block), ACTION_TRANSLATION.md section 7 (the fchpa menu), and EVALUATION_STRATEGY.md section 4.5 (invariants I1-I7). Build: a Python package pokerbot/ (or the name README.md prefers if it names one) with an adapter over OpenSpiel universal_poker for 2 to 9 seats using the fchpa betting abstraction (fold, call, half-pot, pot, all-in), no-limit 52-card hold'em, blinds and stacks as parameters, exposing: new hand with a seed, legal actions for the seat to act, apply action, hand record (every action, every board card, every payout, the seed and the commit id), and showdown results read from the engine, never computed by us. Write invariants I1-I7 from EVALUATION_STRATEGY.md section 4.5 as pytest tests that ABORT a run (raise) rather than report, including the side-pot test that builds an unequal all-in at three or more seats and checks who is paid what; run each invariant at every seat count 2 to 9; a seat count that will not deal is recorded NOT RUN with the reason, never counted as passed. Environment: the checkout's venv may lack open_spiel, pytest, treys; create .venv in the checkout and pip install open_spiel==2.0.2 pytest treys (record versions in a requirements-research.txt at the root if none exists; do not touch requirements-vendor.txt). Determinism: the same seed and commit replay byte-identical hand records; prove it with a test. Keep it small: no strategy, no search, no opponent model (those are T2 and T3). GitHub first: git fetch origin; git merge origin/main; commit early; git push -u origin <branch>; gh pr create --draft titled 'T1: OpenSpiel adapter and table invariants' after the first commit; push as you go; end with a push. Operator's bar: 'we dont need perfection here, just something that we know is beating real players'. Run bin/inbox.py check --summary '<text>' from /Users/chasethompson/heater before filing a finding. Report: branch, PR URL, the pytest summary line, and the per-seat-count invariant table (pass / NOT RUN with reason).",
+  "project": "pokerbot",
+  "done_when": "pytest green in the checkout's venv; invariants I1-I7 run at every seat count 2-9, each pass or NOT RUN with a reason, none silently skipped; the side-pot test exists and passes at 3+ seats; a determinism test proves same seed + same commit gives byte-identical hand records; adapter code has no hand-strength or decision logic; branch pushed and draft PR open.",
+  "task_id": "",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/e41356099b87",
+  "lease_id": "e41356099b87",
+  "branch": "worker/70884871cf3e",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

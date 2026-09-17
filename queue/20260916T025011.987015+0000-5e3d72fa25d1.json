@@ -1,0 +1,16 @@
+{
+  "id": "5e3d72fa25d1",
+  "created": "2026-09-16T02:50:11.987015+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "tools/stoker.py",
+  "origin": "",
+  "summary": "tools/stoker.py end_session docstring still says a session that would not end is about to be joined by a fresh one; true on the handover path, false on the two supervisor-exit paths, the same class as R8-2 which was fixed in orphan_message only",
+  "delivered_at": "2026-09-16T02:50:26.178729+00:00",
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-16T02:52:02.799370+00:00",
+    "reason": "Inside change 46e285e1bfd0 (the automatic handoff): the end_session docstring at tools/stoker.py:827-828 makes the same false promise R8-2 removed from the operator message. Carried into the handover row for review round 9 to take with any other finding; not a separate task."
+  }
+}

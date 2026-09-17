@@ -1,0 +1,17 @@
+{
+  "id": "68550716c860",
+  "created": "2026-09-17T03:15:02.782583+00:00",
+  "change": "6c3c2652b22d",
+  "project": "pokerbot",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 6,
+  "wording_only": false,
+  "files": 5,
+  "insertions": 1162,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 240.0,
+  "note": "Fresh reviewer at db44325: parser re-run reproduces every figure byte for byte (VPIP 13.9, PFR 7.2, AF 2.35 nine-handed); s* rows recomputed by hand, all match; recommendation consistent with design \u00a74.3; merge clean. F1 sample caveat (no PartyPoker) does not travel with the numbers; F2 crossover sentence's clauses disagree ~9x; F3 eleven vs twelve months; F4 AF cap/exclusion undisclosed; F5 s* arithmetic scoped to seeded priors only; F6 no checker (low task). F1-F5 applied by the session and landed under the pace decision. Cost 14 tool calls ~4 min."
+}

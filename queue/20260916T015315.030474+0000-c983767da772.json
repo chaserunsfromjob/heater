@@ -1,0 +1,16 @@
+{
+  "id": "c983767da772",
+  "created": "2026-09-16T01:53:15.030474+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "tools/debrief.py",
+  "origin": "",
+  "summary": "debrief._describe can fall through to a done_when that translates to a stub ('Done when a file in the project passes'), which names what it replaced and says nothing else; the honest does-not-translate line reads better",
+  "delivered_at": "2026-09-16T02:49:36.439104+00:00",
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-16T02:39:54.144316+00:00",
+    "reason": "Inside change c79a35661f9c (the taper and debrief); carried into the round-5 reviewer's brief and the handover row so the next fixer round takes it. A defect inside a change is not a separate task."
+  }
+}

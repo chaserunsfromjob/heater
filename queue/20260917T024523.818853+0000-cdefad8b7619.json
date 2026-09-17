@@ -1,0 +1,16 @@
+{
+  "id": "cdefad8b7619",
+  "created": "2026-09-17T02:45:23.818853+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "",
+  "origin": "",
+  "summary": "TABLE_SIZE_AND_SIZING_NOTES.md Sources still lists the pseudo-harmonic formula, Ganzfried & Sandholm 2013 and Pluribus's bet-size abstraction as memory-cited and unverified; ACTION_TRANSLATION.md (branch worker/5a58d580c339) retrieved all three and confirms the formula as quoted - a later task should move them to that document's retrieved list",
+  "delivered_at": "2026-09-17T02:48:21.393103+00:00",
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-17T02:46:14.320854+00:00",
+    "reason": "Folded into task 90c430775d15, the second sweep of stale cross-references after the rule lands: move the three now-verified sources in TABLE_SIZE_AND_SIZING_NOTES.md to its retrieved list in that sweep"
+  }
+}

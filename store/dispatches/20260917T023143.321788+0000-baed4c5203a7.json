@@ -1,0 +1,18 @@
+{
+  "id": "baed4c5203a7",
+  "created": "2026-09-17T02:31:43.321788+00:00",
+  "task": "Research with measurement, not product code. Write ONE new file DECISION_LAYER_BLUEPRINT.md at the pokerbot root: the options for a PRE-COMPUTED strategy (a 'blueprint') on top of OpenSpiel universal_poker for 2-9 player no-limit hold'em, now that the rule allows AI-written decision code (no live model call; ordinary tested code). Cover at least: vanilla CFR, CFR+, external-sampling and outcome-sampling MCCFR, Deep CFR, and a Pluribus-style abstracted blueprint; for each: what OpenSpiel already ships (name the module and check it imports on this machine), the card and action abstraction it needs, what is reachable in HOURS ON ONE LAPTOP (the compute budget in CLAUDE.md) and what is not, and how an opponent model could bias or re-solve it. MEASURE: commit a script under research/ that runs at least one CFR variant on universal_poker at 2, 3 and 6 players with a small abstraction for a fixed wall-clock budget (say 10 minutes each) and records exploitability or NashConv where OpenSpiel can compute it, hands/iterations per second, memory, and the 1-minute load average read from uptime beside every figure; run each at least twice and quote ranges. Rate every option against the operator's requirements: (a) 2-9 players, (b) true no-limit sizing, (c) exploiting specific opponents by identity, (d) reachable in hours on one laptop, (e) fits a public GPL-3.0 repository. Verify every source by visiting it (URL, authors, year, the specific result). End with a ranked shortlist and one recommendation. Do NOT duplicate ENGINE_ALTERNATIVES.md (on branch worker/7f09949cb56f, read it there) or RESOURCES_SOLVERS.md; cite them. A sibling worker writes DECISION_LAYER_SEARCH.md on REAL-TIME search; do not cover search. Do not touch any existing file. GitHub first: git fetch origin; git merge origin/main; git push -u origin <branch>; gh pr create --draft titled with the task; push as you go; end with a push. Run fleet tooling from /Users/chasethompson/heater (bin/inbox.py check --summary before filing a finding). Use the venv at /Users/chasethompson/.heater/worktrees/pokerbot/9fd7bd8ad257/.venv/bin/python if your checkout has none. Report branch and PR URL.",
+  "project": "pokerbot",
+  "done_when": "DECISION_LAYER_BLUEPRINT.md committed and pushed with at least five options each rated (a)-(e), every figure produced by a committed script under research/ with load recorded, a ranked shortlist and one recommendation; draft PR open; no existing file touched.",
+  "task_id": "be6a1372cba6",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/a9ae94db1bc9",
+  "lease_id": "a9ae94db1bc9",
+  "branch": "worker/baed4c5203a7",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

@@ -1,0 +1,17 @@
+{
+  "id": "b4ea48a8dad6",
+  "created": "2026-09-17T00:00:50.899697+00:00",
+  "change": "76bbf2823a53",
+  "project": "pokerbot",
+  "round": 8,
+  "lens": "default",
+  "verdict": "pass",
+  "findings": 2,
+  "wording_only": true,
+  "files": 3,
+  "insertions": 1695,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 660.0,
+  "note": "PC session (not the stoker) at fdd263c: PASS, wording only (2). Every round-7 addition verified exact against the live pages fetched 2026-09-16 23:57Z: drivehud.com/asianhandconverter/ (all three tiers, both headings, the emulator sentence and versions, thirteen apps, no other dollar amount on the page), drivehud.com plans and the '(full list)' link, hand2note.com supported-sites sentence and emulator definition, hand2note.com/Purchase plans, PT4 and HM3 converter prices and CNY note; calibrate_archetypes.py:23-24 exact; AHC arithmetic holds; (d) split consistent; merge-tree against main clean. NOT RUN: suite and count_phh_networks.py re-run (no Python on the PC); change since 9dea35e is prose only. W1 :156-157/:1395-1396 HM3 footer misquoted (page reads '© 2026 Max Value Software, LLC. All rights reserved.' with no 'Copyright'; PT4 has it). W2 :154 'all four trackers below' while Part 1 lists five. Operator decision during the round: tracker section stays. Findings in handover/findings-76bbf2823a53-exploitation-r8.md. Cost: ~14 tool calls, 6 fetches, ~11 min; no dollar figure."
+}

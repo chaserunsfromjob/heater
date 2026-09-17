@@ -1,0 +1,17 @@
+{
+  "id": "7e3804f02e91",
+  "created": "2026-09-16T00:28:45.575547+00:00",
+  "change": "048795519f43",
+  "project": "pokerbot",
+  "round": 2,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 14,
+  "wording_only": false,
+  "files": 3,
+  "insertions": 1014,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 900.0,
+  "note": "4 fail-class: heads-up postflop engine 'settled' (:764-772); settled plan needs an opponent range (reserved to the engine) while denying it (:767-772); memory-bound causal claim unmeasured and contradicted by re-run 3.44 GiB (:174-177, :846); GTOpen misread cost quoted from two cells, table runs 0-461 bb/100 (:83-84). 9 substantive accuracy/reproducibility (combos vs hand classes, inconsistent timing ranges, turn command file unpublished, GTO Wizard capability claims unmarked, etc.). 1 wording. All headline measurements reproduced."
+}

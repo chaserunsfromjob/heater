@@ -1,0 +1,17 @@
+{
+  "id": "34c1857ca39c",
+  "created": "2026-09-17T02:39:39.422748+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "RESOURCES_SOLVERS.md",
+  "origin": "",
+  "summary": "Forefront-rule cross-references round 1 did not name are now stale: RESOURCES_SOLVERS.md:137,995,1067,1094,1108,1127 cite CLAUDE.md line numbers and the deleted table; also OPPONENT_MODEL_DESIGN.md:47-59,402-409,642,833,960,1402-1422,1707; RESOURCES_BOTS.md:704,733,840,941,995-1020,1096-1110; TABLE_SIZE_AND_SIZING_NOTES.md:53,665,1124; REFERENCE_NOTES.md:306,408; RESOURCES_EXPLOITATION.md:618,782,1193,1275; README.md:58",
+  "delivered_at": "2026-09-17T02:40:53.046476+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T02:41:47.134808+00:00",
+    "score": 61,
+    "task_id": "90c430775d15"
+  }
+}

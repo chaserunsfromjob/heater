@@ -1,0 +1,18 @@
+{
+  "id": "f541eb44075b",
+  "created": "2026-09-17T02:31:43.463859+00:00",
+  "task": "Research with measurement, not product code. Write ONE new file DECISION_LAYER_SEARCH.md at the pokerbot root: the options for choosing an action IN REAL TIME at the table on top of OpenSpiel universal_poker for 2-9 player no-limit hold'em, now that the rule allows AI-written decision code (no live model call; ordinary tested code). Cover at least: equity-versus-pot-odds rules with Monte Carlo equity, Information Set MCTS (OpenSpiel ships one), depth-limited search with a blueprint at the leaves (Pluribus-style, with biased continuation strategies), and search that plugs in a per-opponent model (fold-to-bet rate, aggression) to bias the opponents' assumed strategies; for each: what OpenSpiel already ships (name the module, check it imports here), what it needs precomputed, decision latency at 2, 3 and 6 players, and how the opponent model from OPPONENT_MODEL_DESIGN.md enters it. MEASURE: commit a script under research/ that runs at least two of these on universal_poker at 2, 3 and 6 players and records decisions per second, play-outs per decision within a 250 ms and a 2 s budget, memory, and the 1-minute load average from uptime beside every figure; two or more repeats, quote ranges. A real table gives the bot 10-25 seconds to act; say what each option can do in that time on this laptop. Rate every option against: (a) 2-9 players, (b) true no-limit sizing, (c) exploiting specific opponents by identity, (d) reachable in hours on one laptop, (e) fits a public GPL-3.0 repository. Verify every source by visiting it (URL, authors, year, the specific result). End with a ranked shortlist and one recommendation. Do NOT duplicate ENGINE_ALTERNATIVES.md (on branch worker/7f09949cb56f, read it there; it measured a four-move chooser) or RESOURCES_SOLVERS.md; cite them. A sibling worker writes DECISION_LAYER_BLUEPRINT.md on PRE-COMPUTED strategies; do not cover CFR training. Do not touch any existing file. GitHub first: git fetch origin; git merge origin/main; git push -u origin <branch>; gh pr create --draft titled with the task; push as you go; end with a push. Run fleet tooling from /Users/chasethompson/heater (bin/inbox.py check --summary before filing a finding). Use the venv at /Users/chasethompson/.heater/worktrees/pokerbot/9fd7bd8ad257/.venv/bin/python if your checkout has none. Report branch and PR URL.",
+  "project": "pokerbot",
+  "done_when": "DECISION_LAYER_SEARCH.md committed and pushed with at least four options each rated (a)-(e), every figure produced by a committed script under research/ with load recorded, latency stated per option per table size, a ranked shortlist and one recommendation; draft PR open; no existing file touched.",
+  "task_id": "be6a1372cba6",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/92f9116b2f10",
+  "lease_id": "92f9116b2f10",
+  "branch": "worker/f541eb44075b",
+  "run_id": "",
+  "part": "",
+  "closed_at": "2026-09-17T03:12:33.990570+00:00",
+  "outcome": "landed",
+  "note": "merged worker/f541eb44075b into main"
+}

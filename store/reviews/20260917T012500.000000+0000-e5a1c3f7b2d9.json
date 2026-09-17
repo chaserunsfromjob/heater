@@ -1,0 +1,17 @@
+{
+  "id": "e5a1c3f7b2d9",
+  "created": "2026-09-17T01:25:00.000000+00:00",
+  "change": "8a80689e7354",
+  "project": "pokerbot",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 8,
+  "wording_only": false,
+  "files": 1,
+  "insertions": 68,
+  "deletions": 52,
+  "cost_usd": null,
+  "duration_s": 720.0,
+  "note": "PC-session reviewer at 16d2c51 (trunk touch-up to RESOURCES_EXPLOITATION.md): FAIL, 2 substantive + 6 wording. Item 1 (footer dates) lands, both pages re-fetched exact 01:00Z; item 2's AFq definition correct against the design (:258, :294); item 3's restated criterion matches both sister surveys and the not-yet-landed qualifier was true when written; all twenty-two (e) marks checked, twenty-one sound, fpdb-3 AGPL at ~ matches the bots survey; §1.6 still routes AGPL to the operator; no privacy premise left; merges cleanly with the licence change. F1 :407-411 cites CLAUDE.md:45-49 and says 'on trunk still the private one' — false once the licence change lands (Licence section now :59-64; it has since landed on local main e67825b): cite the section by name, state the public position in one voice. F2 :1012/:1018 IRC database unlicensed, rated (e) ✔ with no reason while four unlicensed code entries are ~; keep ✔ but give the reason (read as data, never copied into the repository) and split unlicensed code from unlicensed corpus in the criterion. W1 seventy-word criterion sentence; W2 'AFq' at :1105 precedes the expansion at :1113 and the spelling differs (AFq vs AFQ); W3 twenty-word subject; W4 dates on two clocks (09-16 local vs 09-17 UTC); W5 bare change id; W6 'two to watch' split by an aside. Findings in handover/findings-8a80689e7354-touchup-r1.md. Cost: 33 tool calls, ~12 min; no dollar figure."
+}

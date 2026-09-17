@@ -1,0 +1,12 @@
+{
+  "id": "957c9ba48cd4",
+  "created": "2026-09-16T03:13:18.922632+00:00",
+  "kind": "escalation",
+  "urgency": "low",
+  "project": "pokerbot",
+  "path": "handover/findings-36e2ae4be45b-design-r8.md",
+  "origin": "",
+  "summary": "The opponent-model design (the written plan for how the bot reads and exploits named players) failed its eighth review. Everything measurable held: all 680 derived numbers, every source quote, the line between what our code decides and what the engine decides. What failed is two places where the plan's own rules contradict each other: (1) it says the bot plays its safe baseline until an opponent has 200 recorded hands, but the rule it points to lets a counter-strategy load at 50; (2) it fully specifies seven 'exploit flags' (signals that a player has a specific leak) and then never says how a flag changes what the bot does, and the one table that describes it is marked 'do not build this'. Cost so far: 8 review rounds, the most of any change this week (61 rounds over 16 changes, median 3.5 per change, store query 03:05Z); no dollar figure per round exists yet. RECOMMENDATION: leave it as it is until the four surveys land (your instruction of 2026-09-16), then run one fixer plus one confirming review, about two agents at roughly 15 minutes each, because both contradictions would mislead the coding task that builds from this plan and both are wording of rules, not new research. Alternatives: (b) stop at round 8 and hand the two contradictions to that coding task to resolve; (c) run the fixer now, alongside the surveys, which competes with them for this usage window. Nothing runs on the design until you answer; 'go' after the surveys is the default if you say nothing. Survey status 03:15Z: bots done and getting its final wording; exploitation on its 6th-round fixes; solvers in its 5th review; engine still in its 2nd-round fixes.",
+  "delivered_at": "2026-09-16T03:13:34.709298+00:00",
+  "resolution": null
+}

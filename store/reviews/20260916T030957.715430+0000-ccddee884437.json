@@ -1,0 +1,17 @@
+{
+  "id": "ccddee884437",
+  "created": "2026-09-16T03:09:57.715430+00:00",
+  "change": "984aa6810a05",
+  "project": "pokerbot",
+  "round": 4,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 5,
+  "wording_only": false,
+  "files": 1,
+  "insertions": 1235,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 685.0,
+  "note": "reviewer ad637b605cc4250cd at 9c4a168: FAIL, 3 substantive + 2 wording. All derived numbers reproduce (Tables 1-6, TV identity, 4.5x/2.25x, 32/16 runs), all 40 anchors, every companion cross-reference on trunk, four primary sources by curl, forefront table not crossed, nothing quietly settled. F1 the file never engages REFERENCE_NOTES.md: E7/E9 (:904-937) asked as open when trunk records seven-seat ceiling on the 20-card deck, fixed-limit with no bet-size dimension, 52-card conversion out; s2, R8/R9/R12, R1's FULL=7-9 band, Q4 read as reachable now. F2 six tables say 'computed by script 2026-09-15' (:1217-1228, :106, :144, :170, :340, :552, :604) and no script exists; branch base 5558063 predates tools/check_design_numbers.py. F3 R6 :818-828 and Q4 :1026-1031 one commit stale: 72eff27 put the solve order and separate-runs rule into OPPONENT_MODEL_DESIGN.md s4.5 :1290-1300. F4 :385 'sentence immediately before' wrong. F5 n carries three meanings (:81 seats, :450-452/:878 paper's history index, :454-455 opportunity count). Findings in handover/findings-984aa6810a05-tablesize-r4.md. Cost: 26 tool calls, 118442 tokens, 11.4 min; no dollar figure."
+}

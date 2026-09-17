@@ -1,0 +1,16 @@
+{
+  "id": "188d8996f714",
+  "created": "2026-09-16T01:53:15.057025+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "tools/debrief.py",
+  "origin": "",
+  "summary": "debrief._repeats says '1 separate pieces of work, not 2' when every entry but one is a repeat",
+  "delivered_at": "2026-09-16T02:49:36.439104+00:00",
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-16T02:39:54.176457+00:00",
+    "reason": "Inside change c79a35661f9c (the taper and debrief); carried into the round-5 reviewer's brief and the handover row so the next fixer round takes it. A defect inside a change is not a separate task."
+  }
+}

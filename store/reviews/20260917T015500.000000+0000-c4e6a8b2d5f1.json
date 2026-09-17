@@ -1,0 +1,17 @@
+{
+  "id": "c4e6a8b2d5f1",
+  "created": "2026-09-17T01:55:00.000000+00:00",
+  "change": "8a80689e7354",
+  "project": "pokerbot",
+  "round": 2,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 7,
+  "wording_only": false,
+  "files": 1,
+  "insertions": 79,
+  "deletions": 54,
+  "cost_usd": null,
+  "duration_s": 840.0,
+  "note": "PC-session reviewer at 066421e: FAIL, 2 substantive + 5 wording. Round-1 F1 sound (Licence section cited by name, paraphrase faithful to main's CLAUDE.md:59-64); landed-licence text true (main pushed at 0565d1a); the code/corpus split consistent with both sister surveys and touches only §3.2; all twenty (e) verdicts right; footers re-fetched exact 01:15Z; :1422's UTC date right; merge-tree clean; suite 25; checker 680; AGPL still routed to the operator (:430-432, :1161-1163). F1 :1103-1104 'Two ways of measuring aggression' — the table has three (AF, AFq, AGG% = bets+raises ÷ bets+raises+calls at :1112), and :1122-1124 justifies AFQ_SPLIT=0.50 against 'AGG% ≥ 35', a different denominator (folds excluded) — not like for like. F2 :148-153 the new rule concludes an unlicensed, copyrighted corpus (§3.2 carries 'Copyright © 2017 CPRG') raises no (e) concern and states 'never copied into the repository' as project fact — an unrecorded position, opposite to how :430-432 routes AGPL; and the rule as drawn reaches §3.3's bought histories. Resolve: rate ✔ on a stated condition and route the copyright question to the operator beside AGPL; narrow the rule. W1 :414 'the public one' leftover; W2 :1105 AFq gloss wider than the formula (checks aren't in it); W3 :1124-1126 restates definitions; W4 :148-150 two stumbles; W5 :667 §2.3 (e) ~ with no reason. Observation for a follow-up: RESOURCES_SOLVERS.md on main :40-42 and :174-176 still say the licence is not yet landed. Findings in handover/findings-8a80689e7354-touchup-r2.md. Cost: 27 tool calls, ~14 min; no dollar figure."
+}

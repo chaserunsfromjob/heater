@@ -1,0 +1,17 @@
+{
+  "id": "8546ea4d5a4b",
+  "created": "2026-09-16T01:38:33.457550+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "/private/tmp/claude-501/-Users-chasethompson-heater/60db9bfd-fa3a-4035-aa37-91a8741fa698/scratchpad/review-46e285e1bfd0",
+  "origin": "",
+  "summary": "A finished reviewer's worktree is left behind holding worker/46e285e1bfd0 checked out, so the next agent on that branch cannot make a worktree for it and works detached instead",
+  "delivered_at": "2026-09-16T01:41:33.029253+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-16T01:39:43.944634+00:00",
+    "score": 40,
+    "task_id": "418b4396b9f7"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "id": "f2a9c4d7e186",
+  "created": "2026-09-17T00:53:00.000000+00:00",
+  "change": "114e5b3f5b1b",
+  "project": "pokerbot",
+  "round": 3,
+  "lens": "default",
+  "verdict": "pass",
+  "findings": 2,
+  "wording_only": true,
+  "files": 5,
+  "insertions": 746,
+  "deletions": 37,
+  "cost_usd": null,
+  "duration_s": 720.0,
+  "note": "PC-session reviewer at 0414439: PASS, wording only (2) — first wording-only round; confirming round 4 needed. Round-2 F1 verified against LICENSE:156-158 ('irrevocable'), README sentence faithful both ways; W2-W4 applied; forefront section proved byte-identical to origin/main but for the added bullet (sha256 of the section minus the bullet matches); no history, nothing decided beyond the sources; repo-wide sweep finds no stale private/fedden claims outside vendor/; suite 25 passed; design checker 680; LICENSE sha unchanged. W1 RESOURCES_BOTS.md:1010-1011 'stage 1 as superseded by the reconciliation' now misdescribes CLAUDE.md (superseded full stop; the reconciliation settles what replaces it). W2 README.md:9 'That permission' has no antecedent and the sentence runs 57 words; name it and split. Deliberately not raised: CLAUDE.md:17 'adapt the engine instead' sits oddly beside reference-only — for the reconciliation. Findings in handover/findings-114e5b3f5b1b-rules-r3.md. Cost: 20 tool calls, ~12 min; no dollar figure."
+}

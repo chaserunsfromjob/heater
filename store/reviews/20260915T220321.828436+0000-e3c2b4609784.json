@@ -1,0 +1,17 @@
+{
+  "id": "e3c2b4609784",
+  "created": "2026-09-15T22:03:21.828436+00:00",
+  "change": "7f09949cb56f",
+  "project": "pokerbot",
+  "round": 2,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 12,
+  "wording_only": false,
+  "files": 14,
+  "insertions": 1827,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 1200.0,
+  "note": "4 substantive: PyPokerEngine eliminated on a false API claim (Emulator exists, 132 play-outs/s); chooser/resampler throughput does not reproduce (machine load avg 22 during re-run); preflop-only CFR conclusion confounded by round count; 'every number has a committed script' overstated. 8 wording/conditioning."
+}

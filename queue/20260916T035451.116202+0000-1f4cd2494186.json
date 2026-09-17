@@ -1,0 +1,17 @@
+{
+  "id": "1f4cd2494186",
+  "created": "2026-09-16T03:54:51.116202+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "CLAUDE.md",
+  "origin": "",
+  "summary": "Operator decision 2026-09-16: pokerbot is now PUBLIC on GitHub (github.com/chaserunsfromjob/pokerbot) so classmates can collaborate. CLAUDE.md's Licence section (:45-49) still says keep it private and never give it to a classmate; that rule must change to record the decision, and a LICENSE file (GPL-3.0, because vendor/poker_ai is GPL-3.0 and publishing is distribution) must be added at the root with a one-line note in README.md. Also rewrite the surveys' rating criterion (e) wording where it assumes 'never distributed' if any rating depended on it. Dispatch one worker when agents resume.",
+  "delivered_at": "2026-09-16T03:55:11.014085+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-16T03:54:57.261578+00:00",
+    "score": 68,
+    "task_id": "ecb013e70573"
+  }
+}

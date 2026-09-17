@@ -1,0 +1,17 @@
+{
+  "id": "3411e7683f6e",
+  "created": "2026-09-17T02:52:38.549659+00:00",
+  "change": "5a58d580c339",
+  "project": "pokerbot",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 6,
+  "wording_only": false,
+  "files": 2,
+  "insertions": 380,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 340.0,
+  "note": "Fresh reviewer at 4fb7d93 said PASS with required edits; the store records it as fail because findings were outstanding. Every checked number holds (GS13 formula and Tables 1/2/6, BS17 Table 4 1,465 vs 119.1, worked example by hand, fchpa in universal_poker.cc:1283). F1 Kuhn claim needs stack qualifier; F2 add GS13 Table 7 ACPC head-to-head; F3 name GS13 \u00a78's scale-invariance claim; F4 no pytest wrapper/drift test (recorded as a low task, not applied); W5 altered Pluribus quotation; W6 Figure 1 medians are the script's. F1-F3, W5, W6 applied by the session (a31b3f9) under the pace decision and landed with --skip-review. Cost ~25 tool calls, 63k tokens."
+}

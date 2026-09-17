@@ -1,0 +1,17 @@
+{
+  "id": "b3d5f7a9c2e4",
+  "created": "2026-09-17T01:50:00.000000+00:00",
+  "change": "36e2ae4be45b",
+  "project": "pokerbot",
+  "round": 10,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 2,
+  "wording_only": false,
+  "files": 3,
+  "insertions": 147,
+  "deletions": 31,
+  "cost_usd": null,
+  "duration_s": 900.0,
+  "note": "PC-session reviewer at 51fb5b7: FAIL, 1 substantive + 1 wording. Round-9 F1's three pins verified (all six listed mutations exit 1); W1-W4 right (Made/five-bucket list judged correct); no flag mechanism invented; no CLAUDE.md line citations in the design (all by section; the table check re-run against main's CLAUDE.md exits 0); merge-tree clean against 0565d1a; checker 683; 28 passed. F1 checker header :22-27 states 'mutating any derived figure anywhere makes this script exit 1' and three bare restatements in §5.2 escape: :1553 'at that same 50 the Tier A confidence' (derived from PRIOR_STRENGTH and CLASSIFY_CONF_GATE), :1555 'Below 50 hands both gates refuse', :1558 'from 200 on, neither' (the third recorded nowhere; the first two are queue fcf61d67d726). 46-mutation sweep: only these three real escapes. Pin all three; close fcf61d67d726. W1 the new '(\d+) hands against (\d+)' pattern is unanchored — durability. Observation: the checker crashes with a traceback (exit still 1) when a failing figure's NAME carries ⌈⌉ on a cp1252 console. Findings in handover/findings-36e2ae4be45b-design-r10.md. Cost: 40 tool calls, ~15 min; no dollar figure."
+}

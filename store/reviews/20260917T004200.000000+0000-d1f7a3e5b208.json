@@ -1,0 +1,17 @@
+{
+  "id": "d1f7a3e5b208",
+  "created": "2026-09-17T00:42:00.000000+00:00",
+  "change": "048795519f43",
+  "project": "pokerbot",
+  "round": 7,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 7,
+  "wording_only": false,
+  "files": 12,
+  "insertions": 1675,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 720.0,
+  "note": "PC-session reviewer at b063a2b: FAIL, 2 substantive (small, local) + 5 wording. Round-6 F1 prices re-fetched exact, verdict unchanged; F3 Preflop Wizard exact; F4 criterion (e) matches the licence branch's CLAUDE.md, four moved ratings right, 21 left right, AGPL now consistent with the bots survey; twelve fresh GitHub citations exact; CLAUDE.md citations resolve against trunk (renumber after the licence change lands: :13-15→:15-17, :17→:19, :24→:22, :26→:24); nothing settled; all additions; suite 20 passed. F1 :96-101 round-6 F2 misread the engine survey: it carries two play-out counts (table last column = complete hands from scratch; :198 chooser = part-played); name both. F2 :169-177/:39-40/:1161-1162 states GPL-3.0 as present fact; GitHub reports license:null, LICENSE not on main, licence change unlanded — add a parenthesis. W1 header now a range so 'today' at :6 anchors to nothing — date it 15 Sep; W2 :108/:368 two page reads undated (GTOpen pushed again 00:25Z today); W3 GTO+ tax caveat omitted; W4 no-licence 1 vs licence-unstated 2 undistinguished; W5 'this repository is public' is not the AGPL trigger. Cross-document note: unlicensed code now 1/3 here vs ~ in the bots survey — for the reconciliation. Findings in handover/findings-048795519f43-solvers-r7.md. Cost: 27 tool calls, ~12 min, 23 fetches; no dollar figure."
+}

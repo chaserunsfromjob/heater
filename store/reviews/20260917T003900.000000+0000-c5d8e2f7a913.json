@@ -1,0 +1,17 @@
+{
+  "id": "c5d8e2f7a913",
+  "created": "2026-09-17T00:39:00.000000+00:00",
+  "change": "45e49ce81e40",
+  "project": "pokerbot",
+  "round": 5,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 11,
+  "wording_only": false,
+  "files": 3,
+  "insertions": 3115,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 1320.0,
+  "note": "PC-session reviewer at aff7e7f: FAIL, 6 substantive + 5 wording. Every derived figure recomputed independently and correct incl. fixer 4's new ones; round-4 F1/F2/F4/F5 and five wording fixes resolved; checker encoding-safe, gate five-copies check real; suite 29 passed; checker 207. F1 :312-316 false claim that White & Bowling 2009 never expands MIVAT — it does, twice: 'the Informed Value Assessment Tool' (fetched 00:33Z). F2 :1006-1009 'three to four times lower' contradicts the provenance row (old 56,414 is higher than current 47,564/4,438). F3 :1940-1943 and checker docstring overclaim every-copy coverage: five single-figure mutations exit 0 (report block cells/powered/elapsed, budget table 'Detects pooled', §4.1's 240). F4 Tier 0 'green at every n 2-9' vs the seven-seat engine cap — nothing buildable. F5 :1634-1640 engine 'a live question' — operator decided OpenSpiel 2026-09-16 (fb353c6); today's-engine block sizes a run on the engine now dropped. F6 White & Bowling missing from Sources. W1 'three partly answered' (X2 is a flat no); W2 SE/SD/HULHE/VPIP/ACPC/SHA unexpanded; W3 cite 6720c8a not the autosave; W4 'figures' should be 'checks'; W5 elapsed 4h51m vs 4.906 h. Findings in handover/findings-45e49ce81e40-evaluation-r5.md. Cost: 38 tool calls, ~22 min; no dollar figure."
+}

@@ -1,0 +1,17 @@
+{
+  "id": "1b4fd56028ee",
+  "created": "2026-09-16T01:32:35.599736+00:00",
+  "change": "059566b3e160",
+  "project": "heater",
+  "round": 4,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 4,
+  "wording_only": false,
+  "files": 6,
+  "insertions": 760,
+  "deletions": 31,
+  "cost_usd": null,
+  "duration_s": 566.0,
+  "note": "2 substantive, both summary lines contradicting the new alarm: finished_runs keys on outcome==landed so a run with LEFT_BEHIND or UNKNOWN members still prints 'runs fully consolidated' (dispatch.py:489-497,:568-569); the render chain tests consolidated first so 'landed WITHOUT a passing review' is silent when the commit state is UNKNOWN or LEFT_BEHIND, exactly round 3's two cases (:539-556). 2 wording: resting_on says 'rejected at' for a pass (:192-194); zero gloss on the awaiting line (:536). Highest-round rule held on 9 probes incl. the original bug; tie-breakers match the skill; no git-cannot-answer path renders 'nothing to consolidate'; 49 branch tests fail on main's source; merge-tree clean; 465 tests OK at load 3.48; gate 0. Reviewer tokens 77038, tool uses 27 (no cost rate)."
+}

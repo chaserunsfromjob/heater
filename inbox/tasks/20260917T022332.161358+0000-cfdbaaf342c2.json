@@ -1,0 +1,10 @@
+{
+  "id": "cfdbaaf342c2",
+  "created": "2026-09-17T02:23:32.161358+00:00",
+  "score": 52,
+  "title": "dickreuter assessment branch lives only on the PC: push worker/7eead182560d from the PC before any Mac round",
+  "source_finding": "530240cf4f91",
+  "project": "pokerbot",
+  "path": "worker/7eead182560d",
+  "done_at": null
+}

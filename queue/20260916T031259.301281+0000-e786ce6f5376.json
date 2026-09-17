@@ -1,0 +1,17 @@
+{
+  "id": "e786ce6f5376",
+  "created": "2026-09-16T03:12:59.301281+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "OPINIONS.md",
+  "origin": "",
+  "summary": "Operator instruction 2026-09-16, verbatim: 'just to be clear, the research element or step one of those four up above should be done by the time the usage gets to 100% on this five hour session' -- the four pokerbot surveys (engine 7f09949cb56f, exploitation 76bbf2823a53, bots 14d64950c0bc, solvers 048795519f43) must be landed before the current five-hour usage window reaches 100%; every other change waits behind them. Record the words beside opinion 13's sibling in the taper change, and make the debrief at the 95% mark say whether the four surveys landed.",
+  "delivered_at": "2026-09-16T03:13:34.709298+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-16T03:12:59.346222+00:00",
+    "score": 74,
+    "task_id": "c8824a64b0a1"
+  }
+}

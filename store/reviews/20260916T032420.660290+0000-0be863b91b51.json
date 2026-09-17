@@ -1,0 +1,17 @@
+{
+  "id": "0be863b91b51",
+  "created": "2026-09-16T03:24:20.660290+00:00",
+  "change": "76bbf2823a53",
+  "project": "pokerbot",
+  "round": 7,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 5,
+  "wording_only": false,
+  "files": 3,
+  "insertions": 1620,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 660.0,
+  "note": "reviewer a773cf8e97424dadb at 72c60d2: FAIL, 2 substantive + 3 wording, both substantive in the round-6 text. All round-6 fixes verified exact against the live pages (HM3 converter page, PT4 pages, Hand2Note purchase, DriveHUD home and export page); script re-run byte-identical at load 3.55; four least-sampled citations exact. F1 :165-166 (+:281, :154-155) 'DriveHUD converter only inside $199.99/yr' is false: drivehud.com/asianhandconverter/ (linked from the Ultimate+ card's '(full list)') sells the AHC standalone at $29/month, $69 per 3 months, $129 per 6 months, and it serves HM, PT, H2N and DriveHUD. F2 :167-169 (+:257-258, :269) Hand2Note's 'All poker sites and mobile apps' is Windows-plus-emulator per hand2note.com/Help/supported-sites ('Android apps are supported through emulators on Windows'), which the document claims to have read; (d) check-mark for a Mac operator overstated. W1 :167-169 Hand2Note prices are 'per month (paid yearly)', basis dropped in the caveat. W2 :1042 'poker' elided inside a quotation without ellipsis. W3 :154-155 'no single price' overstates: PT4 and HM3 converters are the same Max Value Software product at identical prices. Findings in handover/findings-76bbf2823a53-exploitation-r7.md. Cost: 24 tool calls, ~11 min, ~95k tokens; no dollar figure."
+}

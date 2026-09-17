@@ -1,0 +1,17 @@
+{
+  "id": "d8f2b4c6e1a3",
+  "created": "2026-09-17T02:45:00.000000+00:00",
+  "change": "984aa6810a05",
+  "project": "pokerbot",
+  "round": 9,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 1,
+  "wording_only": false,
+  "files": 3,
+  "insertions": 2242,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 1800.0,
+  "note": "PC-session reviewer at 2a59e16: FAIL on one stale commit id (:985 'at commit 5f7a1a8' — the design fix landed at 5653c6b; the trap is git's history simplification, use --first-parent), everything else true of trunk today (every where-things-live statement checked by command; the 'only two places' claim re-verified against the newer design revision); round-8 F1/F2/W1-W4 fixed correctly; checker 233; 35 passed; links 142/55/0; merge clean; nothing settled. Observations: :321-326 two criteria; ten short lines; for the reconciliation — the design's newer revision (flags report-only until Tier 2; warm-up conjunct; open_raise renamed) is not among R1-R14 so nothing moves, but a reconciler should know. FIXED BY THE PC SESSION (two tokens at :985; 233; 35 passed) AND LANDED at b5924bf under the operator's cap, ninth round. Cost: 29 tool calls, ~30 min; no dollar figure."
+}

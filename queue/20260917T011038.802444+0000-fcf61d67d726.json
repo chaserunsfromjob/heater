@@ -1,0 +1,16 @@
+{
+  "id": "fcf61d67d726",
+  "created": "2026-09-17T01:10:38.802444+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "OPPONENT_MODEL_DESIGN.md:1554",
+  "origin": "",
+  "summary": "Two more copies of MIN_CLASSIFY_HANDS in the same \u00a75.2 sentence stay unpinned after round 9's F1 fix: 'Below 50 hands both gates refuse' and 'at that same 50 the Tier A confidence threshold is reached' both survive mutation with the checker at exit 0; F1 named only the three boundary facts I pinned.",
+  "delivered_at": "2026-09-17T01:56:44.421842+00:00",
+  "resolution": {
+    "action": "done",
+    "at": "2026-09-17T01:24:58.789570+00:00",
+    "note": "pinned by change 36e2ae4be45b round-10 fix"
+  }
+}

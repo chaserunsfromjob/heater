@@ -12,7 +12,7 @@
   "branch": "worker/059566b3e160",
   "run_id": "",
   "part": "",
-  "closed_at": null,
-  "outcome": null,
-  "note": ""
+  "closed_at": "2026-09-15T22:00:03.563245+00:00",
+  "outcome": "pushed",
+  "note": "worker/059566b3e160 at ae5df50; reviewed() now reads the latest round only; reconcile/land name the round they rest on; 424 tests, gate exit 0"
 }

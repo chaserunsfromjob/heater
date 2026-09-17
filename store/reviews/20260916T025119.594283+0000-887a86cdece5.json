@@ -1,0 +1,17 @@
+{
+  "id": "887a86cdece5",
+  "created": "2026-09-16T02:51:19.594283+00:00",
+  "change": "14d64950c0bc",
+  "project": "pokerbot",
+  "round": 6,
+  "lens": "default",
+  "verdict": "pass",
+  "findings": 2,
+  "wording_only": true,
+  "files": 1,
+  "insertions": 1136,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "PASS, wording only: two quotations carry marks around text the source does not have verbatim (bonusbots home page tagline :533; PokerScreenBot README :682-683). Section 5 forefront paragraph reproduces trunk CLAUDE.md:20-31 exactly with :30's clause restored character for character; every round-5 hunk traces to a finding; 22 citations, prices and quotations exact; ppl-interpreter reproductions and Slumbot live re-run. No unrecorded decision, no irreversible path, no unbacked number. First wording-only round; a confirming round lands it."
+}

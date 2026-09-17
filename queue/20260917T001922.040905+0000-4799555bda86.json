@@ -1,0 +1,17 @@
+{
+  "id": "4799555bda86",
+  "created": "2026-09-17T00:19:22.040905+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "RESOURCES_BOTS.md",
+  "origin": "",
+  "summary": "RESOURCES_BOTS.md's criterion (e) gives code with no licence file a ~ (3.7 DeepHoldem at :449, 3.16 PokerScreenBot at :707), while 3.20's note at :785 says an unlicensed repository is 'not ours to use, even privately, without permission'. The two cannot both be right, and the tension predates the public/GPL-3.0 change, so this worker left those ratings alone rather than move them on a premise that did not cause them. Someone should settle whether no-licence is ~ or an outright no.",
+  "delivered_at": "2026-09-17T01:56:44.421842+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T02:00:40.795052+00:00",
+    "score": 40,
+    "task_id": "f4a967d183be"
+  }
+}

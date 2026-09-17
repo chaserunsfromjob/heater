@@ -1,0 +1,18 @@
+{
+  "id": "ec057301faac",
+  "created": "2026-09-17T02:31:43.717978+00:00",
+  "task": "Fresh reviewer, read-only: judge the classmate's branch codex/tonight (ten commits, tip ca8339e, no pull request) against the REWRITTEN forefront rule, and report what must change before it can be merged.",
+  "project": "pokerbot",
+  "done_when": "reviewer's report received: verdict per commit group, list of required changes, whether the CLAUDE.md/AGENTS.md rewrites are to be dropped, whether the betting-rules fix stands",
+  "task_id": "a75654d078dc",
+  "agent": "worker",
+  "repo": "",
+  "workdir": "",
+  "lease_id": "",
+  "branch": "",
+  "run_id": "",
+  "part": "",
+  "closed_at": "2026-09-17T02:40:43.504178+00:00",
+  "outcome": "pushed",
+  "note": "review delivered: FAIL all groups; 24 required changes in handover/codex-tonight-required-changes-2026-09-17.md and a GitHub issue on pokerbot"
+}

@@ -1,0 +1,17 @@
+{
+  "id": "18685ed37a5b",
+  "created": "2026-09-16T00:23:34.572263+00:00",
+  "change": "14d64950c0bc",
+  "project": "pokerbot",
+  "round": 3,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 10,
+  "wording_only": false,
+  "files": 1,
+  "insertions": 875,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "4 substantive: a quotation attributed to ENGINE_ALTERNATIVES.md exists in no version of it (:774-780); section 5 narrows the forefront rule to 'exactly two shapes', narrower than CLAUDE.md's table (:808-820); ppl-interpreter (a) \u2713 contradicted by its code (POSITIONS only 2 and 6; KeyError at 9 seats); the vendor-evidence rule at :93-95 is applied once and broken four times. 6 wording. OpenHoldem departure confirmed right; ~30 facts re-verified."
+}

@@ -1,0 +1,17 @@
+{
+  "id": "d5636061f6f5",
+  "created": "2026-09-16T14:29:10.743548+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "CLAUDE.md",
+  "origin": "",
+  "summary": "OPERATOR DECISION 2026-09-16, verbatim: 'yes i dont want to base the bot off of the shortdeck bot i want to base it off of something else. i would rather start with this or the openspiel which are limited in their own ways and then build it from there rather than trying to change everything from fixed limit shortdeck, which seems harder' -- said after the stoker compared dickreuter/Poker with OpenSpiel; stoker recommended OpenSpiel universal_poker as the engine base and dickreuter/Poker as the screen-capture reference, and the operator accepted starting from either. Consequences for the reconciliation and for CLAUDE.md: (1) fedden/poker_ai is no longer the project's basis; keep vendor/poker_ai for reference only, CLAUDE.md:7-9 and the plan's stage 1 (:35-37, the 52-card conversion) must be rewritten with this reason in the commit; (2) the engine road is OpenSpiel universal_poker, per ENGINE_ALTERNATIVES.md's unconditional recommendation; (3) still OPEN and the one big decision left: who chooses the action on top of OpenSpiel (the forefront-rule carve-out); the reconciliation puts it to the operator with a recommendation.",
+  "delivered_at": "2026-09-16T14:29:16.734413+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-16T14:29:10.811300+00:00",
+    "score": 76,
+    "task_id": "be6a1372cba6"
+  }
+}

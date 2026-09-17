@@ -1,0 +1,18 @@
+{
+  "id": "06eba0d03948",
+  "created": "2026-09-17T04:22:40.146674+00:00",
+  "task": "Record two operator decisions of 2026-09-17 (tasks a948f1d5cba7, 30372a82869a): the no-menial-labor decision and the pace decision, verbatim in OPINIONS.md as new numbered opinions, and one rule bullet each in rules/global.md",
+  "project": "heater",
+  "done_when": "OPINIONS.md carries both decisions in the operator's words; rules/global.md has one bullet each under the fitting section; tools/style_lint.py clean; bash bin/gate.sh exit 0; branch pushed",
+  "task_id": "a948f1d5cba7",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/heater",
+  "workdir": "/Users/chasethompson/.heater/worktrees/heater/47932c09e2bc",
+  "lease_id": "47932c09e2bc",
+  "branch": "worker/06eba0d03948",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

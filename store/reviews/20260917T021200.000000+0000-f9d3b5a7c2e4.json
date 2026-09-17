@@ -1,0 +1,17 @@
+{
+  "id": "f9d3b5a7c2e4",
+  "created": "2026-09-17T02:12:00.000000+00:00",
+  "change": "8a80689e7354",
+  "project": "pokerbot",
+  "round": 3,
+  "lens": "default",
+  "verdict": "pass",
+  "findings": 6,
+  "wording_only": true,
+  "files": 1,
+  "insertions": 92,
+  "deletions": 53,
+  "cost_usd": null,
+  "duration_s": 660.0,
+  "note": "PC-session reviewer at cb8d797: PASS, wording only (6) — first wording-only round; confirming round 4 needed. Round-2 F1 fixed (AF :261, AFq :294, AGG% from the fpdb-3 row all exact; AFQ_SPLIT justification calls AGG% a near neighbour); F2 fixed (criterion (e) rates an unlicensed corpus on a stated condition, narrowed away from corpora obtained against a room's terms, and routes the copyright question to the operator; §3.2 mirrors §1.6's AGPL wording; nothing about third-party data decided); all eighteen (e) marks re-checked; W1-W5 landed; merge clean against f8dc012; suite 25; checker 680. W1 :1119-1121 vs :1138 AGG% called 'the same statistic' and 'not the same statistic'. W2 :1114 'Three ways of measuring aggression' — the column also carries PFR bands, a VPIP/PFR ratio, deviation scores; say three closely-named measures. W3 :1135-1139 direction of the AGG%/AFq difference unstated (0.50 is the more demanding line). W4 :152-154/:1030-1032 doubled tail; two phrasings of one idea. W5 :1032-1034 copyright notice quoted twice. W6 :1208-1209 shortlist item 9 'free' — add 'no licence stated; ✔ conditional; copyright question with the operator (§3.2)'. Findings in handover/findings-8a80689e7354-touchup-r3.md. Cost: 23 tool calls, ~11 min; no dollar figure."
+}

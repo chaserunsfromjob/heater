@@ -1,0 +1,17 @@
+{
+  "id": "1212720d0aa6",
+  "created": "2026-09-16T00:43:20.181917+00:00",
+  "change": "059566b3e160",
+  "project": "heater",
+  "round": 3,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 8,
+  "wording_only": false,
+  "files": 5,
+  "insertions": 568,
+  "deletions": 29,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "core rule unbreakable on every probe; merges clean. F1 commits_reached_trunk answers False for 'could not check' (deleted branch, missing base, no lease) so the alarm goes silent where unreviewed commits ARE in the trunk (resumed sweep; no-lease dispatch). F2 a force-released lease with unmerged commits is closed landed and rendered 'nothing to consolidate' while the branch holds work. F3-F8 wording (docstrings say 'last recorded'; sort-key comment inverted; 'round None'; zero-gloss; awaiting line shape; SKILL.md lacks the two tie-breakers)."
+}

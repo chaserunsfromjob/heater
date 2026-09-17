@@ -1,0 +1,12 @@
+{
+  "id": "8983491d91ab",
+  "created": "2026-09-17T03:26:26.476291+00:00",
+  "kind": "report",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "BUILD_PLAN.md",
+  "origin": "",
+  "summary": "Research phase closed: BUILD_PLAN.md landed on pokerbot main (96aa546) with six build stages. Two decisions are the operator's: D1 take the classmate's arena and rules fix as the practice ground, keeping OpenSpiel as referee and PokerKit as a checker (recommended); D2 how the bot sees a real table: type hands in by hand first, build the screen reader after, and the operator must say where they play. First build task T1 (engine adapter and invariants) dispatched.",
+  "delivered_at": "2026-09-17T03:29:57.295247+00:00",
+  "resolution": null
+}

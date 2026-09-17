@@ -1,0 +1,17 @@
+{
+  "id": "120d1ede9ee1",
+  "created": "2026-09-16T02:58:51.662271+00:00",
+  "change": "048795519f43",
+  "project": "pokerbot",
+  "round": 4,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 8,
+  "wording_only": false,
+  "files": 11,
+  "insertions": 1491,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "7 substantive, 1 wording. Fail-class: 'buy or transcribe preflop ranges' sits under 'Settled by measurement' with no measurement and reads as a decision-time call against CLAUDE.md:26 (:949-962, :860-862). MonkerSolver: vendor-page claims true, but 'no way to drive it from a program' and 'no scripting interface' (:642-643, :908, :50) are contradicted by a dated third-party guide documenting a built-in batch Scripting dialog; (d) does not move. Appendix A row 3 says iterations 0,2,3 'on all three runs' where run 2 printed [0,2] (:1058). Run 2's start load 3.29 appears three times but no committed file carries it (:206, :1078, :1155). Summary's 'ten thousand play-outs, tens of milliseconds' is unsourced and the file's own rate gives 3.8-11 ms (:80-85). Deepsolver /bin/zsh.025 is the overage on the ,875 plan, not on-demand; consumer tiers not on the cited page (:794-795). Appendix A header claim about unloaded rows false for the GTOpen rebuild row, and Appendix B disagrees with entry 3 about which build was first (:1045-1051, :341-344, :1184). Wording: RAM, CPU, JSON, HTTP, GUI, CLI never expanded. Evidence base held: three flop logs byte-identical to their originating runs, every per-run figure exact, range counts recomputed, four vendor pages verbatim, six more citations exact, benchmarks re-run at load 3.65 (13.0x ratio inside the stated 5-15x). No token count in the hand-back."
+}

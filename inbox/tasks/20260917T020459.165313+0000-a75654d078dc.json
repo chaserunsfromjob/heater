@@ -1,0 +1,10 @@
+{
+  "id": "a75654d078dc",
+  "created": "2026-09-17T02:04:59.165313+00:00",
+  "score": 80,
+  "title": "OPERATOR DECISIONS 2026-09-17, verbatim: 'PC can push whenever. for any licensing things, just use the code and we will make our repository private later. i dont know what the hours on one laptop limit is, that just relates to my usage capabilites. my friend has unlimited usage and is allowed to run however much he wants. also i want to clarify, the LLMs can write some code about what poker decisions the bot should make, but the LLM should never make any live decisions. if you need to do some research about what make LLMS BAD at poker and then make sure to not include that in the code. you are probably going to have to write some poker code though just shouldnt be the same as LLMs playing poker' -- Consequences: (1) the forefront rule in pokerbot/CLAUDE.md is REWRITTEN: AI assistants MAY author poker decision code; NO model call may sit in the live decision path; decision code is ordinary, testable code; (2) a short research note on LLM poker failure modes is written and its named mistakes are kept out of the decision code, referenced from the rule; (3) the 'hours on one laptop' compute rule is KEPT (the stoker explained it is a compute budget, not usage; the operator did not repeal it); (4) licence questions (IRC corpus, fpdb-3 AGPL, unlicensed repos) are answered 'use the code', repository may go private later; (5) the PC session may push branches without prompting; (6) the classmate's branch codex/tonight is to be reviewed against the new rule by a fresh reviewer, its CLAUDE.md rewrite replaced by the operator's actual words, and a pull request opened for it.",
+  "source_finding": "4ebe81b03763",
+  "project": "pokerbot",
+  "path": "CLAUDE.md",
+  "done_at": "2026-09-17T02:46:34.031387+00:00"
+}

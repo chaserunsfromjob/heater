@@ -1,0 +1,10 @@
+{
+  "id": "97733f026a8a",
+  "created": "2026-09-16T04:03:11.028648+00:00",
+  "score": 69,
+  "title": "Operator instruction 2026-09-16, verbatim: 'lets keep everything for the project centralized on the github so the models can work together in tandem without being confused on what the other is doing. always pushing to github, and always checking github for updates, for this project at least' -- for pokerbot, GitHub (github.com/chaserunsfromjob/pokerbot) is the single source of truth: every worker fetches origin before starting, pushes its branch as it goes, landing goes through a pull request and main is pushed at once; a change not on GitHub does not exist. Write this into pokerbot/CLAUDE.md so the classmate's assistant reads it too (same change as the licence task ecb013e70573); and make bin/dispatch.py land push main after merging.",
+  "source_finding": "657242513fc4",
+  "project": "pokerbot",
+  "path": "CLAUDE.md",
+  "done_at": null
+}

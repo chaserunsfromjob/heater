@@ -1,0 +1,16 @@
+{
+  "id": "caa33b2cb9bf",
+  "created": "2026-09-16T03:06:45.975136+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "handover/findings-14d64950c0bc-bots-r4.md",
+  "origin": "",
+  "summary": "Bots-survey round-4/round-5 findings files (handover/findings-14d64950c0bc-bots-r4.md, -r5.md) still present after 14d64950c0bc landed; each says to delete it in the landing commit",
+  "delivered_at": "2026-09-16T03:13:34.709226+00:00",
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-16T03:10:04.414418+00:00",
+    "reason": "Already in hand: the bots survey landed early by reconcile before its confirming round; the wording fixer dispatched after round 7 (2026-09-16) deletes both files in its landing commit. Not a new defect."
+  }
+}

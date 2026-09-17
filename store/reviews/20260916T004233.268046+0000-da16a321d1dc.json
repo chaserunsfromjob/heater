@@ -1,0 +1,17 @@
+{
+  "id": "da16a321d1dc",
+  "created": "2026-09-16T00:42:33.268046+00:00",
+  "change": "c79a35661f9c",
+  "project": "heater",
+  "round": 3,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 11,
+  "wording_only": false,
+  "files": 14,
+  "insertions": 1743,
+  "deletions": 4,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "taper half correct under every probe again. F1 debrief substitution leaves code identifiers and rewrites inside clauses (10 of 19 entries carry machinery, 3 misleading); F2 seven entries clipped mid-sentence; F3 'notes you have already seen' false (findings are the stoker's); F4 'N jobs went out' counts jobs sent before the window; F5 non-text usage.json crashes bin/bearings.py (the round-1 F6 dismissal was wrong; reverse it). F6-F10 wording/minor; F11 cost promise against an empty column."
+}

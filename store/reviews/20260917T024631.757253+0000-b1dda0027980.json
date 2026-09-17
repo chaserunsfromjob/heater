@@ -1,0 +1,17 @@
+{
+  "id": "b1dda0027980",
+  "created": "2026-09-17T02:46:31.757253+00:00",
+  "change": "972241b6f99a",
+  "project": "pokerbot",
+  "round": 2,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 2,
+  "wording_only": false,
+  "files": 9,
+  "insertions": 150,
+  "deletions": 115,
+  "cost_usd": null,
+  "duration_s": 360.0,
+  "note": "Fresh reviewer at 60c342b: F1-F6 all resolved; checker drift proven both directions (4 mutations caught); no number changed (685 + 233 figures match); 47 passed; merges clean. F7 substantive but mechanical: RESOURCES_SOLVERS.md (12 lines), RESOURCES_BOTS.md (5), REFERENCE_NOTES.md (2) still assert the carve-out or cite CLAUDE.md by line. F8 minor: quote-count floor >=3 in check_design_numbers.py:1547. Landed under the operator's pace decision (two rounds max); F7/F8 dispatched as the follow-on sweep task 90c430775d15. Cost 9 tool calls ~6 min 38k tokens."
+}

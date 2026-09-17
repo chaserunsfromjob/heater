@@ -1,0 +1,17 @@
+{
+  "id": "d7f1b3c5e8a2",
+  "created": "2026-09-17T02:00:00.000000+00:00",
+  "change": "984aa6810a05",
+  "project": "pokerbot",
+  "round": 8,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 6,
+  "wording_only": false,
+  "files": 3,
+  "insertions": 2243,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 1800.0,
+  "note": "PC-session reviewer at 663c717: FAIL, 2 substantive (prose facts) + 4 wording. Round-7 F1 genuinely fixed (gloss right against the design's AF/AFq/AFQ_SPLIT); W1-W7 applied; links 142/55/0; no CLAUDE.md line citations; eight REFERENCE_NOTES.md line citations all verified by content; merge-tree clean; checker 233; 35 passed; nothing settled. F1 :151-157 (+:138-139, :1002, :1243-1244, :1464-1469, :14-15) says the engine decision sits on an unpushed branch and 'nothing about it has reached this project's trunk' — false since e67825b landed and pushed today (CLAUDE.md:7 on main carries it); the solvers survey and the design are on trunk too. Re-state where the decision lives (main CLAUDE.md, e67825b; heater fb353c6); conclusions unchanged. F2 :395 '§4.2 calls that ratio the aggression factor' — it is §2.2 (§4.2 is the stat table); inherited from round 7's resolve text; :407 and :1187 already say §2.2. W1 :321-323 'opportunity definition involves position' untrue of pfr and three_bet — state the criterion as seat-dependent rate. W2 :394 'The threshold quoted below' is two thresholds. W3 :397-399 the rate description is attached to the threshold; name the design's afq. W4 :504, :1420 short lines. Reviewer flags cost: eight rounds. Findings in handover/findings-984aa6810a05-tablesize-r8.md. Cost: 40 tool calls, ~30 min; no dollar figure."
+}

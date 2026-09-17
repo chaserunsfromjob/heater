@@ -1,0 +1,17 @@
+{
+  "id": "b7e0d3a4c9f1",
+  "created": "2026-09-17T00:36:00.000000+00:00",
+  "change": "114e5b3f5b1b",
+  "project": "pokerbot",
+  "round": 2,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 5,
+  "wording_only": false,
+  "files": 5,
+  "insertions": 740,
+  "deletions": 36,
+  "cost_usd": null,
+  "duration_s": 900.0,
+  "note": "PC-session reviewer at 33c5325: FAIL, 1 substantive + 4 wording. All ten round-1 fixes applied as asked; F1 paragraph faithful and decides nothing; F3 GPL wording matches LICENSE:235-243; no history in CLAUDE.md; forefront section byte-identical but for the added bullet; LICENSE sha unchanged; suite 25 passed; design checker 680. F1 README.md:6-9 / CLAUDE.md:63: the record routes closing or relicensing to the operator but never says the GPL-3.0 grant already made is irrevocable (LICENSE:155-157) — copies already taken keep their rights forever; one plain sentence in README. W1 'Neither says anything' too broad (stage 3 mentions a trained model). W2 GPL-3.0 never written out in CLAUDE.md. W3 stage 1 names an unexplained 'reconciliation'. W4 stage 3 builds 'on top of stages 1-2'. Findings in handover/findings-114e5b3f5b1b-rules-r2.md. Cost: 22 tool calls, ~15 min; no dollar figure."
+}
