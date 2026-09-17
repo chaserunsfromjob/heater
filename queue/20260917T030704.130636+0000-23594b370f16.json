@@ -7,7 +7,7 @@
   "path": "OPPONENT_MODEL_DESIGN.md",
   "origin": "",
   "summary": "Table C's fold_to_cbet opportunity-rate placeholder of 0.15 per hand measures 0.030 nine-handed and 0.084 heads-up over 949,193 HandHQ no-limit hands (OPPONENT_BASELINE.md section 2), so its 'hands needed' column is five times optimistic at a full table; the wtsd placeholder 0.30 measures 0.187 nine-handed",
-  "delivered_at": null,
+  "delivered_at": "2026-09-17T03:08:18.845551+00:00",
   "resolution": {
     "action": "promoted",
     "at": "2026-09-17T03:08:13.475827+00:00",

@@ -42,6 +42,11 @@ that stage is applied by the session and landed.
   round 3's rewrite of the forefront passages landed on the fixer's report).
 - 3b2131f2f81c stale forefront-reference sweep — 1b83bf7 (automated checks).
 
+- f541eb44075b DECISION_LAYER_SEARCH.md — e744a9d (one round; fixer's rewrite
+  against the new rule landed on its report). Recommends one depth-limited
+  search with biased continuation strategies; OpenSpiel's IS-MCTS segfaults
+  above two players (universal_poker.cc:1111 at v2.0.2).
+
 ## Still open
 
 - 7eead182560d RESOURCES_DICKREUTER.md (worker/7eead182560d @ b0c5b4a):

@@ -7,7 +7,7 @@
   "path": "RESOURCES_EXPLOITATION.md",
   "origin": "",
   "summary": "Section 3.1 says each phh-dataset HandHQ file is about 1,000 hands and 800 KB; the full repository tree read 2026-09-16 counts 21,782 such files totalling 16.31 GB across 27 network/stake directories, a figure the survey does not carry",
-  "delivered_at": null,
+  "delivered_at": "2026-09-17T03:08:18.845551+00:00",
   "resolution": {
     "action": "dismissed",
     "at": "2026-09-17T03:08:13.516447+00:00",
