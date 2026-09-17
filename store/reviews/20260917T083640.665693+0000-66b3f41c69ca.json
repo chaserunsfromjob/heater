@@ -1,0 +1,17 @@
+{
+  "id": "66b3f41c69ca",
+  "created": "2026-09-17T08:36:40.665693+00:00",
+  "change": "b68dd506e0ee",
+  "project": "pokerbot",
+  "round": 1,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 5,
+  "wording_only": false,
+  "files": 6,
+  "insertions": 2781,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "Worked example diffs clean against section 4.5; card-blindness structural; imports clean; PRIOR_STRENGTH per tier judged correct. F1 the walk counted as a vpip opportunity against section 4.7's named row, unrecorded in code (stoker settles: follow 4.7); F2 escalation's reason not true (worked example indifferent); F3 wsd counts net>0 not payouts>0; F4 population_size_cuts 0.33/1.00 contradict 0.40/1.10 and are dead; F5 single-name pool makes shrinkage a no-op, README says otherwise."
+}
