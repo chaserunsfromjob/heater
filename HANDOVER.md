@@ -22,9 +22,13 @@ None of that is repeated here.
   Rohit (GitHub issue #13), and D1/D2 still theirs (report 8983491d91ab).
 - ~04:35Z: run as many agents as the five-hour window allows, spread across
   the whole window, on the most important work (task ab4ea92fcb09, score
-  83, verbatim in OPINIONS.md opinion 14 on the taper branch). Until the
-  taper lands there is no usage reading; pace by hand at about five agents,
-  never a burst of eight (that hit the limit at 03:45Z).
+  83, verbatim in OPINIONS.md opinion 14). The meter is live since
+  b46a010: at 05:55Z it read weekly 80% used with 4 days left (resets Mon
+  21 Sep 01:00 EDT), five-hour 40% used and slightly ahead of an even
+  spread, band TOP_OF_LIST_ONLY (at most 3 agents). The WEEKLY figure is
+  the binding one: at 80% with four days to go, keep to two or three agents
+  on top-of-list work and read `bin/bearings.py` "Plan usage" before every
+  dispatch.
 
 ## Where things stand
 
