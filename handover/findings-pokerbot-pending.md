@@ -56,6 +56,29 @@ that stage is applied by the session and landed.
   exact edits by a fixer). D1 arena/rules fix and D2 seeing the table are the
   operator's; T1 dispatched.
 
+- baed4c5203a7 DECISION_LAYER_BLUEPRINT.md — b00802d (one round, eight
+  exact edits by a fixer; the unreproducible six-handed tree figures
+  withdrawn). Research is closed: every planned document is on main.
+- 8cf14f9f446f OVERNIGHT.md — 568d029; also GitHub issue #13, the link for
+  Rohit's assistant tonight.
+- 3b3236e88284 bin/gate.sh + requirements-research.txt — a209ff1 (session's
+  own read; proved passing and failing). The land gate for pokerbot is now
+  `bash bin/gate.sh`.
+- 70884871cf3e T1 the table (OpenSpiel adapter 2-9 seats, invariants I1-I7,
+  determinism) — 7b1545c, PR #11 (two rounds: pass-with-seven, then a
+  confirming pass with one wording fix). 143 tests; I3 at 2 seats NOT RUN
+  by design.
+
+## Building (dispatched 2026-09-17 ~05:05Z, cut from 7b1545c)
+
+- 8edc0ce3e009 T2 the first bot (depth-limited search + equity rule as a
+  logged check + three trivial opponents + arena runner), branch
+  worker/8edc0ce3e009. Code: one fresh reviewer round, fixer, confirming
+  round, land through `bash bin/gate.sh`.
+- 1fd3a6ebe936 T3 the scoreboard (personas, split, paired deals, bootstrap,
+  section 3.5 rule), branch worker/1fd3a6ebe936. Same landing path. T2's
+  baselines and T3's calibration agents may overlap: reconcile at landing.
+
 ## Still open
 
 - 7eead182560d RESOURCES_DICKREUTER.md (worker/7eead182560d @ b0c5b4a):
