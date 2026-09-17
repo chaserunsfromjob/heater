@@ -1,0 +1,18 @@
+{
+  "id": "e4e3d988ff3f",
+  "created": "2026-09-17T07:44:14.119223+00:00",
+  "task": "Record the operator's firm requirements in pokerbot/CLAUDE.md as a short section: 2 to 9 players, true no-limit with any bet size legal, and exploitative play keyed to the named player at the table",
+  "project": "pokerbot",
+  "done_when": "CLAUDE.md has a 'Firm requirements' section of three bullets under fifty words each, no history, the goal line agrees with it; python3 tools/check_design_numbers.py (FOREFRONT_QUOTE_COUNT etc.) and bash bin/gate.sh pass; branch pushed with a draft PR",
+  "task_id": "96243ce4163a",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/469ceed9d852",
+  "lease_id": "469ceed9d852",
+  "branch": "worker/e4e3d988ff3f",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}
