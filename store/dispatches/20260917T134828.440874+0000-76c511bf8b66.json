@@ -12,7 +12,7 @@
   "branch": "worker/76c511bf8b66",
   "run_id": "",
   "part": "",
-  "closed_at": null,
-  "outcome": null,
-  "note": ""
+  "closed_at": "2026-09-17T14:00:24.937889+00:00",
+  "outcome": "failed",
+  "note": "Round 2 fail, findings in handover/findings-7eead182560d-dickreuter-r2.md; fixer 2 dispatched [slot held: 17d75c404d7d still holds work on worker/76c511bf8b66 that exists nowhere else; land it or push it before releasing the slot]"
 }

@@ -1,0 +1,18 @@
+{
+  "id": "e5de5c1dbd8c",
+  "created": "2026-09-17T14:01:05.084293+00:00",
+  "task": "Fixer 2 on RESOURCES_DICKREUTER.md (worker/7eead182560d): merge origin/main, rewrite section 5 against the current CLAUDE.md, re-derive the solvers citations, fix R2-3 to R2-6 and R2-8",
+  "project": "pokerbot",
+  "done_when": "every round-2 finding applied on the merged branch, bin/gate.sh exit 0, pushed",
+  "task_id": "",
+  "agent": "fixer",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/d008fa4efdf0",
+  "lease_id": "d008fa4efdf0",
+  "branch": "worker/e5de5c1dbd8c",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

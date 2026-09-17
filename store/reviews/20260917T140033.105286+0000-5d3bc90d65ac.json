@@ -1,0 +1,17 @@
+{
+  "id": "5d3bc90d65ac",
+  "created": "2026-09-17T14:00:33.105286+00:00",
+  "change": "7eead182560d",
+  "project": "pokerbot",
+  "round": 2,
+  "lens": "default",
+  "verdict": "fail",
+  "findings": 7,
+  "wording_only": false,
+  "files": 1,
+  "insertions": 1324,
+  "deletions": 0,
+  "cost_usd": null,
+  "duration_s": 650.0,
+  "note": "Fixer d094cf4 resolved F1-F6 and W2-W7; W1 dismissed (poker/main.py:206-207 is correct at cae3a108; do not apply). FAIL on R2-1 (CLAUDE.md rewritten on main after the branch merged it: every sentence section 5 quotes is gone and the rule now permits our own code choosing the action; section 5, the (i)-(iv) verdicts and the section 7 ranking must be re-derived), R2-2 (all RESOURCES_SOLVERS.md citations off by six against main), R2-3 (nine standard errors should be about 25), R2-4 (the clamp gives 0 opponents at two seats, 1 at three, not the floor of 2); wording R2-5, R2-6. Reviewer: 130,290 tokens, 42 tool uses, 650 s; no dollar figure."
+}
