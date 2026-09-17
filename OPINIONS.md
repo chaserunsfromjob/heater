@@ -165,11 +165,9 @@ The operator, 2026-09-17, in their own words:
 > discretion dont get too into the weeds on things. we dont need perfection
 > here, just something that we know is beating real players
 
-What the fleet does: a research document lands within one review round — two
-until opinion 15 lowered it, and that opinion governs the count — the stoker
-applies small findings itself and lands with `bin/dispatch.py land
---skip-review` recording why in the store note, and code still gets a fresh
-reviewer round.
+What the fleet does: a research document takes the round count opinion 15 sets,
+the stoker applies small findings itself and records why in the store note, and
+code still gets a fresh reviewer round.
 
 ## 14. Taper as the limits approach
 

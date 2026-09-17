@@ -174,17 +174,56 @@ def rounds_for(change: str) -> list[dict[str, Any]]:
                                if r.get("change") == change])
 
 
+def loose_paths(path: Path) -> list[str]:
+    """Every file this checkout has changed and not committed, tracked or not.
+
+    A checkout is asked what it changed before the sweep commits what the worker
+    left loose, so a branch carrying survey.md with an uncommitted flag.py beside
+    it reads as prose, lands on one wording-only round, and has the sweep commit
+    the code file on the way past. What is sitting in the checkout is part of
+    what the change touches whether or not anybody has committed it yet.
+
+    Every untracked file by name rather than the directory git would collapse
+    them into, because a rule about paths cannot read "src/".
+    """
+    code, output = worktrees.git(path, "status", "--porcelain", "--untracked-files=all")
+    if code != 0:
+        return []
+    found = []
+    for line in output.splitlines():
+        # Two status columns and a space, then the path. A rename reads
+        # "old -> new"; what is in the checkout now is the new name.
+        entry = line[3:].strip()
+        if " -> " in entry:
+            entry = entry.split(" -> ", 1)[1]
+        if (entry := entry.strip().strip('"')):
+            found.append(entry)
+    return found
+
+
 def changed_paths(path: Path, trunk: str) -> list[str]:
-    """Every file this checkout's branch changed against the trunk it was cut from.
+    """Every file this checkout changed against the trunk it was cut from.
 
     Three dots, so a trunk that moved while the worker was out is not counted as
     something the worker changed. A diff git will not give up comes back empty,
     which every caller reads as "not a document" rather than as "nothing".
+
+    Committed and loose together: the answer is used before the sweep's autosave
+    as well as after it, and a rule that reads only committed files calls a
+    branch prose right up to the moment it commits the code file itself.
     """
     code, output = worktrees.git(path, "diff", "--name-only", f"{trunk}...HEAD")
     if code != 0:
+        # A diff that cannot be read says nothing, and an empty answer is what
+        # every caller reads as code. Loose files are not added to silence.
         return []
-    return [line.strip() for line in output.splitlines() if line.strip()]
+    committed = [line.strip() for line in output.splitlines() if line.strip()]
+    seen, both = set(), []
+    for entry in committed + loose_paths(path):
+        if entry not in seen:
+            seen.add(entry)
+            both.append(entry)
+    return both
 
 
 def trunk_of(repo: Path) -> str:
@@ -217,11 +256,22 @@ def rounds_needed(record: dict[str, Any] | None, lease: dict[str, Any] | None = 
     committed straight onto the trunk itself has an empty three-dot diff, which
     `reviewloop` reads as code, so nothing lands on one round for want of a
     branch to compare.
+
+    That checkout is shared, though, and its HEAD is wherever anybody last left
+    it: read at landing time it can be a branch this dispatch never touched, and
+    somebody else's prose would then be what lands this change on one round. So
+    the one-round rule applies there only when the checkout is standing on the
+    branch the dispatch record names. A record naming no branch cannot be
+    checked, and an unchecked reading gets the strict count.
     """
     if lease and lease.get("path"):
         path, trunk = Path(lease["path"]), lease.get("base_branch") or "main"
     elif record and record.get("workdir"):
         path = Path(record["workdir"])
+        named = (record.get("branch") or "").strip()
+        code, on = worktrees.git(path, "rev-parse", "--abbrev-ref", "HEAD")
+        if not named or code != 0 or on.strip() != named:
+            return ROUNDS_TO_END_REVIEW
         trunk = trunk_of(path)
     else:
         return ROUNDS_TO_END_REVIEW
@@ -247,6 +297,29 @@ def review_note(change: str, needed: int = ROUNDS_TO_END_REVIEW) -> str:
     if not rounds:
         return "no review round recorded"
     return "landed on " + ", ".join(f"round {r.get('round', '?')}" for r in rounds)
+
+
+def stamp_document_only(change: str, needed: int) -> None:
+    """Write onto the round a landing rests on that the one-round rule applied.
+
+    Here the rule is read from the diff; the query over the store has no
+    checkout left to read, so it reads `document_only` off the round. Nothing
+    was writing that field, so a document landed by `land` or by the sweep was
+    never counted among the changes that landed unless somebody remembered
+    `bin/store.py review --document-only` by hand. The flag stays on that
+    command for a round recorded with no dispatch behind it.
+
+    The latest round only, which is the one `reviewloop.needed_from_rounds`
+    reads. Written back under its own filename, which is built from `created`
+    and the id, so this updates the round rather than leaving a second copy.
+    """
+    if needed != ROUNDS_TO_END_DOCUMENT_REVIEW:
+        return
+    rounds = rounds_for(change)
+    if not rounds or rounds[-1].get("document_only"):
+        return
+    latest = dict(rounds[-1], document_only=True)
+    jsonstore.write(store.reviews_dir(), latest)
 
 
 def review_state(change: str) -> str:
@@ -316,6 +389,7 @@ def land(dispatch_id: str, *, gate: str = "", change: str = "",
     if lease is None:
         # The worker used the project's own checkout, so there is nothing to
         # merge from and nothing to clean up.
+        stamp_document_only(named, needed)
         return close_dispatch(dispatch_id, "landed",
                               f"worked in the project checkout; {approval}")
 
@@ -345,6 +419,9 @@ def land(dispatch_id: str, *, gate: str = "", change: str = "",
         worktrees.git(repo, "merge", "--abort")
         raise NotReadyToLand(f"merge of {branch} into {trunk} failed and was aborted:\n{output}")
 
+    # After the merge, not before it: a stamp on a landing that then failed to
+    # merge would have the query counting a change the trunk never received.
+    stamp_document_only(named, needed)
     worktrees.release(lease["id"], "landed")
     worktrees.git(repo, "branch", "-d", branch)
     return close_dispatch(dispatch_id, "landed", f"merged {branch} into {trunk}; {approval}")
@@ -525,6 +602,7 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
             # refusing here would strand the slot rather than protect anything.
             # The note says which review state it rested on, so the close can be
             # checked afterwards instead of taken on trust.
+            stamp_document_only(record["id"], needed)
             finish(record, lease, branch, repo, trunk,
                    f"already in the trunk; {review_state(record['id'])}")
             report["landed"].append(record["id"])
@@ -562,6 +640,9 @@ def reconcile(*, run_id: str = "", project: str = "", require_review: bool = Tru
             continue
 
         approval = review_note(record["id"], needed) if require_review else override_note(reason)
+        # The merge is done, so the round this rested on can say which rule it
+        # was landed under, for a query with no checkout left to ask.
+        stamp_document_only(record["id"], needed)
         finish(record, lease, branch, repo, trunk, f"{why}; {approval}")
         report["landed"].append(record["id"])
 
