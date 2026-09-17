@@ -37,24 +37,20 @@ Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-One agent is out: `bb1f9e612089` pokerbot worker (worktree
-pokerbot/8d25b23208cf): the last three worded quotes of the old goal line
-(EVALUATION_STRATEGY.md:34, :151; ENGINE_ALTERNATIVES.md:767, which also
-carries a heads-up-solver verdict to re-judge against 2-to-9). On report:
-session reads the sentences and the verdict decision, lands `--skip-review
---reason` with `bash bin/gate.sh`. The digit-form sweep `d82528eed8c4`
-landed at pokerbot 4fec583 (PR #20). Everything dispatched before it has landed; reconcile at
-07:48Z reported nothing open. pokerbot main is at 4fec583 (CLAUDE.md now has
-a "Firm requirements" section: 2-9 players, true no-limit, exploitative
-play keyed to the named player; the goal line agrees; PR #19). heater main
-is at 895c954 or later.
+No agent is out. Every change dispatched tonight has landed; reconcile at
+08:00Z reported nothing open. pokerbot main is at c5ed759: CLAUDE.md has a
+"Firm requirements" section (2-9 players, true no-limit, exploitative play
+keyed to the named player), and every document now quotes the current goal
+line (PRs #19, #20, #21). heater main is at 895c954 or later.
 
-Next work when the band allows (weekly 82% at 07:45Z, four days left;
-five-hour window resets 09:10Z): read `bin/inbox.py tasks` and take the
-top actionable one only. The list's top, the dickreuter PC push
-(cfdbaaf...), cannot be done from the Mac: the PC's next bearings run
-pushes it. After d82528eed8c4, the next actionable tasks are all fleet reporting
-texture (scores 41-48); hold unless the band opens.
+Next work when the band allows (weekly 82% at 07:45Z, four days left): read
+`bin/inbox.py tasks` and take the top actionable one. The top item, the
+dickreuter PC push, cannot be done from the Mac. Below it are fleet
+reporting-texture tasks (41-48) and one-line document staleness (36); none
+is worth the weekly budget tonight. Stage 2 proper (beating nit and tag,
+BUILD_PLAN.md Stages 3-4) is the next real pokerbot work and needs a brief
+written from BUILD_PLAN.md; do that as the first thing in the morning
+after the operator reads their report.
 
 - `6e3f3af1ef5c` heater sweep/store truthfulness: LANDED 87f9569 (round 1
   fail, round 2 pass, two wording items by the session). The sweep's exit
@@ -143,5 +139,5 @@ to the worktree; widen to the stores). D1/D2 remain the operator's.
 
 ## Cost
 
-Session about $315 by `~/.heater/context.json`; 55 review rounds over 21
+Session about $320 by `~/.heater/context.json`; 55 review rounds over 21
 changes today; no round carries a dollar figure.

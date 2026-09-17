@@ -1,0 +1,17 @@
+{
+  "id": "c41929df9b6d",
+  "created": "2026-09-17T07:59:48.743093+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "EVALUATION_STRATEGY.md",
+  "origin": "",
+  "summary": "EVALUATION_STRATEGY.md:29-30 still says 'Our table has three to nine people at it' four lines above the rewritten goal passage; stale against the 2-to-9 goal (noted by bb1f9e612089's worker)",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T08:00:02.332242+00:00",
+    "score": 36,
+    "task_id": "640d1caa19d8"
+  }
+}
