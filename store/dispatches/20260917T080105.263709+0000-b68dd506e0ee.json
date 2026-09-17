@@ -1,0 +1,18 @@
+{
+  "id": "b68dd506e0ee",
+  "created": "2026-09-17T08:01:05.263709+00:00",
+  "task": "Build Stage 3 of BUILD_PLAN.md, the notebook: record every action of every named player, count opportunities, shrink each rate towards the population average with s = 50, print a profile with a confidence beside each number and a bucket label; pokerbot profile <name> reproduces OPPONENT_MODEL_DESIGN.md section 4.5's worked example number for number",
+  "project": "pokerbot",
+  "done_when": "python -m pokerbot.profile <name> reproduces section 4.5's worked report from its counts; fixtures cover section 4.7's edge cases; a test asserts no stat reads a hole card or a board card; IRC corpus used only as a test fixture; bash bin/gate.sh passed; branch pushed with a draft PR",
+  "task_id": "",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/2b7e5f5ce175",
+  "lease_id": "2b7e5f5ce175",
+  "branch": "worker/b68dd506e0ee",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

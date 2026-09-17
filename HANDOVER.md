@@ -37,8 +37,14 @@ Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-No agent is out. Every change dispatched tonight has landed; reconcile at
-08:00Z reported nothing open. pokerbot main is at c5ed759: CLAUDE.md has a
+One agent is out: `b68dd506e0ee` pokerbot worker (worktree
+pokerbot/2b7e5f5ce175), BUILD_PLAN.md Stage 3, the notebook (opponent
+profiles: count every named player's actions, shrink with s = 50, print
+section 4.5's report; a 12-18 hour build). On report: one fresh reviewer
+round (default lens; code), fixer, confirming round, land with `bash
+bin/gate.sh`. If the worker is cut off, resume it from its branch tip.
+Everything dispatched before it has landed; reconcile at 08:00Z reported
+nothing open. pokerbot main is at c5ed759: CLAUDE.md has a
 "Firm requirements" section (2-9 players, true no-limit, exploitative play
 keyed to the named player), and every document now quotes the current goal
 line (PRs #19, #20, #21). heater main is at 895c954 or later.
@@ -47,10 +53,9 @@ Next work when the band allows (weekly 82% at 07:45Z, four days left): read
 `bin/inbox.py tasks` and take the top actionable one. The top item, the
 dickreuter PC push, cannot be done from the Mac. Below it are fleet
 reporting-texture tasks (41-48) and one-line document staleness (36); none
-is worth the weekly budget tonight. Stage 2 proper (beating nit and tag,
-BUILD_PLAN.md Stages 3-4) is the next real pokerbot work and needs a brief
-written from BUILD_PLAN.md; do that as the first thing in the morning
-after the operator reads their report.
+is worth the weekly budget tonight. Stage 3 is out; Stage 4 (the bot that
+plays the person) follows it and is what addresses the losses to nit and
+tag; brief it from BUILD_PLAN.md once Stage 3 lands.
 
 - `6e3f3af1ef5c` heater sweep/store truthfulness: LANDED 87f9569 (round 1
   fail, round 2 pass, two wording items by the session). The sweep's exit
