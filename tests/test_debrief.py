@@ -427,6 +427,26 @@ class TestAFullWindow(DebriefCase):
         self.assertIn("Make the handover fully automatic.", text)
         self.assertNotIn("when a session has written", text)
 
+    def test_a_cut_sentence_does_not_end_on_a_pointer_to_the_list_it_lost(self):
+        """"...and a Pluribus-style blueprint; for each." points at nothing.
+
+        The sentence promised a thing about each item and was cut before it
+        said what, so the promise is all the reader is left holding.
+        """
+        self.job("Cover at least: vanilla CFR and Deep CFR; for each: what "
+                 "OpenSpiel already ships, and the abstraction it needs.")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("Cover at least: vanilla cfr and Deep cfr.", text)
+        self.assertNotIn("for each", text)
+
+    def test_a_cut_sentence_does_not_end_on_what_each_item_comes_with(self):
+        """"...the stages to build, in order, each with: what it is." trails off."""
+        self.job("Write the stages to build, in order, each with: what it is, "
+                 "which document settles it, and what TestDone looks like.")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("Write the stages to build, in order.", text)
+        self.assertNotIn("each with", text)
+
     def test_two_briefs_that_open_alike_do_not_read_alike(self):
         self.job("Research and design-writing, not code. Survey how a bot beats "
                  "human opponents.")
@@ -499,6 +519,177 @@ class TestAFullWindow(DebriefCase):
                       "the network.", text)
         self.assertNotIn("vendor/", text)
         self.assertNotIn("The rest does not matter", text)
+
+
+class TestARecordThatCannotBeRead(DebriefCase):
+    """A store file that will not parse is dropped in silence when it is read.
+
+    The page opens by saying every line of it is read back from what the agents
+    wrote down, so a record the reader never sees must be counted and owned up
+    to: a live page said eleven further rounds of checking where the store held
+    thirteen, because two review records had a stray backslash in them.
+    """
+
+    def corrupt(self, directory, name="20260917T040000.000000+0000-badf00dbadf0.json"):
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory / name).write_text('{"id": "badf00dbadf0", "note": "a \\ b"}\n',
+                                      encoding="utf-8")
+
+    def test_one_unreadable_record_is_counted_and_said(self):
+        record = self.job("Write the handover")
+        self.check(record["id"])
+        self.corrupt(store.reviews_dir())
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("One record could not be read and is not counted below.", text)
+
+    def test_unreadable_records_across_the_stores_are_counted_together(self):
+        self.job("Write the handover")
+        self.corrupt(store.reviews_dir())
+        self.corrupt(queue.queue_dir())
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("2 records could not be read and are not counted below.", text)
+
+    def test_a_window_whose_records_all_read_back_says_nothing_about_it(self):
+        record = self.job("Write the handover")
+        self.check(record["id"])
+        self.assertNotIn("could not be read", debrief.write(hours=5))
+
+    def test_an_empty_window_still_owns_up_to_what_it_could_not_read(self):
+        """The one page that shows no records at all is the one that must say so."""
+        self.corrupt(dispatch.dispatches_dir())
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("One record could not be read", text)
+        self.assertIn("Nothing happened in the last 5 hours", text)
+
+
+class TestMachineryTheSwapsUsedToMiss(DebriefCase):
+    """Shapes that reached the live page whole, each from the brief that leaked it."""
+
+    def test_a_dot_leading_name_and_a_tool_name_stay_off_the_page(self):
+        """Dispatch 3b3236e88284, word for word out of the store."""
+        self.job("Add bin/gate.sh to pokerbot: one command that stands up or "
+                 "reuses .venv from requirements-research.txt, runs pytest over "
+                 "tests/, and runs the three tools/check_*_numbers.py checkers; "
+                 "exit 0 only when all pass",
+                 done_when="bash bin/gate.sh exits 0 on the branch and prints a "
+                           "one-line verdict; it exits non-zero on a deliberately "
+                           "failing test; README.md names it; branch pushed with a "
+                           "draft PR")
+        text = " ".join(debrief.write(hours=5).split())
+        for leak in (".venv", "pytest", "requirements-research", "tools/check"):
+            self.assertNotIn(leak, text, f"{leak} means nothing to the reader")
+
+    def test_an_abbreviation_is_still_safe_from_the_dot_rule(self):
+        """"e.g." must not be read as a name beginning with a dot."""
+        self.job("Survey the engines, e.g. the ones that deal nine players.")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("Survey the engines, e.g. the ones that deal nine players.", text)
+
+    def test_a_branch_name_a_short_commit_and_a_bare_call_stay_off_the_page(self):
+        """Dispatch ec057301faac, word for word out of the store."""
+        self.job("Fresh reviewer, read-only: judge the classmate's branch "
+                 "codex/tonight (ten commits, tip ca8339e, no pull request) "
+                 "against the REWRITTEN forefront rule, and report what must "
+                 "change before it can be merged.")
+        text = " ".join(debrief.write(hours=5).split())
+        for leak in ("codex/tonight", "ca8339e", "read-only", "pull request"):
+            self.assertNotIn(leak, text, f"{leak} means nothing to the reader")
+        self.assertIn("judge the classmate's separate copy of the work against the "
+                      "rewritten forefront rule", text)
+
+    def test_a_call_written_bare_and_a_true_are_machinery(self):
+        """Dispatch ecc208e2d0d6, word for word out of the store."""
+        self.job("Fix three landing defects in tools/dispatch.py: reconcile lands "
+                 "on one wording-only pass instead of two consecutive "
+                 "(f16c56933d8a); reviewed() returns True if ANY round passed "
+                 "rather than the latest (dc8e3ac0bd7f); reconcile treats a live "
+                 "worker's empty branch as landed and discards it (f0b91b86f69f)")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertNotIn("reviewed()", text)
+        self.assertNotIn("returns True", text)
+        self.assertIn("Fix three landing defects in a file in the project: "
+                      "reconcile lands on one wording-only pass instead of two "
+                      "consecutive.", text)
+
+
+class TestARenderingThatSaysNothingOfItsOwn(DebriefCase):
+    def test_a_line_left_pointing_at_a_sentence_the_reader_never_saw_is_dropped(self):
+        """Dispatch 3b2131f2f81c, word for word out of the store.
+
+        The whole of a live entry was "Sweep every such passage.", where the
+        passages were named in a sentence the account had already passed over.
+        """
+        self.job("Mechanical sweep, no design calls. The forefront rule in "
+                 "CLAUDE.md was rewritten and landed on main (2d411f3): an AI "
+                 "assistant may write the decision code; no model call in the "
+                 "live decision path; no stored model output as decision content; "
+                 "rules and hand evaluation from the engine. Some documents still "
+                 "assert the OLD rule (a 'carve-out' the operator had to grant "
+                 "before our code could choose an action) or cite CLAUDE.md by "
+                 "line number, and the line numbers have moved. Sweep every such "
+                 "passage: run `grep -nE 'carve-out|CLAUDE\\.md:[0-9]+' *.md "
+                 "README.md tests tools` and fix each hit so it states the new "
+                 "rule and cites CLAUDE.md by section name, never by line. Known "
+                 "hits: RESOURCES_SOLVERS.md :137-138, :145, :150. In "
+                 "TABLE_SIZE_AND_SIZING_NOTES.md's Sources, move the "
+                 "pseudo-harmonic formula, Ganzfried-Sandholm 2013 and Pluribus's "
+                 "abstraction from memory-cited to retrieved (verified on branch "
+                 "worker/5a58d580c339, ACTION_TRANSLATION.md).")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertNotIn("Sweep every such passage", text)
+        self.assertIn("move the pseudo-harmonic formula", text)
+
+    def test_two_jobs_whose_only_name_was_swapped_away_do_not_read_alike(self):
+        """Dispatches baed4c5203a7 and f541eb44075b, word for word out of the store.
+
+        Both rendered as "Write one new file a file in the project at the
+        pokerbot root.": every word of it was the frame of the order, and the
+        one word that said which job it was -- the file's name -- is the word
+        the swap took out.
+        """
+        self.job("Research with measurement, not product code. Write ONE new file "
+                 "DECISION_LAYER_BLUEPRINT.md at the pokerbot root: the options "
+                 "for a PRE-COMPUTED strategy (a 'blueprint') on top of OpenSpiel "
+                 "universal_poker for 2-9 player no-limit hold'em. Cover at least: "
+                 "vanilla CFR, external-sampling MCCFR, and a Pluribus-style "
+                 "abstracted blueprint.", minutes_ago=50)
+        self.job("Research with measurement, not product code. Write ONE new file "
+                 "DECISION_LAYER_SEARCH.md at the pokerbot root: the options for "
+                 "choosing an action IN REAL TIME at the table on top of OpenSpiel "
+                 "universal_poker for 2-9 player no-limit hold'em. Cover at least: "
+                 "equity-versus-pot-odds rules with Monte Carlo equity, and "
+                 "depth-limited search with a blueprint at the leaves.",
+                 minutes_ago=40)
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertNotIn("Write one new file a file in the project at the "
+                         "pokerbot root.", text)
+        self.assertIn("vanilla cfr", text)
+        self.assertIn("equity-versus-pot-odds rules", text)
+        lines = [l for l in text.split(" Sent out ") if "Cover at least" in l]
+        self.assertEqual(len(lines), 2, "both entries must say what their job was")
+        self.assertNotEqual(lines[0], lines[1], "two different jobs, two lines")
+
+    def test_a_file_named_where_it_goes_still_reads_as_one_file(self):
+        """The swap put a second file beside the word file: "one new file a file"."""
+        self.job("Write ONE new file LLM_POKER_FAILURE_MODES.md at the pokerbot "
+                 "root: a short note on what makes large language models bad at "
+                 "playing poker.")
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("Write one new file at the pokerbot root: a short note on "
+                      "what makes large language models bad at playing poker.", text)
+        self.assertNotIn("file a file", text)
+
+
+class TestNotesLeftForTheOperator(DebriefCase):
+    def test_one_note_passed_on_is_said_of_one_note(self):
+        """"One note was left for you ... and all of them have been passed on"."""
+        self.job("Write the handover")
+        item = queue.add("report", "the five-hour account", urgency="high")
+        queue.mark_delivered([item])
+        text = " ".join(debrief.write(hours=5).split())
+        self.assertIn("One note was left for you in this window, and it has been "
+                      "passed on to you.", text)
+        self.assertNotIn("all of them have been passed on", text)
 
 
 class TestAnEmptyWindow(DebriefCase):

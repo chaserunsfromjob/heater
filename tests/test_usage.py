@@ -348,6 +348,17 @@ class TestBearings(UsageCase):
         self.assertIn("behind an even spread", line)
         self.assertIn("more agents can be out", line)
 
+    def test_spending_exactly_in_step_with_the_clock_is_neither_ahead_nor_behind(self):
+        """Two fifths of the usage with two fifths of the time gone is on pace.
+
+        Reading it as behind told the stoker to send more agents out at the one
+        moment the spread is exactly what opinion 14 asked for.
+        """
+        self.at(seven=10, five=40, five_resets_in_hours=3)
+        line = next(l for l in usage.lines() if "pacing" in l)
+        self.assertIn("level with an even spread", line)
+        self.assertNotIn("behind", line)
+
     def test_pacing_is_one_line_and_says_nothing_without_a_reset_time(self):
         """A percentage with no clock beside it cannot be paced against."""
         self.at(seven=10, five=20)

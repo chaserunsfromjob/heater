@@ -335,11 +335,19 @@ def pace(reading: dict[str, Any] | None = None, now: datetime | None = None) -> 
         return ""
     left = (when - (now or datetime.now(timezone.utc))).total_seconds() / 3600
     gone = min(FIVE_HOUR_WINDOW, max(0.0, FIVE_HOUR_WINDOW - left)) / FIVE_HOUR_WINDOW * 100
-    verdict = ("ahead of an even spread across the five hours, so send out fewer agents"
+    # Judged on the two figures the line prints rather than on the readings
+    # behind them: a tenth of a point apart is the same figure twice to the
+    # reader, and a line showing two equal figures and then calling one of them
+    # behind the other tells the stoker to send agents out at the one moment the
+    # spread is exactly what opinion 14 asked for.
+    spent, passed = _used_words(used), _used_words(gone)
+    verdict = ("level with an even spread across the five hours, so hold this pace"
+               if spent == passed else
+               "ahead of an even spread across the five hours, so send out fewer agents"
                if used > gone else
                "behind an even spread across the five hours, so more agents can be out")
-    return (f"  pacing: {_used_words(used)} of the 5-hour window spent and "
-            f"{_used_words(gone)} of its time gone — {verdict}")
+    return (f"  pacing: {spent} of the 5-hour window spent and "
+            f"{passed} of its time gone — {verdict}")
 
 
 def _window_line(reading: dict[str, Any], window: str, label: str, tail: str = "") -> str:

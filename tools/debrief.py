@@ -56,6 +56,12 @@ _FILE = (r"\b[\w.\-]*(?:/[\w.\-]+)*"
 MACHINE_PATH = re.compile(r"(?:~|\B/)[\w.\-]+(?:/[\w.\-]+)+/?")
 PLAIN_WORDS = (
     (MACHINE_PATH, "a folder on this machine"),
+    # A copy of the work is named after whoever cut it, so the name itself can
+    # be anything: "codex/tonight" is one, and only the word in front of it says
+    # so. The possessive is swapped first, or "the classmate's branch x/y" comes
+    # out as "the classmate's a separate copy of the work".
+    (re.compile(r"'s\s+branch(?:es)?\s+[\w.\-]+/[\w.\-]+"), "'s separate copy of the work"),
+    (re.compile(r"\bbranch(?:es)?\s+[\w.\-]+/[\w.\-]+"), "a separate copy of the work"),
     (re.compile(r"\b(?:worker|fixer|reviewer|agent)/[\w.\-]+"), "a separate copy of the work"),
     (re.compile(r"\b[\w\-]+(?:\.[a-z]{2,4})+/[\w.\-]+(?:/[\w.\-]+)*"),
      "a ready-made project from the internet"),
@@ -64,7 +70,11 @@ PLAIN_WORDS = (
     (re.compile(r"\b[\w.\-]+(?:/[\w.\-]+)*/(?![\w.\-])"), "a folder in the project"),
     (re.compile(r"(?<![\w.\-/])[\w\-]+/[\w\-]*_[\w\-]+(?![\w.\-])"),
      "a ready-made project from the internet"),
-    (re.compile(r"\b(?=[0-9a-f]*\d)[0-9a-f]{8,}\b"), "a record number"),
+    # Seven characters, not eight: a commit is written down that short -- "tip
+    # ca8339e" -- and it is as much a number nobody can read as a twelve-
+    # character one. Seven letters that are all a-f and hold a digit are not a
+    # word in any brief the store holds.
+    (re.compile(r"\b(?=[0-9a-f]*\d)[0-9a-f]{7,}\b"), "a record number"),
     (re.compile(r"(?<![\w.\-/])[a-z][a-z0-9\-]*_[a-z0-9_\-]+(?![\w.\-/])"),
      "another project"),
 )
@@ -76,6 +86,9 @@ PLAIN_WORDS = (
 # only swapped where it is the object of joining one copy to another, so "the
 # main checkout" is left alone.
 JARGON_WORDS = (
+    # To read something read-only is to look at it without changing it, which is
+    # what the words say once they are said in full.
+    (re.compile(r"\bread-only\b", re.I), "without changing anything"),
     (re.compile(r"\brepos\b"), "projects"),
     (re.compile(r"\brepo\b"), "project"),
     (re.compile(r"\b(and|onto|into|from|with|against|to)\s+(?:main|trunk)\b"),
@@ -104,6 +117,9 @@ CODE_SHAPE = re.compile(
     r"`"                                                 # quoted as a command
     r"|\b[A-Z][a-z0-9]+(?:[A-Z][a-z0-9]*)+\b"            # a class: TestStopHook
     r"|\b\w+\.\w+\s*\("                                  # a call: context.state(
+    r"|\b\w+\(\)"                                        # a call with nothing in it
+    r"|\b(?:True|False)\b"                               # what such a call gives back
+    r"|(?:^|(?<=\s))\.\w+"                               # a name led by a dot: .venv
     r"|\b[A-Z][A-Z0-9]*_[A-Z0-9_]+\b"                    # a constant: MAX_SLOTS
     r"|(?<![\w.\-/])[\w.\-]+(?:/[\w.\-]+)*/(?![\w.\-])"  # a folder: vendor/lib/
     r"|(?<![\w.\-/])[\w\-]*[._][\w\-]*/[\w.\-]+"         # owner/name, either
@@ -117,9 +133,14 @@ CODE_SHAPE = re.compile(
 # a different context-usage reading" is four unexplained terms in one line. The
 # page explains "checkout" once, where it says how many are set aside; anywhere
 # else the word is machinery, so the sentence carrying it is passed over.
+# The names of the tools a brief orders the work with belong here too: a brief
+# that says to run pytest, install with pip, stand up a venv or grep for a word
+# has named programs the reader has never run, and the sentence carrying one of
+# them was written for the agent that would run it.
 FLEET_JARGON = re.compile(
     r"(?i:\b(?:worktrees?|checkouts?|stubs?|stubbed|stubbing|monkeypatch\w*"
-    r"|context-usage|statusline|autopush)\b)")
+    r"|context-usage|statusline|autopush"
+    r"|pytest|pip|venv|grep|git|pull requests?)\b)")
 
 # Everything a sentence is passed over for, in one pattern, so that what is
 # rejected in a brief is rejected in what finishing it would look like too.
@@ -141,10 +162,13 @@ ASIDE = re.compile(r"\s*\([^()]*\)")
 
 # A clause that cannot stand on its own. Kept where the whole sentence is kept,
 # dropped where the sentence had to be cut short, so that the account never ends
-# on "when a session has written, committed and pushed its handover".
+# on "when a session has written, committed and pushed its handover". A clause
+# promising something about each item of a list is the same thing from the other
+# end: cut before it says what, "; for each." is a promise and nothing else.
 SUBORDINATE = re.compile(
     r"^(?:when|while|if|unless|until|after|before|because|since|although|though"
-    r"|whereas|whether|once|where|which|who|that|so that)\b", re.I)
+    r"|whereas|whether|once|where|which|who|that|so that"
+    r"|for (?:each|every|all|both)|each with)\b", re.I)
 
 # An opening clause that says what kind of work this is not -- "Research task,
 # not code" -- has said nothing about the job, and several briefs in a row can
@@ -186,6 +210,38 @@ NOT_AN_ORDER = re.compile(r"^(?:do not|don't|never|no)\b", re.I)
 # person who asked for it said it.
 WANTED = re.compile(r"\b(?:the operator|operator|we|i|they)\s+"
                     r"(?:wants?|wanted|asked|needs?|needed|would like)\b", re.I)
+
+# The swap puts a file where the brief named one, and a brief that names a file
+# straight after the word "file" -- "Write ONE new file DECISION_LAYER.md" --
+# comes back saying file twice: "one new file a file in the project". One file
+# is one file, so the second is dropped along with the commas that held it.
+DOUBLED_FILE = (
+    (re.compile(r"\b(files?),\s+a file in the project,", re.I), r"\1"),
+    (re.compile(r"\b(files?)\s+a file in the project\b", re.I), r"\1"),
+)
+
+# Where in a project a new file goes. It says where to put the thing and never
+# what the thing is, so it counts for nothing when the account asks whether a
+# rendering said anything of its own.
+WHERE_IT_GOES = re.compile(r"\b(?:at|in|under|to)\s+the\s+[\w\-]+\s+root\b", re.I)
+
+# The frame a brief builds an order in: what to do with a file, and which file
+# of the several it is. Two live entries for two different jobs both read "Write
+# one new file a file in the project at the pokerbot root", which is the frame
+# and nothing else -- the one word that said which job it was, the file's name,
+# is the word the swap took out. A rendering made of these alone has not said
+# what the agent was sent to do, so the next sentence is tried instead.
+SCAFFOLDING = frozenset("""
+add adds adding write writes writing create creates creating file files new
+one root project
+""".split())
+
+# A word that points back at something a sentence further up named. The whole of
+# one live entry was "Sweep every such passage.", where the passages were named
+# in a sentence the account had already passed over, so the reader was sent
+# looking for a list that is not on the page.
+POINTS_BACK = re.compile(r"^(?:it|them|that|these|those|the same)\b", re.I)
+POINTS_AT_A_WORD = re.compile(r"\b(?:such|these|those|the same)\s+(?!as\b)([a-z]+)", re.I)
 
 # Words that carry no information of their own once a swap has taken the
 # machinery out. "Done when a file in the project passes" is made of nothing
@@ -271,11 +327,17 @@ def gather(hours: float = DEFAULT_HOURS, now: datetime | None = None) -> dict[st
     """Every record the account draws on, already narrowed to the window."""
     cutoff = since(hours, now)
 
-    jobs = [d for d in jsonstore.load(dispatch.dispatches_dir())
+    # Every file the stores could not read, from all four of them. The page says
+    # it is read back from the records, so one it never saw is one it has to
+    # count: two review records with a stray backslash in them were dropped in
+    # silence, and the page said eleven rounds of checking where there were 13.
+    unreadable: list[Path] = []
+
+    jobs = [d for d in jsonstore.load(dispatch.dispatches_dir(), unreadable)
             if _started_or_ended_since(d, cutoff)]
     jobs.sort(key=lambda d: d.get("created", ""))
 
-    checks = [r for r in jsonstore.load(store.reviews_dir())
+    checks = [r for r in jsonstore.load(store.reviews_dir(), unreadable)
               if (when := _moment(r.get("created"))) and when >= cutoff]
     by_change: dict[str, list[dict[str, Any]]] = {}
     for round_record in checks:
@@ -283,15 +345,16 @@ def gather(hours: float = DEFAULT_HOURS, now: datetime | None = None) -> dict[st
     for rounds in by_change.values():
         rounds.sort(key=lambda r: r.get("round", 0))
 
-    notes = [i for i in jsonstore.load(queue.queue_dir())
+    notes = [i for i in jsonstore.load(queue.queue_dir(), unreadable)
              if (when := _moment(i.get("created"))) and when >= cutoff]
 
-    workspaces = [l for l in jsonstore.load(worktrees.leases_dir())
+    workspaces = [l for l in jsonstore.load(worktrees.leases_dir(), unreadable)
                   if _started_or_ended_since(l, cutoff, ended_key="released_at")]
 
     return {"at": now or datetime.now(timezone.utc), "hours": hours, "cutoff": cutoff,
             "jobs": jobs, "checks": checks, "checks_by_change": by_change,
-            "notes": notes, "workspaces": workspaces}
+            "notes": notes, "workspaces": workspaces,
+            "unreadable": len(unreadable)}
 
 
 # --- saying it ------------------------------------------------------------
@@ -330,6 +393,8 @@ def _plainly(text: str) -> str:
         text = pattern.sub(plain, text)
     text = SHOUT.sub(lambda found: found.group(0).capitalize() if found.start() == 0
                      else found.group(0).lower(), text)
+    for pattern, kept in DOUBLED_FILE:
+        text = pattern.sub(kept, text)
     return " ".join(text.split())
 
 
@@ -424,11 +489,16 @@ def _readable(text: str, limit: int) -> str:
     while lost_a_list and kept and kept[-1].rstrip().endswith(":"):
         kept.pop()
 
-    if len(kept) < len(runs):
+    # Over and over, because cutting at one clause that cannot stand on its own
+    # can leave another one last: "...each with: what it is, which document
+    # settles it" loses its tail and ends on the promise that opened it.
+    while len(kept) < len(runs):
         for index in range(len(kept) - 1, 0, -1):
             if SUBORDINATE.match(kept[index].strip()):
                 kept = kept[:index]
                 break
+        else:
+            break
 
     said = "".join(kept).strip().rstrip(",;:-—– ").strip()
     if len(LIST_MARKER.findall(said)) == 1:
@@ -480,13 +550,37 @@ def _says_something(said: str) -> bool:
     raised the limit on working copies, it named none of that. A list of file
     names goes the same way from the other end: nine of them in a row become the
     same phrase nine times, which is a list the reader cannot act on either.
+    The frame the order was written in goes with them: "Write one new file a
+    file in the project at the pokerbot root" is where a file went and what was
+    done with it, and two different jobs came out of it word for word alike.
     """
-    left = said
+    left = WHERE_IT_GOES.sub(" ", said)
     for _, plain in PLAIN_WORDS:
         if left.count(plain) > 2:
             return False
         left = left.replace(plain, " ")
-    return any(word not in SAID_NOTHING for word in re.findall(r"[a-z']+", left.lower()))
+    return any(word not in SAID_NOTHING and word not in SCAFFOLDING
+               for word in re.findall(r"[a-z']+", left.lower()))
+
+
+def _points_outside(said: str) -> bool:
+    """Whether the rendering leans on a word no sentence of it carries.
+
+    "Sweep every such passage." is an order about passages the reader has not
+    been shown, and so is anything opening with "it", "them" or "those": the
+    sentence that named them is one the account passed over. A rendering that
+    points at a word it does not itself carry is no rendering, so the next
+    sentence is tried instead.
+    """
+    body = said.strip()
+    if POINTS_BACK.match(body):
+        return True
+    for found in POINTS_AT_A_WORD.finditer(body):
+        pointed = found.group(1).lower().rstrip("s")
+        earlier = body[:found.start()].lower()
+        if pointed and not re.search(rf"\b{re.escape(pointed)}s?\b", earlier):
+            return True
+    return False
 
 
 def _describe(record: dict[str, Any], limit: int = 220) -> str:
@@ -503,10 +597,12 @@ def _describe(record: dict[str, Any], limit: int = 220) -> str:
     for sentence in _sentences(record.get("task", "")):
         if META_CLAUSE.match(sentence) or not _says_the_work(sentence):
             continue
-        if (said := _in_plain_words(sentence, limit)) and _says_something(said):
+        if ((said := _in_plain_words(sentence, limit))
+                and _says_something(said) and not _points_outside(said)):
             return said
     for sentence in _sentences(record.get("done_when", "")):
-        if (said := _in_plain_words(sentence, limit)) and _says_something(said):
+        if ((said := _in_plain_words(sentence, limit))
+                and _says_something(said) and not _points_outside(said)):
             return _upper(f"done when {said[:1].lower() + said[1:]}")
     return NOT_RECORDED if not (record.get("task") or "").strip() else DOES_NOT_TRANSLATE
 
@@ -652,7 +748,8 @@ def _note_lines(notes: list[dict[str, Any]]) -> list[str]:
     if for_you:
         kinds = sorted({i.get("kind", "") for i in for_you})
         unsent = [i for i in for_you if not i.get("delivered_at")]
-        how = ("and all of them have been passed on to you" if not unsent
+        how = ("and it has been passed on to you" if not unsent and len(for_you) == 1
+               else "and all of them have been passed on to you" if not unsent
                else "and it has not been passed on to you yet" if len(for_you) == 1
                else "and none of them have been passed on to you yet"
                if len(unsent) == len(for_you)
@@ -714,6 +811,12 @@ def render(data: dict[str, Any]) -> str:
             "",
             _wrap("Every line below is read back from what the agents wrote down as "
                   "they worked, so none of it is anybody's recollection.", indent="")]
+
+    # Said next to that promise, because it is the exception to it.
+    if (lost := data.get("unreadable") or 0):
+        head += ["", _wrap(_upper(f"{_count(lost, 'record', 'records')} could not be read "
+                                  f"and {'is' if lost == 1 else 'are'} not counted below."),
+                           indent="")]
 
     if not jobs and not data["checks"] and not notes:
         return "\n".join(head + [
