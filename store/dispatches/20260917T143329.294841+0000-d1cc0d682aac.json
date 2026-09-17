@@ -1,0 +1,18 @@
+{
+  "id": "d1cc0d682aac",
+  "created": "2026-09-17T14:33:29.294841+00:00",
+  "task": "Review round 4 of worker/0a62853153e4 (9d7c9a4, PR #23): confirm R3-F1 to R3-F3 resolved, say if wording only",
+  "project": "pokerbot",
+  "done_when": "verdict recorded with an explicit wording-only statement",
+  "task_id": "815aea61d060",
+  "agent": "reviewer",
+  "repo": "",
+  "workdir": "",
+  "lease_id": "",
+  "branch": "",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}
