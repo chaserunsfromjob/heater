@@ -1,0 +1,17 @@
+{
+  "id": "2eb33ac7a839",
+  "created": "2026-09-17T02:37:50.639619+00:00",
+  "kind": "finding",
+  "urgency": "high",
+  "project": "heater",
+  "path": "OPINIONS.md",
+  "origin": "",
+  "summary": "OPERATOR DECISION 2026-09-17, verbatim: 'this should be pretty streamlined so please pick up the pace, and at your discretion dont get too into the weeds on things. we dont need perfection here, just something that we know is beating real players' and earlier 'you dont need too much research on LLM failures. you just need to know what types of things you are allowed to code and not allowed to code'. Consequences, applied by the stoker from now: (1) a research document lands on its first review round whose findings are wording or small; at most two rounds per research document, then the session applies what is small and lands; (2) measurement briefs ask for one repeat and short budgets, not three repeats; (3) the reconciliation is dispatched as soon as the engine survey lands, without waiting for every new note; (4) record in OPINIONS.md beside the review cap, with a rule bullet in rules/global.md Landing, in the next heater change.",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T02:37:50.735165+00:00",
+    "score": 82,
+    "task_id": "30372a82869a"
+  }
+}
