@@ -37,17 +37,19 @@ Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-One agent is out: `25aa0c5c14e2` heater worker (worktree
-heater/68b5f1d9f5aa) on tasks d67cffad749a (writes from a worker checkout
-must reach the canonical fleet repo; a tools/fleetrepo.py lookup) and
-bc471f09618e (a refused release must not read as landed). On report: one
-reviewer round, fixer, land with `bash bin/gate.sh`. Everything dispatched
-before it has landed; reconcile at 07:25Z reported nothing open. The last
-was `39abff43a4ee` (Table C re-pinned, PR #18, d986bfe).
+No agent is out. Every change dispatched tonight has landed; reconcile at
+07:43Z reported nothing open. The last two: `39abff43a4ee` (Table C
+re-pinned, PR #18, pokerbot d986bfe) and `25aa0c5c14e2` (heater 895c954:
+tools/fleetrepo.py makes every store and queue write reach the fleet
+repository from any leased checkout, HEATER_REPO overrides; a close whose
+slot is refused records `failed` and the sweep reports it under
+`left_behind`, exit 1, until landed or pushed). Tasks d67cffad749a,
+bc471f09618e done; ba5d00420ad2 (hooks/heater_hook.py REPO, needs a hook
+edit the classifier refuses) and e992486d8c39 (bearings/dispatch alias
+jsonstore.REPO) filed.
 
-pokerbot main is at d986bfe. Next work when the band allows (weekly 81% at
-07:20Z, four days left; the five-hour window resets 09:10Z): after
-25aa0c5c14e2 lands, read `bin/inbox.py tasks` and take the top one only.
+Next work when the band allows: read `bin/inbox.py tasks` and take the top
+one only (weekly usage was 81% at 07:20Z with four days left).
 
 - `6e3f3af1ef5c` heater sweep/store truthfulness: LANDED 87f9569 (round 1
   fail, round 2 pass, two wording items by the session). The sweep's exit
@@ -136,5 +138,5 @@ to the worktree; widen to the stores). D1/D2 remain the operator's.
 
 ## Cost
 
-Session about $305 by `~/.heater/context.json`; 55 review rounds over 21
+Session about $310 by `~/.heater/context.json`; 55 review rounds over 21
 changes today; no round carries a dollar figure.
