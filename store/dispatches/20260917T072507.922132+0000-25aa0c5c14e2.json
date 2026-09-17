@@ -12,7 +12,7 @@
   "branch": "worker/25aa0c5c14e2",
   "run_id": "",
   "part": "",
-  "closed_at": null,
-  "outcome": null,
-  "note": ""
+  "closed_at": "2026-09-17T07:42:46.269691+00:00",
+  "outcome": "landed",
+  "note": "merged worker/25aa0c5c14e2 into main; review skipped by the stoker's explicit override: round 1 pass with three documentation findings applied by the session; code mutation-proved; under the pace rule no second round for prose"
 }
