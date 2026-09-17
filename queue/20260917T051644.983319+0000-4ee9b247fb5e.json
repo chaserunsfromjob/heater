@@ -1,0 +1,16 @@
+{
+  "id": "4ee9b247fb5e",
+  "created": "2026-09-17T05:16:44.983319+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "tools/dispatch.py",
+  "origin": "",
+  "summary": "reconcile's merge route deletes a checkout with no heartbeat guard: with --skip-review a live worker's committed branch is merged and its slot taken mid-task (tools/dispatch.py:436-446). The empty-branch and already-in-trunk routes both check someone_working_in; this one checks only reviewed().",
+  "delivered_at": "2026-09-17T05:17:04.941547+00:00",
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-17T05:19:05.584814+00:00",
+    "reason": "in scope of change ecc208e2d0d6 (same class: a reconcile route that removes a live worker's checkout); put to its round-3 reviewer on 2026-09-17"
+  }
+}
