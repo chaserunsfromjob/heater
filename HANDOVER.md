@@ -40,10 +40,13 @@ branches on origin instead):
   .venv pytest plus the three checkers. Then dispatch T2 (the depth-limited
   search bot) and T3 (the persona league) from BUILD_PLAN.md section 4.
 
-- `20b9ff39b519` heater: bin/bearings.py (tools/unpushed.py) pushes unpushed local branches in
-  every known checkout, with a temp-repo test. On report: one reviewer
-  round, land with `bin/gate.sh`. This is what makes the PC's dickreuter
-  branch reach GitHub without the operator typing anything.
+- `20b9ff39b519` heater: bin/bearings.py (tools/unpushed.py) pushes unpushed
+  local branches in every known checkout; built, gate green (420 tests),
+  proved on real repos. Its REVIEWER is running (default lens, with
+  failure-mode questions in the brief). On its report: fix if needed, land
+  with `bin/dispatch.py land 20b9ff39b519 --gate "bash bin/gate.sh"`, push
+  main. Then the PC's next bearings run pushes the dickreuter branch. Doc
+  lag finding 92e87018609e rides on the branch (skills/bearings, README).
 
 The operator, 2026-09-17, does not want to type commands or be asked for
 menial steps (task a948f1d5cba7, score 84): `permissions.defaultMode` is now
