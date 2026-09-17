@@ -1,0 +1,17 @@
+{
+  "id": "3f2fd65127f1",
+  "created": "2026-09-17T05:55:16.235126+00:00",
+  "change": "c79a35661f9c",
+  "project": "heater",
+  "round": 8,
+  "lens": "default",
+  "verdict": "pass",
+  "findings": 1,
+  "wording_only": true,
+  "files": 16,
+  "insertions": 3154,
+  "deletions": 5,
+  "cost_usd": null,
+  "duration_s": null,
+  "note": "Deciding round: fixer 7's two departures judged right on live evidence; merged tree gates at 611 tests; every page figure re-derived from the stores; one README sentence, applied by the session. Opinion landed as 14 not 13 (12 and 13 taken while the branch was open)."
+}
