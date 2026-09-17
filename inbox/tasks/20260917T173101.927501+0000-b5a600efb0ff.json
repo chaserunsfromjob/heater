@@ -1,0 +1,10 @@
+{
+  "id": "b5a600efb0ff",
+  "created": "2026-09-17T17:31:01.927501+00:00",
+  "score": 50,
+  "title": "dispatch.reconcile still requires two wording-only rounds for a document-only branch; only land reads the diff for the one-round rule, so the sweep holds documents land would take",
+  "source_finding": "3a0e461e279d",
+  "project": "heater",
+  "path": "tools/dispatch.py",
+  "done_at": null
+}

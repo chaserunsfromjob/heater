@@ -1,0 +1,17 @@
+{
+  "id": "1faf8e2d11b1",
+  "created": "2026-09-17T17:29:12.028494+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "OPINIONS.md",
+  "origin": "",
+  "summary": "OPINIONS.md opinion 13 still says a research document lands within two review rounds, which opinion 15 now lowers to one; only the operator edits that file",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T17:31:01.886100+00:00",
+    "score": 47,
+    "task_id": "22f637c7935f"
+  }
+}

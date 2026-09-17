@@ -1,0 +1,16 @@
+{
+  "id": "ed9267093e40",
+  "created": "2026-09-17T17:30:01.051463+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "store/reviews",
+  "origin": "",
+  "summary": "no review round in the store records a cost (139 of 139 empty at 2026-09-17T17:29:44Z), so cost per change and per round cannot be answered",
+  "delivered_at": null,
+  "resolution": {
+    "action": "dismissed",
+    "at": "2026-09-17T17:31:01.970843+00:00",
+    "reason": "Duplicate of finding 3919e7a17ec6, already judged: every review round records no cost; the fix (record tokens and tool uses from the task notification via bin/store.py review --tokens/--tool-uses) is that finding's"
+  }
+}

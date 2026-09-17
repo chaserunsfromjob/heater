@@ -1,0 +1,18 @@
+{
+  "id": "347bdc7cae6a",
+  "created": "2026-09-17T17:31:02.030155+00:00",
+  "task": "Review round 1 of worker/e6dfe622fa6f (bbf5ae9): the one-round rule for document-only changes in OPINIONS.md, rules/global.md, the review skill, reviewloop.py, dispatch.py land, tests, README step 7",
+  "project": "heater",
+  "done_when": "verdict recorded with an explicit wording-only statement",
+  "task_id": "921f9190a071",
+  "agent": "reviewer",
+  "repo": "",
+  "workdir": "",
+  "lease_id": "",
+  "branch": "",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}
