@@ -7,7 +7,7 @@
   "path": "worker/7eead182560d",
   "origin": "",
   "summary": "The dickreuter assessment (change 7eead182560d) exists only on the PC: its reviewed tip b0c5b4a and fixer 1's work are not on GitHub (origin/worker/7eead182560d is plain main at 03622d6, no RESOURCES_DICKREUTER.md). Nothing about it can be briefed or reviewed from the Mac until the PC session pushes the branch. Next PC session: git push -u origin worker/7eead182560d from C:\\Users\\chase\\.heater\\worktrees\\pokerbot\\dickreuter.",
-  "delivered_at": null,
+  "delivered_at": "2026-09-17T02:23:44.675900+00:00",
   "resolution": {
     "action": "promoted",
     "at": "2026-09-17T02:23:32.162704+00:00",

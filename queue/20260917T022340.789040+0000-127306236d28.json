@@ -1,0 +1,17 @@
+{
+  "id": "127306236d28",
+  "created": "2026-09-17T02:23:40.789040+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "pokerbot",
+  "path": "OPPONENT_MODEL_DESIGN.md",
+  "origin": "",
+  "summary": "OPPONENT_MODEL_DESIGN.md (sec 1, 'the forefront rule and this design'), REFERENCE_NOTES.md:346 and RESOURCES_EXPLOITATION.md:516 still cite the deleted two-column forefront table and CLAUDE.md line numbers; they need reconciling with the rewritten forefront rule",
+  "delivered_at": "2026-09-17T02:23:44.675900+00:00",
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T02:24:34.375349+00:00",
+    "score": 60,
+    "task_id": "765036977474"
+  }
+}

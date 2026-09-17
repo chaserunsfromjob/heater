@@ -1,0 +1,10 @@
+{
+  "id": "765036977474",
+  "created": "2026-09-17T02:24:34.373848+00:00",
+  "score": 60,
+  "title": "After the forefront rewrite lands: OPPONENT_MODEL_DESIGN.md section 1, REFERENCE_NOTES.md:346, RESOURCES_EXPLOITATION.md:516 still cite the deleted two-column table and CLAUDE.md line numbers; fold into the reconciliation brief",
+  "source_finding": "127306236d28",
+  "project": "pokerbot",
+  "path": "OPPONENT_MODEL_DESIGN.md",
+  "done_at": null
+}
