@@ -34,6 +34,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 import dispatch  # noqa: E402
 import jsonstore  # noqa: E402
+import reviewloop  # noqa: E402
 import store  # noqa: E402
 import worktrees  # noqa: E402
 
@@ -1038,6 +1039,71 @@ class TestASlotThatWouldNotGoBackIsNotALanding(GitCase):
         code, printed = self.sweep()
 
         self.assertEqual(code, 0, printed)
+
+
+class TestADocumentOnlyChangeLandsOnOneRound(GitCase):
+    """The operator's rule change: one review round for a document, two for code.
+
+    What a branch changed is what decides, so the question is asked of the diff
+    against the trunk in the worker's own checkout rather than of the brief,
+    which can call a change anything.
+    """
+
+    def diffed(self, record: dict) -> list[str]:
+        lease = next(l for l in jsonstore.load(worktrees.leases_dir())
+                     if l["id"] == record["lease_id"])
+        return dispatch.changed_paths(Path(lease["path"]), lease.get("base_branch") or "main")
+
+    def test_a_document_only_branch_lands_on_one_wording_only_pass(self):
+        record = self.worker("write the survey")
+        self.work(record, "survey.md", "# survey\n")
+        self.wording_pass(record["id"], 1)
+        landed = dispatch.land(record["id"])
+        self.assertEqual(landed["outcome"], "landed")
+        self.assertIn("round 1", landed["note"])
+
+    def test_a_branch_touching_code_is_refused_after_one_pass(self):
+        record = self.worker("add a flag")
+        self.work(record, "flag.py", "FLAG = 1\n")
+        self.wording_pass(record["id"], 1)
+        with self.assertRaises(dispatch.NotReadyToLand):
+            dispatch.land(record["id"])
+        self.assertTrue(Path(record["workdir"]).exists(), "a refusal must change nothing")
+
+    def test_a_branch_touching_code_lands_on_two_consecutive_passes(self):
+        record = self.worker("add a flag")
+        self.work(record, "flag.py", "FLAG = 1\n")
+        self.wording_pass(record["id"], 1)
+        self.clean_pass(record["id"], 2)
+        self.assertEqual(dispatch.land(record["id"])["outcome"], "landed")
+
+    def test_a_mixed_branch_counts_as_code(self):
+        record = self.worker("add a flag and say so")
+        self.work(record, "flag.py", "FLAG = 1\n")
+        self.work(record, "README.md", "# flag\n")
+        self.wording_pass(record["id"], 1)
+        with self.assertRaises(dispatch.NotReadyToLand):
+            dispatch.land(record["id"])
+
+    def test_a_handover_note_is_a_document_whatever_its_suffix(self):
+        record = self.worker("hand the session over")
+        path = Path(record["workdir"]) / "handover"
+        path.mkdir(parents=True, exist_ok=True)
+        (path / "2026-09-17.json").write_text("{}\n", encoding="utf-8")
+        run("git", "add", "-A", cwd=Path(record["workdir"]))
+        run("git", "commit", "-qm", "handover", cwd=Path(record["workdir"]))
+        self.wording_pass(record["id"], 1)
+        self.assertEqual(dispatch.land(record["id"])["outcome"], "landed")
+
+    def test_a_branch_with_nothing_in_its_diff_is_not_a_document(self):
+        """Nothing changed says nothing about what changed, so the code rule holds."""
+        self.assertFalse(reviewloop.document_only([]))
+        self.assertEqual(reviewloop.rounds_needed([]), dispatch.ROUNDS_TO_END_REVIEW)
+
+    def test_the_diff_is_read_from_the_checkout_against_its_trunk(self):
+        record = self.worker("write the survey")
+        self.work(record, "survey.md", "# survey\n")
+        self.assertEqual(self.diffed(record), ["survey.md"])
 
 
 if __name__ == "__main__":

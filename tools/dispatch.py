@@ -34,7 +34,10 @@ from heartbeats import STALE_MINUTES, beats, someone_working_in  # noqa: F401
 # `reviewloop` is there for the same reason: `store`'s query counts the changes
 # that landed and cannot import this module back, so when a review has ended is
 # decided below both of them. The rule it ends on is re-exported, not restated.
-from reviewloop import ROUNDS_TO_END_REVIEW  # noqa: F401
+from reviewloop import (  # noqa: F401
+    ROUNDS_TO_END_DOCUMENT_REVIEW,
+    ROUNDS_TO_END_REVIEW,
+)
 
 OUTCOMES = ("landed", "pushed", "escalated", "failed", "abandoned")
 
@@ -168,22 +171,47 @@ def rounds_for(change: str) -> list[dict[str, Any]]:
                                if r.get("change") == change])
 
 
-def reviewed(change: str) -> bool:
+def changed_paths(path: Path, trunk: str) -> list[str]:
+    """Every file this checkout's branch changed against the trunk it was cut from.
+
+    Three dots, so a trunk that moved while the worker was out is not counted as
+    something the worker changed. A diff git will not give up comes back empty,
+    which every caller reads as "not a document" rather than as "nothing".
+    """
+    code, output = worktrees.git(path, "diff", "--name-only", f"{trunk}...HEAD")
+    if code != 0:
+        return []
+    return [line.strip() for line in output.splitlines() if line.strip()]
+
+
+def rounds_needed(lease: dict[str, Any] | None) -> int:
+    """How many wording-only passes this branch takes, from what it changed.
+
+    What a branch touched is git's to say, not the brief's: a brief can call a
+    change a document and still carry a rewrite of the guard.
+    """
+    if not lease or not lease.get("path"):
+        return ROUNDS_TO_END_REVIEW
+    paths = changed_paths(Path(lease["path"]), lease.get("base_branch") or "main")
+    return reviewloop.rounds_needed(paths)
+
+
+def reviewed(change: str, needed: int = ROUNDS_TO_END_REVIEW) -> bool:
     """True when the review loop has ended for this change.
 
     `reviewloop.ended` is what decides, so nothing lands on a reading of the
     rounds that the figures in a report would disagree with.
     """
-    return reviewloop.ended(rounds_for(change))
+    return reviewloop.ended(rounds_for(change), needed)
 
 
-def review_note(change: str) -> str:
+def review_note(change: str, needed: int = ROUNDS_TO_END_REVIEW) -> str:
     """Which rounds a landing rests on, for the note it leaves behind.
 
     A landing that does not say what it landed on cannot be checked afterwards,
     which is how a stale round-4 pass went unnoticed for a day.
     """
-    rounds = rounds_for(change)[-ROUNDS_TO_END_REVIEW:]
+    rounds = rounds_for(change)[-needed:]
     if not rounds:
         return "no review round recorded"
     return "landed on " + ", ".join(f"round {r.get('round', '?')}" for r in rounds)
@@ -232,21 +260,26 @@ def land(dispatch_id: str, *, gate: str = "", change: str = "",
         raise NotReadyToLand(f"{dispatch_id} is already closed as {record['outcome']}")
 
     named = change or dispatch_id
-    # What the landing rests on, written into the record either way: an override
-    # that leaves no trace reads exactly like a change that was reviewed.
-    approval = override_note(reason)
-    if not skip_review:
-        if not reviewed(named):
-            raise NotReadyToLand(
-                f"review has not ended for {named} ({review_state(named)}); it ends on "
-                f"{ROUNDS_TO_END_REVIEW} consecutive rounds passing with wording-only "
-                "findings, each recorded with `bin/store.py review`")
-        approval = review_note(named)
 
     lease = None
     if record.get("lease_id"):
         lease = next((l for l in jsonstore.load(worktrees.leases_dir())
                       if l["id"] == record["lease_id"]), None)
+
+    # Read before the review check, because how many rounds this change takes
+    # depends on what its branch touched, and only the checkout can say.
+    needed = rounds_needed(lease)
+
+    # What the landing rests on, written into the record either way: an override
+    # that leaves no trace reads exactly like a change that was reviewed.
+    approval = override_note(reason)
+    if not skip_review:
+        if not reviewed(named, needed):
+            raise NotReadyToLand(
+                f"review has not ended for {named} ({review_state(named)}); it ends on "
+                f"{reviewloop.rule_phrase(needed)}; every round is recorded with "
+                "`bin/store.py review`")
+        approval = review_note(named, needed)
 
     if lease is None:
         # The worker used the project's own checkout, so there is nothing to

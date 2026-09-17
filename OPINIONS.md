@@ -248,6 +248,31 @@ This does not loosen opinion 11. There is still no standing cap on how many
 workers may be out. The taper is a cap the usage number sets, not one I set in
 advance, and it lifts on its own when the window resets.
 
+## 15. One check for a document, two for everything else
+
+The operator, 2026-09-17, in their own words:
+
+> yes to document only changes we definitely only need one check. for bigger
+> things we should stay at two but that can change to one.
+
+Review is the most expensive thing the fleet does, and most of it is spent on
+changes that cannot break anything. A change where every file it touches is
+prose — anything ending `.md` or `.txt`, or anything under `handover/` or
+`research/results/` — ends its review on one round that passes finding only
+wording. The stoker applies those wording findings itself rather than sending
+the change out for another round of commas.
+
+Every other change keeps two consecutive rounds that find only wording. Code
+that runs can be wrong in ways a second reader catches and a first one misses,
+and I am not paying for that with documents.
+
+"that can change to one" is mine to say when I want it, not a judgment an agent
+makes about a particular change being small enough. Until I say so, two.
+
+What the change touched decides which rule applies, read from the branch itself
+rather than from what the brief called it: `bin/dispatch.py land` takes the
+list of changed files from git and refuses a landing that is short a round.
+
 ---
 
 ## Scope of this build

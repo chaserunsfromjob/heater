@@ -32,7 +32,8 @@ conflicts with this one.
 
 - Land a change on three things: a fresh independent review pass, a green full suite, and exit 0 from `bin/gate.sh`.
 - Land at any hour without operator approval.
-- Land a research document within two review rounds; the stoker applies wording findings itself and records why in the store note.
+- Land a document-only change — every changed path `.md` or `.txt`, or under `handover/` or `research/results/` — on one round passing with wording-only findings you apply yourself (`bin/dispatch.py land`).
+- Hold every other change for two consecutive rounds passing with wording-only findings (`bin/dispatch.py land`).
 - Treat done as deployed green, not merged; watch the deploy and roll back or escalate on red.
 - Delete design briefs, audits, and specs in the landing commit.
 - Move anything durable out of scaffolding into the contract doc or `OPINIONS.md` before deleting it.

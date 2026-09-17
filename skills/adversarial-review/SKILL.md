@@ -1,6 +1,6 @@
 ---
 name: adversarial-review
-description: The per-change gate. Dispatch a fresh reviewer that judges a change against its intent and proves it runs, then a fixer for any findings, until two consecutive rounds find only wording. Run before landing any non-trivial change.
+description: The per-change gate. Dispatch a fresh reviewer that judges a change against its intent and proves it runs, then a fixer for any findings, until two consecutive rounds find only wording, or one round for a document-only change. Run before landing any non-trivial change.
 ---
 
 # Adversarial review
@@ -38,11 +38,17 @@ problems that make the other lenses moot.
 
 ## When review ends
 
-Review ends when **two consecutive rounds find only wording**.
+Review ends when **two consecutive rounds find only wording** — or, for a
+**document-only change**, on the **first** such round.
 
-Run one final round. Record its wording findings as observations rather than
-findings, and land on its pass. A third round of commas is the loop failing to
-stop, not diligence.
+A change is document-only when every path in `git diff --name-only <trunk>...HEAD`
+ends `.md` or `.txt` or sits under `handover/` or `research/results/`. The stoker
+applies that round's wording findings itself and lands; it does not send a
+document out again. `bin/dispatch.py land` reads the diff and enforces both counts.
+
+For everything else, run one final round. Record its wording findings as
+observations rather than findings, and land on its pass. A third round of commas
+is the loop failing to stop, not diligence.
 
 The reviewer states whether its findings are wording-only. Never infer it from
 the finding count.
