@@ -1,0 +1,18 @@
+{
+  "id": "39abff43a4ee",
+  "created": "2026-09-17T07:12:27.402432+00:00",
+  "task": "OPPONENT_MODEL_DESIGN.md Table C: replace the fold_to_cbet opportunity placeholder (0.15/hand) and the other Table C placeholders with the measured rates from OPPONENT_BASELINE.md, and correct every figure derived from them (hands needed etc.), keeping tools/check_design_numbers.py green",
+  "project": "pokerbot",
+  "done_when": "Table C carries measured rates with their source named; every derived figure recomputed; python3 tools/check_design_numbers.py and bash bin/gate.sh pass; branch pushed with a draft PR",
+  "task_id": "",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/d74c6bebfd5a",
+  "lease_id": "d74c6bebfd5a",
+  "branch": "worker/39abff43a4ee",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

@@ -37,32 +37,23 @@ Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-One agent is out: `6e3f3af1ef5c` heater worker (worktree
-heater/72da1e0f2c8b) on the three sweep/store truthfulness defects (tasks
-68b249e08219, 3259f1e2808e, 917775c34006). Round 1 FAIL: the no-checkout
-close still records "landed" with commits off the trunk (must ask git and
-report `left_behind`, exit 1), and store.query windows rounds before
-judging (must judge on full history, attribute by the ending round). FIXER
-round 1 out; then a confirming round; land with `bash bin/gate.sh`. Also
-filed from its worker: bc471f09618e (close_dispatch with a refused release
-still reads landed), e50000f4b9fb. Everything dispatched before it has
-landed; reconcile at 06:37Z reported nothing open.; each report needs one action. Compaction keeps them;
-a fresh session must read the branches on origin instead.
+One agent is out: `39abff43a4ee` pokerbot worker (worktree
+pokerbot/d74c6bebfd5a, task 480764e787ea): re-pin OPPONENT_MODEL_DESIGN.md
+Table C from the measured baseline and recompute the derived figures,
+keeping check_design_numbers green. On report: the session reads the
+figure table (a document change under the pace rule), lands with
+`--skip-review --reason` and `bash bin/gate.sh`. Everything dispatched
+before it has landed; reconcile at 07:15Z reported nothing open.
 
-- `8edc0ce3e009` T2 the first bot: LANDED 3a54ce2 (PR #15) on a round-2
-  wording-only pass. Evidence: 1,000 hands at six seats vs random, 0
-  invariant failures, max decision 82 ms, +2286 bb/100 [+801, +3824];
-  1216 of 1242 decisions preflop (random opponents shove), stated in the
-  README. T3 cut from 7b1545c: at its landing, merge may touch README.md
-  (both add sections); then keep personas.py as the one home for the three
-  trivial agents and shim arena.py to it; delete baselines.py (task
-  6805b01c7bd2 covers the __init__ docstring).
-- `1fd3a6ebe936` T3 the scoreboard: LANDED 88ffff1 (PR #16) on a round-2
-  wording-only pass with the six wording edits applied by a fixer and the
-  merge with T2 resolved (README both sections). 270 tests on main. The
-  three trivial agents now exist twice (task d077f18909a7: keep personas.py,
-  shim arena.py, delete baselines.py); the __init__ docstring names two
-  layers of three (task 6805b01c7bd2).
+- `6e3f3af1ef5c` heater sweep/store truthfulness: LANDED 87f9569 (round 1
+  fail, round 2 pass, two wording items by the session). The sweep's exit
+  code is read off the whole report (unknown keys exit 1); a released slot
+  with commits off the trunk closes `failed` and is named under
+  `left_behind`; an empty branch given up on closes `abandoned`; the
+  store's landed figure is judged on full history via tools/reviewloop.py
+  (was 19, is 5, agrees with dispatch.reviewed). Tasks 68b249e08219,
+  3259f1e2808e, 917775c34006 done; ee0851c19f8f, bc471f09618e filed.
+
 - `20b9ff39b519` heater auto-push in bearings: LANDED 3b26e74 on a round-5
   clean pass (five rounds). Every bearings read now pushes unpushed local
   branches in every known checkout; HEATER_AUTOPUSH=0 turns it off; it
@@ -141,5 +132,5 @@ to the worktree; widen to the stores). D1/D2 remain the operator's.
 
 ## Cost
 
-Session about $295 by `~/.heater/context.json`; 55 review rounds over 21
+Session about $300 by `~/.heater/context.json`; 55 review rounds over 21
 changes today; no round carries a dollar figure.
