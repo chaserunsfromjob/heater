@@ -1,0 +1,10 @@
+{
+  "id": "bc471f09618e",
+  "created": "2026-09-17T06:51:25.067813+00:00",
+  "score": 54,
+  "title": "close_dispatch with a refused release still reports the dispatch as landed and the sweep exits 0",
+  "source_finding": "64f44811bf5c",
+  "project": "heater",
+  "path": "tools/dispatch.py",
+  "done_at": null
+}

@@ -1,0 +1,18 @@
+{
+  "id": "6e3f3af1ef5c",
+  "created": "2026-09-17T06:38:28.691792+00:00",
+  "task": "Three reconcile/store truthfulness defects: reconcile exits 0 when a sweep leaves work on a branch or cannot check commits (68b249e08219); reconcile's 'already in trunk' and 'no checkout to consolidate' paths close a dispatch as landed without the review store, and an abandoned empty branch is closed as 'landed' (3259f1e2808e); store.py query changes_landed counts any pass as landed (917775c34006)",
+  "project": "heater",
+  "done_when": "failing test first for each; reconcile exit code reflects every non-clean outcome; those two close paths consult review_state or use outcome abandoned with finished_runs() adjusted; store query uses dispatch.review_state; bash bin/gate.sh passed; branch pushed",
+  "task_id": "68b249e08219",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/heater",
+  "workdir": "/Users/chasethompson/.heater/worktrees/heater/72da1e0f2c8b",
+  "lease_id": "72da1e0f2c8b",
+  "branch": "worker/6e3f3af1ef5c",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

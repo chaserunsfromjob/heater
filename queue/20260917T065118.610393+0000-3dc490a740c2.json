@@ -1,0 +1,17 @@
+{
+  "id": "3dc490a740c2",
+  "created": "2026-09-17T06:51:18.610393+00:00",
+  "kind": "finding",
+  "urgency": "normal",
+  "project": "heater",
+  "path": "tools/store.py",
+  "origin": "",
+  "summary": "tools/store.py:108 passed_first_round counts a lone round-1 pass; under the two-round rule that never ends a review, so the figure means 'round 1 was clean', not 'landed in one round' (noted by 6e3f3af1ef5c's worker)",
+  "delivered_at": null,
+  "resolution": {
+    "action": "promoted",
+    "at": "2026-09-17T06:51:25.096284+00:00",
+    "score": 40,
+    "task_id": "e50000f4b9fb"
+  }
+}

@@ -1,6 +1,6 @@
 # Handover
 
-<!-- handover-commit: 276f54c -->
+<!-- handover-commit: 4c5e180 -->
 
 Written on `main`, 2026-09-17 about 05:05Z, on the Mac, at 34% context with
 four agents out. Verify with `bin/handover.py`. A snapshot, not a log;
@@ -37,7 +37,11 @@ Also landed tonight: OVERNIGHT.md + issue #13; bin/gate.sh (the pokerbot
 land gate is now `bash bin/gate.sh`); DECISION_LAYER_BLUEPRINT.md. Rohit's
 assistant has not started (no PR, codex/tonight unchanged at ca8339e).
 
-No agent is out. Every change dispatched tonight has landed; reconcile at 06:37Z reported nothing open.; each report needs one action. Compaction keeps them;
+One agent is out: `6e3f3af1ef5c` heater worker (worktree
+heater/72da1e0f2c8b) on the three sweep/store truthfulness defects (tasks
+68b249e08219, 3259f1e2808e, 917775c34006). On report: one reviewer round,
+fixer, land with `bash bin/gate.sh`. Everything dispatched before it has
+landed; reconcile at 06:37Z reported nothing open.; each report needs one action. Compaction keeps them;
 a fresh session must read the branches on origin instead.
 
 - `8edc0ce3e009` T2 the first bot: LANDED 3a54ce2 (PR #15) on a round-2
@@ -97,9 +101,7 @@ Next work, in order, when the usage band allows (weekly was 81% at 06:30Z
 with four days left: two agents at most, top of list only): (1) Stage 2
 proper: the bot loses to nit and tag; BUILD_PLAN.md Stage 3/4 (the notebook
 and the opponent model) is what addresses that, and the persona league is
-the measurement; (2) heater task 3259f1e2808e / 917775c34006 (reconcile
-closes 'already in trunk' / 'no checkout' without the review store; store
-query counts any pass as landed); (3) d67cffad749a (jsonstore.REPO resolves
+the measurement; (2) d67cffad749a (jsonstore.REPO resolves
 to the worktree; widen to the stores). D1/D2 remain the operator's.
 
 ## Traps
