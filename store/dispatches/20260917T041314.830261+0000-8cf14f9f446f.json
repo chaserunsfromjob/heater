@@ -1,0 +1,18 @@
+{
+  "id": "8cf14f9f446f",
+  "created": "2026-09-17T04:13:14.830261+00:00",
+  "task": "Write ONE new file OVERNIGHT.md at the pokerbot root: an instruction manual for the classmate's AI assistant (Rohit uses OpenAI Codex; it reads the repository, not our fleet) for an unattended overnight run, so it does not go off on tangents. Written for a machine that will follow it literally and for Rohit reading it in the morning; plain, numbered, no fleet jargon. Sources on main: BUILD_PLAN.md (the stages and the three first tasks; T1 is being built by us on PR #11; T2 waits on T1), CLAUDE.md (the forefront rule, GitHub rules, compute budget, licence), EVALUATION_STRATEGY.md section 3 (the persona league), and GitHub issue #4 on chaserunsfromjob/pokerbot (gh issue view 4), the 24 required changes on his branch codex/tonight. Content, in this order: (1) 'Tonight's two jobs, in order': JOB 1 make codex/tonight mergeable by working through issue #4 top to bottom (revert his CLAUDE.md/AGENTS.md/LEGACY_GUIDANCE changes so the operator's rule text wins; restore FOREFRONT_SOURCE; drop the result-JSON dumps to the seven summaries; one test count; open the pull request; say in the PR body which of the 24 are done), stopping when the list is done, NOT rewriting strategy modules beyond the three constants findings; JOB 2, only after JOB 1 is pushed: build BUILD_PLAN.md task T3, the scoreboard (EVALUATION_STRATEGY.md section 3.7 Tiers 1 and 2: four calibration agents, nine behavioural personas with per-session parameters, a held-back half), on his arena, as a separate branch and draft PR, with the done-when copied from the plan; (2) 'What not to do tonight', one line each: do not edit CLAUDE.md or AGENTS.md; do not change the referee engine or the rule about OpenSpiel (ask in the PR instead); do not write new strategies or tune constants by hand (the rule requires measured frequencies); do not call any language model from bot code; do not commit generated result files over 200 lines; do not do research or surveys (research is closed, BUILD_PLAN.md is the plan); do not merge anything into main; do not delete branches; stop when both jobs are done rather than picking a third; (3) 'How to work so we can see you': fetch origin first; branch from main; push the branch and open a draft PR before the first hour is up; push at least hourly; one PR per job; write in the PR body what is done and what is not; if blocked, write the question in the PR body and move to the next item; (4) 'Morning report': a five-line template he can paste. Keep it under 120 lines. Verify every file, section and issue reference exists on main before citing it. Also post the same text as a GitHub issue titled 'Overnight instructions for Rohit's assistant (2026-09-17)' with gh issue create --body-file, and put the issue URL at the top of the file. GitHub first: git fetch origin; git merge origin/main; commit; git push -u origin <branch>; gh pr create --draft titled 'Overnight instructions for the classmate's assistant'; end with a push. Run bin/inbox.py check --summary '<text>' from /Users/chasethompson/heater before filing a finding. Report branch, PR URL and issue URL.",
+  "project": "pokerbot",
+  "done_when": "OVERNIGHT.md committed and pushed, under 120 lines, four sections as specified, every reference verified on main; the same text posted as a GitHub issue and its URL in the file; draft PR open.",
+  "task_id": "",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/e0159a34d5ea",
+  "lease_id": "e0159a34d5ea",
+  "branch": "worker/8cf14f9f446f",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

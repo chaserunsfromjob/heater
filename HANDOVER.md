@@ -24,7 +24,9 @@ reviewed against the new rule: 24 required changes in
 `handover/codex-tonight-required-changes-2026-09-17.md` and GitHub issue #4;
 his move, do not merge.
 
-**Three workers are out and will report into this session** (compaction keeps
+**Four agents are out and will report into this session** (all three earlier
+ones were killed by the usage limit at about 03:45Z and relaunched at 04:15Z;
+T1 resumed from its own checkout) (compaction keeps
 background agents; a fresh session would not hear them and should check the
 branches on origin instead):
 
@@ -52,6 +54,13 @@ The operator, 2026-09-17, does not want to type commands or be asked for
 menial steps (task a948f1d5cba7, score 84): `permissions.defaultMode` is now
 `bypassPermissions` in `~/.claude/settings.json`; queue work for another
 machine's next wake instead of asking the operator to run it.
+
+- `8cf14f9f446f` OVERNIGHT.md, branch worker/8cf14f9f446f: the operator's
+  instruction manual for the classmate's assistant tonight (fix his branch
+  per issue #4, then build T3 the scoreboard; a what-not-to-do list; also
+  posted as a GitHub issue). On report: one quick reviewer round or, under
+  the pace decision, a read by the session for tone and references, then
+  land and tell the operator the issue URL so Rohit can be pointed at it.
 
 The research phase is closed: BUILD_PLAN.md landed at 96aa546. Two decisions
 are the operator's, queued as report 8983491d91ab: D1 take the classmate's
