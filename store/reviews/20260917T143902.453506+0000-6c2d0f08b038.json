@@ -1,0 +1,17 @@
+{
+  "id": "6c2d0f08b038",
+  "created": "2026-09-17T14:39:02.453506+00:00",
+  "change": "0a62853153e4",
+  "project": "pokerbot",
+  "round": 4,
+  "lens": "default",
+  "verdict": "pass",
+  "findings": 0,
+  "wording_only": true,
+  "files": 7,
+  "insertions": 286,
+  "deletions": 21,
+  "cost_usd": null,
+  "duration_s": 540.0,
+  "note": "PASS, no findings. R3-F1 clause verified against the engine (old string: SB player 1 first preflop, BB player 0 first on the flop); R3-F2 raw headers scoped, every number byte-identical; R3-F3 drift test reproduced failing on an added menu. Two observations recorded, not findings: terse raw-header phrasing; the 2- and 6-seat measurement stated openly. 355 passed 1 skipped; gate exit 0. 14 tool calls, about 9 min."
+}

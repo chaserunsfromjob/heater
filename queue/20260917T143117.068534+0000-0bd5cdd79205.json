@@ -7,7 +7,7 @@
   "path": "tools/worktrees.py",
   "origin": "",
   "summary": "work_at_risk judges 'pushed' against origin/<lease branch>, so a lease whose checkout was put on another branch reads as holding unique work even when its HEAD is on origin or in main; reconcile then reports left_behind and refuses release without --force. Judge against HEAD: contained by trunk, or by any origin ref",
-  "delivered_at": null,
+  "delivered_at": "2026-09-17T14:31:32.519451+00:00",
   "resolution": {
     "action": "promoted",
     "at": "2026-09-17T14:31:17.125377+00:00",
