@@ -1,0 +1,18 @@
+{
+  "id": "0a62853153e4",
+  "created": "2026-09-17T13:49:42.600453+00:00",
+  "task": "bench_decision_layer.py builds its game from the same blind and first-player settings as pokerbot/table.py, so the benchmark measures the bot's table",
+  "project": "pokerbot",
+  "done_when": "a test proves the benchmark's game string matches the table's at 2 and 6 seats; suite green; gate exit 0; branch pushed",
+  "task_id": "815aea61d060",
+  "agent": "worker",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/7ff6bd8d7c9c",
+  "lease_id": "7ff6bd8d7c9c",
+  "branch": "worker/0a62853153e4",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}

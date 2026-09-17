@@ -1,0 +1,18 @@
+{
+  "id": "76c511bf8b66",
+  "created": "2026-09-17T13:48:28.440874+00:00",
+  "task": "Review round 2 of RESOURCES_DICKREUTER.md (worker/7eead182560d, fixer 1 commit d094cf4): confirm F1-F6 and W1-W7 from round 1 are resolved and the merge of main left the document consistent",
+  "project": "pokerbot",
+  "done_when": "verdict recorded with an explicit wording-only statement",
+  "task_id": "",
+  "agent": "reviewer",
+  "repo": "/Users/chasethompson/pokerbot",
+  "workdir": "/Users/chasethompson/.heater/worktrees/pokerbot/17d75c404d7d",
+  "lease_id": "17d75c404d7d",
+  "branch": "worker/76c511bf8b66",
+  "run_id": "",
+  "part": "",
+  "closed_at": null,
+  "outcome": null,
+  "note": ""
+}
